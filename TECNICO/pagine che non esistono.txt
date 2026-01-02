@@ -1,0 +1,90 @@
+PAGINE E FUNZIONALITÀ DA VERIFICARE/IMPLEMENTARE
+===============================================
+
+MARKETPLACE
+-----------
+✅ /listings - Marketplace principale
+✅ /listings/[id] - Dettaglio listing
+✅ /listings/create - Crea nuovo listing
+✅ /listings/[id]/edit - Modifica listing
+✅ /listings/[id]/propose - Fai proposta
+
+DASHBOARD UTENTE
+----------------
+✅ /dashboard - Dashboard principale
+✅ /dashboard/listings - Miei listing
+✅ /dashboard/listings/[id] - Dettaglio mio listing
+✅ /dashboard/proposals/sent - Proposte inviate
+✅ /dashboard/proposals/received - Proposte ricevute
+✅ /dashboard/profile - Profilo
+✅ /dashboard/settings - Impostazioni
+
+MERCHANT
+--------
+✅ /merchant/apply - Richiesta merchant
+✅ /merchant/setup - Setup negozio
+✅ /merchant/shop - Dashboard negozio
+✅ /merchant/inventory - Inventario
+✅ /merchant/inventory/new - Nuovo prodotto
+✅ /merchant/inventory/[id] - Modifica prodotto
+✅ /merchant/tournaments - Tornei
+✅ /merchant/tournaments/new - Nuovo torneo
+✅ /merchant/orders - Ordini
+✅ /merchant/appointments - Appuntamenti
+✅ /merchant/promos - Promozioni
+✅ /merchant/social - Social media
+✅ /merchant/offers - Offerte
+
+ADMIN
+-----
+✅ /admin - Dashboard admin
+✅ /admin/applications - Richieste merchant
+✅ /admin/listings - Moderazione listing
+
+ESCROW
+------
+✅ /escrow/sessions - Lista sessioni escrow
+⚠️ /escrow/sessions/[sessionId] - Dettaglio sessione (rendering da ottimizzare)
+
+TRANSAZIONI SAFETRADE
+---------------------
+✅ /select-store - Selezione negozio
+✅ /select-appointment - Selezione appuntamento
+✅ /appointment-confirmation - Conferma appuntamento
+✅ /transaction/[id]/status - Status transazione
+
+VLS (Verified Local Store)
+---------------------------
+✅ /dashboard/vls/verify - Verifica carte
+✅ /dashboard/vls/review - Review transazione
+✅ /dashboard/vls/appointments - Appuntamenti VLS
+
+SHOP PUBBLICI
+-------------
+✅ /shops/[slug] - Landing page negozio pubblico
+
+AUTH
+----
+✅ /login - Login
+✅ /signup - Registrazione
+✅ /auth/callback - Callback Supabase
+
+PAGINE STATICHE
+---------------
+✅ /community - Community
+✅ /tournaments - Tornei
+✅ /safetrade - Spiegazione SafeTrade
+✅ /sell - Scegli tipo vendita
+✅ /terms - Termini e condizioni
+✅ /privacy - Privacy policy
+✅ /faq - FAQ
+
+NOTE
+----
+- Tutte le pagine principali sono implementate
+- Sistema escrow funzionante (backend completo)
+- Da ottimizzare: rendering pagina dettaglio escrow
+- Da implementare in futuro: sistema di pagamento online (Stripe/PayPal)
+- Da implementare in futuro: notifiche push
+- Da implementare in futuro: sistema di recensioni
+
