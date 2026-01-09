@@ -87,7 +87,10 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(shop)
+    const response = NextResponse.json(shop)
+    // Cache for 60 seconds (same as page revalidate)
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120')
+    return response
   } catch (error: any) {
     console.error('Error fetching shop:', error)
     return NextResponse.json(

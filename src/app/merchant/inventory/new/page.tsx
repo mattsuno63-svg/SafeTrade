@@ -44,6 +44,7 @@ export default function NewProductPage() {
   const { user, loading: userLoading } = useUser()
   
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -57,6 +58,59 @@ export default function NewProductPage() {
     stock: '1',
     images: [] as string[],
   })
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setUploading(true)
+    const newImages: string[] = []
+
+    try {
+      for (const file of Array.from(files)) {
+        const formDataUpload = new FormData()
+        formDataUpload.append('file', file)
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataUpload,
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          newImages.push(data.url)
+        } else {
+          const error = await res.json()
+          throw new Error(error.error || 'Upload failed')
+        }
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...newImages],
+      }))
+
+      toast({
+        title: 'Success',
+        description: `${newImages.length} image(s) uploaded successfully`,
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to upload images',
+        variant: 'destructive',
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -291,17 +345,62 @@ export default function NewProductPage() {
                 {/* Images */}
                 <div className="space-y-4">
                   <h3 className="font-bold text-lg">Images</h3>
-                  <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center">
-                    <span className="material-symbols-outlined text-4xl text-gray-400 mb-2">
-                      cloud_upload
-                    </span>
-                    <p className="text-gray-500 mb-2">
-                      Image upload coming soon
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      For now, you can add image URLs after creating the product
-                    </p>
-                  </div>
+                  
+                  {/* Image Preview Grid */}
+                  {formData.images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      {formData.images.map((url, index) => (
+                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                          <img
+                            src={url}
+                            alt={`Product ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                          >
+                            <span className="material-symbols-outlined text-sm">close</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Upload Area */}
+                  <label className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                    {uploading ? (
+                      <>
+                        <span className="material-symbols-outlined text-4xl text-primary mb-2 animate-spin">
+                          sync
+                        </span>
+                        <p className="text-primary font-medium">
+                          Uploading...
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-4xl text-gray-400 mb-2">
+                          cloud_upload
+                        </span>
+                        <p className="text-gray-500 mb-2">
+                          Click to upload images
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          PNG, JPG up to 10MB
+                        </p>
+                      </>
+                    )}
+                  </label>
                 </div>
 
                 {/* Submit */}

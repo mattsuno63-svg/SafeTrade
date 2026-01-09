@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const result = conversations.map(conv => {
       const otherUser = conv.userAId === user.id ? conv.userB : conv.userA
       const lastMessage = conv.messages[0]
-      
+
       return {
         id: conv.id,
         otherUser,
@@ -143,11 +143,11 @@ export async function POST(request: NextRequest) {
           userId: recipientId,
           type: 'NEW_MESSAGE',
           title: 'New Message',
-          message: `You have a new message from ${user.user_metadata?.name || user.email}`,
-          data: JSON.stringify({
+          message: `You have a new message from ${user.name || user.email}`,
+          data: {
             conversationId: conversation.id,
             senderId: user.id,
-          }),
+          },
         },
       })
     }

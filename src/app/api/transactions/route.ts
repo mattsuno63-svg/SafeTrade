@@ -1,6 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { SafeTradeStatus } from '@prisma/client'
+import { SafeTradeStatus, PriorityTier } from '@prisma/client'
+
+// Helper to get user's priority tier based on subscription
+async function getUserPriorityTier(userId: string): Promise<{ tier: PriorityTier; isPaid: boolean }> {
+  const subscription = await prisma.userSubscription.findUnique({
+    where: { userId },
+    include: { plan: true },
+  })
+
+  // No subscription or inactive = STANDARD
+  if (!subscription || subscription.status !== 'ACTIVE') {
+    return { tier: 'STANDARD', isPaid: false }
+  }
+
+  // Expired = STANDARD
+  if (subscription.endDate && subscription.endDate < new Date()) {
+    return { tier: 'STANDARD', isPaid: false }
+  }
+
+  // PRO = FAST_TRACK (unlimited priority)
+  if (subscription.plan.tier === 'PRO') {
+    return { tier: 'FAST_TRACK', isPaid: false }
+  }
+
+  // PREMIUM = PRIORITY (check monthly limit)
+  if (subscription.plan.tier === 'PREMIUM') {
+    const monthlyLimit = subscription.plan.priorityMonthlyLimit
+    
+    // Unlimited (-1)
+    if (monthlyLimit === -1) {
+      return { tier: 'PRIORITY', isPaid: false }
+    }
+
+    // Check if user has used all free priority this month
+    if (subscription.priorityUsedThisMonth < monthlyLimit) {
+      return { tier: 'PRIORITY', isPaid: false }
+    }
+    
+    // Limit reached, fallback to STANDARD
+    return { tier: 'STANDARD', isPaid: false }
+  }
+
+  return { tier: 'STANDARD', isPaid: false }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,7 +104,11 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      // Order by priority tier first, then by date
+      orderBy: [
+        { priorityTier: 'desc' }, // FAST_TRACK > PRIORITY > STANDARD
+        { createdAt: 'desc' },
+      ],
     })
 
     return NextResponse.json({ transactions })
@@ -149,6 +196,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
     }
 
+    // Determine priority tier for the buyer (userA)
+    const { tier: priorityTier, isPaid: priorityPaid } = await getUserPriorityTier(userAId)
+    
+    // If user is using their monthly free priority, increment counter
+    if (priorityTier === 'PRIORITY') {
+      const subscription = await prisma.userSubscription.findUnique({
+        where: { userId: userAId },
+      })
+      if (subscription) {
+        await prisma.userSubscription.update({
+          where: { userId: userAId },
+          data: { priorityUsedThisMonth: { increment: 1 } },
+        })
+      }
+    }
+
     const transaction = await prisma.safeTradeTransaction.create({
       data: {
         proposalId,
@@ -158,6 +221,8 @@ export async function POST(request: NextRequest) {
         scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
         scheduledTime,
         status: SafeTradeStatus.PENDING,
+        priorityTier,
+        priorityPaid,
       },
       include: {
         userA: {
@@ -251,13 +316,21 @@ ${feeDescriptions.merchantMessage}
         })
       : 'Data da confermare'
 
+    // Priority tier messages
+    const priorityMessages: Record<string, string> = {
+      FAST_TRACK: '⚡ FAST TRACK - Verifica in 30 minuti!',
+      PRIORITY: '🌟 PRIORITY - Coda prioritaria!',
+      STANDARD: '',
+    }
+    const priorityNote = priorityMessages[priorityTier] ? `\n${priorityMessages[priorityTier]}` : ''
+
     await Promise.all([
       prisma.notification.create({
         data: {
           userId: userAId,
           type: 'TRANSACTION_CREATED',
           title: '🎉 Appuntamento Confermato!',
-          message: `Il tuo appuntamento SafeTrade è stato confermato per ${appointmentDate} alle ${scheduledTime}. Riceverai un QR code univoco.`,
+          message: `Il tuo appuntamento SafeTrade è stato confermato per ${appointmentDate} alle ${scheduledTime}. Riceverai un QR code univoco.${priorityNote}`,
           link: `/transaction/${transaction.id}/status`,
         },
       }),
@@ -266,7 +339,7 @@ ${feeDescriptions.merchantMessage}
           userId: userBId,
           type: 'TRANSACTION_CREATED',
           title: '🎉 Appuntamento Confermato!',
-          message: `Il tuo appuntamento SafeTrade è stato confermato per ${appointmentDate} alle ${scheduledTime}. Riceverai un QR code univoco.`,
+          message: `Il tuo appuntamento SafeTrade è stato confermato per ${appointmentDate} alle ${scheduledTime}. Riceverai un QR code univoco.${priorityNote}`,
           link: `/transaction/${transaction.id}/status`,
         },
       }),
@@ -274,8 +347,8 @@ ${feeDescriptions.merchantMessage}
         data: {
           userId: shop.merchantId,
           type: 'ESCROW_SESSION_CREATED',
-          title: '🔔 Nuovo Appuntamento SafeTrade',
-          message: `Un nuovo appuntamento SafeTrade è stato programmato per ${appointmentDate} alle ${scheduledTime} presso il tuo negozio.`,
+          title: priorityTier !== 'STANDARD' ? `🔔 Nuovo Appuntamento SafeTrade ${priorityMessages[priorityTier]}` : '🔔 Nuovo Appuntamento SafeTrade',
+          message: `Un nuovo appuntamento SafeTrade ${priorityTier !== 'STANDARD' ? `(${priorityTier}) ` : ''}è stato programmato per ${appointmentDate} alle ${scheduledTime} presso il tuo negozio.`,
           link: `/merchant/orders`,
         },
       }),

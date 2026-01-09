@@ -15,7 +15,7 @@ Flusso completo di registrazione e setup iniziale account:
 - Dashboard iniziale
 - Setup profilo
 
-**Status**: ✅ Base completato, ⏳ Features avanzate da implementare
+**Status**: ✅ Completato (MVP completo)
 
 ---
 
@@ -26,7 +26,7 @@ Flusso marketplace P2P per collezionisti:
 - Sistema proposte di acquisto
 - Ricerca avanzata
 
-**Status**: ✅ UI completata, ⏳ API da collegare
+**Status**: ✅ Completato (UI + API implementate)
 
 ---
 
@@ -51,7 +51,7 @@ Flusso transazioni verificate presso negozi partner:
 - Tracking transazione
 - Notifiche real-time
 
-**Status**: ✅ UI completata, ⏳ API da collegare
+**Status**: ✅ Completato (UI + API implementate)
 
 ---
 
@@ -65,7 +65,7 @@ Dashboard centrale utente:
 - Impostazioni
 - Notifiche
 
-**Status**: ✅ Base completato, ⏳ Features avanzate da implementare
+**Status**: ✅ Completato (MVP completo)
 
 ---
 
@@ -97,18 +97,19 @@ Dashboard centrale utente:
 - Notification system base
 
 ### ⏳ In Lavoro
-- Collegamento API a frontend
-- Features avanzate merchant
-- Sistema proposte completo
-- Full-text search
+- Features avanzate merchant (analytics, reporting)
+- Full-text search avanzato (fuzzy matching completo)
+- Dark mode toggle UI
+- Testing end-to-end
 
-### 🔴 Da Implementare
-- Setup profilo completo
-- Password reset
-- Email verification
+### 🔴 Da Implementare (Future)
+- Password reset UI completa
+- Email verification opzionale
 - Chrome extension import
-- Statistiche avanzate
-- Sistema dispute
+- Statistiche avanzate dashboard
+- Sistema dispute avanzato
+- Sistema recensioni
+- Pagamenti online (Stripe)
 
 ---
 
@@ -120,7 +121,7 @@ Questa documentazione va aggiornata quando:
 - Si completa un task dalla checklist
 - Si identifica un nuovo flusso alternativo
 
-**Ultimo aggiornamento**: 2025-01-29
+**Ultimo aggiornamento**: 2025-01-30
 
 ---
 

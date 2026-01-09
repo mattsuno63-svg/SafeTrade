@@ -36,7 +36,7 @@ Il flusso SafeTrade permette transazioni P2P sicure verificate presso negozi par
 - Filtra per location
 - Clicca su negozio → Vai a `/select-appointment`
 
-**Stato**: ✅ UI completata, ⏳ API da collegare
+**Stato**: ✅ Completato (API implementata)
 
 ---
 
@@ -55,7 +55,7 @@ Il flusso SafeTrade permette transazioni P2P sicure verificate presso negozi par
 - Conferma → Crea `SafeTradeTransaction`
 - Redirect a `/appointment-confirmation`
 
-**Stato**: ✅ UI completata, ⏳ API da collegare
+**Stato**: ✅ Completato (API implementata)
 
 ---
 
@@ -113,7 +113,7 @@ Il flusso SafeTrade permette transazioni P2P sicure verificate presso negozi par
 - Clicca "Check-in" per ogni utente
 - Aggiorna status transazione: `CHECKED_IN`
 
-**Stato**: ✅ UI completata, ⏳ API da collegare
+**Stato**: ✅ Completato (API implementata)
 
 ---
 
@@ -136,7 +136,7 @@ Il flusso SafeTrade permette transazioni P2P sicure verificate presso negozi par
 - Approve → Status: `COMPLETED`
 - Reject → Status: `REJECTED` (con motivo)
 
-**Stato**: ✅ UI completata, ⏳ API da collegare
+**Stato**: ✅ Completato (API implementata)
 
 ---
 
@@ -162,7 +162,7 @@ Il flusso SafeTrade permette transazioni P2P sicure verificate presso negozi par
 - Visualizza QR code
 - Contatta supporto (se necessario)
 
-**Stato**: ✅ UI completata, ⏳ API da collegare
+**Stato**: ✅ Completato (API implementata)
 
 ---
 
@@ -180,7 +180,7 @@ Il flusso SafeTrade permette transazioni P2P sicure verificate presso negozi par
 - Lascia rating/feedback
 - Chiudi transazione
 
-**Stato**: ✅ UI completata, ⏳ API da collegare
+**Stato**: ✅ Completato (API implementata)
 
 ---
 

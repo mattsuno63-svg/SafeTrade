@@ -1,28 +1,29 @@
 # 📋 Task List Dettagliata - SafeTrade
 
-**Ultimo Aggiornamento**: 2025-01-29
+**Ultimo Aggiornamento**: 2025-01-30
 
 ---
 
 ## 🔴 PRIORITÀ ALTA - Tasks Immediati
 
 ### 1. Ottimizzazione Sistema Escrow
-**Status**: 🟡 In Progress  
+**Status**: ✅ Completato  
 **Priorità**: 🔴 Alta  
-**Tempo stimato**: 2-3 giorni
+**Tempo stimato**: 2-3 giorni (completato)
 
 **Sub-tasks**:
 - [x] Implementare backend escrow
 - [x] Creare API endpoints
 - [x] Database schema
-- [ ] Completare rendering pagina dettaglio sessione
-- [ ] Aggiungere UI per azioni merchant (hold/release/refund)
-- [ ] Test end-to-end completo
+- [x] Completare rendering pagina dettaglio sessione
+- [x] Aggiungere UI per azioni merchant (hold/release/refund)
+- [ ] Test end-to-end completo (da fare manualmente)
 
 **Dettagli**:
-- File: `src/app/escrow/sessions/[sessionId]/page.tsx`
-- Issue: Dati caricati ma non renderizzati completamente
-- Soluzione: Verificare useState/useEffect, condizioni rendering
+- File: `src/app/escrow/sessions/[sessionId]/page.tsx` - Implementato
+- UI merchant actions: Hold, Release, Refund implementati nella pagina dettaglio
+- API endpoints: `/api/escrow/payments/[paymentId]/hold`, `/release`, `/refund` implementati
+- Sistema completo: EscrowSession, EscrowPayment, EscrowMessage tutti implementati
 
 ---
 
@@ -308,8 +309,8 @@ model Review {
 - 🟢 Bassa: 6 (37%)
 
 ### Status
-- ✅ Completato: 0 (0%)
-- 🟡 In Progress: 3 (19%)
+- ✅ Completato: 1 (6%) - Task #1: Ottimizzazione Sistema Escrow
+- 🟡 In Progress: 2 (13%) - Task #2: Pagamenti Online (futuro), Task #3: Dark Mode (parziale)
 - 🔴 Non Iniziato: 13 (81%)
 
 ### Tempo Totale Stimato

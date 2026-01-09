@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatPriceNumber } from '@/lib/utils'
+import { useListings } from '@/hooks/use-listings'
 
 interface FeaturedListing {
   id: string
@@ -19,27 +19,8 @@ interface FeaturedListing {
 }
 
 export function FeaturedListingsGrid() {
-  const [listings, setListings] = useState<FeaturedListing[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchFeaturedListings()
-  }, [])
-
-  const fetchFeaturedListings = async () => {
-    try {
-      // Fetch featured listings (per ora prendiamo le prime 3 più recenti con prezzo alto)
-      const res = await fetch('/api/listings?limit=3&sort=price_desc')
-      if (res.ok) {
-        const data = await res.json()
-        setListings(data.listings || [])
-      }
-    } catch (error) {
-      console.error('Error fetching featured listings:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data, isLoading: loading } = useListings({ limit: 3, sort: 'price_desc' })
+  const listings = (data?.listings || []) as FeaturedListing[]
 
   if (loading) {
     return (

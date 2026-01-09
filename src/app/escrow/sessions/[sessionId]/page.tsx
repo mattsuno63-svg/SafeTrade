@@ -29,6 +29,7 @@ interface EscrowSession {
         images: string[]
         price: number | null
       }
+      offerPrice: number | null
     } | null
   }
   buyer: { id: string; name: string | null; avatar: string | null }
@@ -60,7 +61,7 @@ export default function EscrowSessionPage({ params }: { params: { sessionId: str
   const router = useRouter()
   const { toast } = useToast()
   const { user } = useUser()
-  
+
   const [session, setSession] = useState<EscrowSession | null>(null)
   const [payment, setPayment] = useState<EscrowPayment | null>(null)
   const [qrData, setQrData] = useState<any>(null)
@@ -129,7 +130,7 @@ export default function EscrowSessionPage({ params }: { params: { sessionId: str
 
   const downloadQRCode = () => {
     if (!qrData?.qrData) return
-    
+
     // Create download link
     const link = document.createElement('a')
     link.href = qrData.qrData
@@ -137,7 +138,7 @@ export default function EscrowSessionPage({ params }: { params: { sessionId: str
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    
+
     toast({
       title: 'QR Code Scaricato',
       description: 'Il QR code è stato salvato sul tuo dispositivo',
@@ -182,8 +183,8 @@ export default function EscrowSessionPage({ params }: { params: { sessionId: str
   const initiatePayment = async () => {
     if (!session) return
 
-    const amount = session.transaction.proposal?.listing?.price || 
-                   session.transaction.proposal?.offerPrice || 0
+    const amount = session.transaction.proposal?.listing?.price ||
+      session.transaction.proposal?.offerPrice || 0
 
     if (amount <= 0) {
       toast({
@@ -462,9 +463,8 @@ export default function EscrowSessionPage({ params }: { params: { sessionId: str
                   {session.messages.map((msg) => (
                     <div
                       key={msg.id}
-                      className={`flex gap-3 ${
-                        msg.sender.id === user?.id ? 'flex-row-reverse' : ''
-                      }`}
+                      className={`flex gap-3 ${msg.sender.id === user?.id ? 'flex-row-reverse' : ''
+                        }`}
                     >
                       <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                         {msg.sender.avatar ? (
@@ -477,13 +477,12 @@ export default function EscrowSessionPage({ params }: { params: { sessionId: str
                       </div>
                       <div className={`flex-1 ${msg.sender.id === user?.id ? 'text-right' : ''}`}>
                         <div
-                          className={`inline-block p-3 rounded-lg ${
-                            msg.isSystem
+                          className={`inline-block p-3 rounded-lg ${msg.isSystem
                               ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm'
                               : msg.sender.id === user?.id
-                              ? 'bg-primary text-white'
-                              : 'bg-gray-200 dark:bg-gray-700'
-                          }`}
+                                ? 'bg-primary text-white'
+                                : 'bg-gray-200 dark:bg-gray-700'
+                            }`}
                         >
                           {!msg.isSystem && (
                             <div className="text-xs font-medium mb-1">

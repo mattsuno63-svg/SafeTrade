@@ -10,11 +10,12 @@ export async function POST(
     const user = await requireAuth()
     const { id } = await params
     const body = await request.json()
-    const { code } = body
+    const { code, verified, notes } = body
 
-    if (!code) {
+    // Support both code-based verification and manual verification
+    if (!code && verified === undefined) {
       return NextResponse.json(
-        { error: 'Verification code is required' },
+        { error: 'Verification code or verified status is required' },
         { status: 400 }
       )
     }
@@ -41,24 +42,91 @@ export async function POST(
       )
     }
 
-    // Verify that the user is the shop owner
-    if (transaction.shop.merchantId !== user.id) {
+    // Verify that the user is the shop owner or admin
+    const isShopOwner = transaction.shop.merchantId === user.id
+    const isAdmin = user.role === 'ADMIN'
+    
+    if (!isShopOwner && !isAdmin) {
       return NextResponse.json(
-        { error: 'Only the shop owner can verify transactions' },
+        { error: 'Only the shop owner or admin can verify transactions' },
         { status: 403 }
       )
     }
 
-    // Verify the code
-    if (transaction.verificationCode !== code.toUpperCase()) {
-      return NextResponse.json(
-        { error: 'Invalid verification code' },
-        { status: 400 }
-      )
+    // Code-based verification
+    if (code) {
+      if (transaction.verificationCode !== code.toUpperCase()) {
+        return NextResponse.json(
+          { error: 'Invalid verification code' },
+          { status: 400 }
+        )
+      }
     }
 
-    // Check if transaction is in correct state
-    if (transaction.status !== 'CONFIRMED') {
+    // Manual verification - merchant can reject
+    if (verified === false) {
+      // Cancel the transaction
+      const cancelledTransaction = await prisma.safeTradeTransaction.update({
+        where: { id },
+        data: {
+          status: 'CANCELLED',
+          notes: notes || 'Rejected by merchant during verification',
+        },
+      })
+
+      // Refund escrow if exists
+      const payment = await prisma.escrowPayment.findUnique({
+        where: { transactionId: id },
+      })
+
+      if (payment && payment.status === 'HELD') {
+        await prisma.escrowPayment.update({
+          where: { id: payment.id },
+          data: {
+            status: 'REFUNDED',
+            paymentRefundedAt: new Date(),
+          },
+        })
+      }
+
+      // Re-activate listing
+      if (transaction.proposal?.listing) {
+        await prisma.listingP2P.update({
+          where: { id: transaction.proposal.listing.id },
+          data: {
+            isActive: true,
+            isSold: false,
+          },
+        })
+      }
+
+      // Notify users
+      await prisma.notification.createMany({
+        data: [
+          {
+            userId: transaction.userAId,
+            type: 'TRANSACTION_CANCELLED',
+            title: 'Transazione Annullata',
+            message: `La transazione è stata annullata durante la verifica. ${notes ? `Motivo: ${notes}` : ''}`,
+          },
+          {
+            userId: transaction.userBId,
+            type: 'TRANSACTION_CANCELLED',
+            title: 'Transazione Annullata',
+            message: `La transazione è stata annullata durante la verifica. ${notes ? `Motivo: ${notes}` : ''}`,
+          },
+        ],
+      })
+
+      return NextResponse.json({
+        success: true,
+        cancelled: true,
+        transaction: cancelledTransaction,
+      })
+    }
+
+    // Check if transaction is in correct state for completion
+    if (transaction.status !== 'CONFIRMED' && transaction.status !== 'PENDING') {
       return NextResponse.json(
         { error: `Transaction cannot be completed. Current status: ${transaction.status}` },
         { status: 400 }
@@ -114,7 +182,7 @@ export async function POST(
     if (transaction.proposal?.listing) {
       await prisma.listingP2P.update({
         where: { id: transaction.proposal.listing.id },
-        data: { 
+        data: {
           isActive: false,
           isSold: true,
         },
@@ -128,20 +196,20 @@ export async function POST(
         type: 'TRANSACTION_COMPLETED' as const,
         title: 'SafeTrade Completed!',
         message: `Your SafeTrade at ${transaction.shop.name} has been successfully completed.`,
-        data: JSON.stringify({
+        data: {
           transactionId: id,
           shopId: transaction.shopId,
-        }),
+        },
       },
       {
         userId: transaction.userBId,
         type: 'TRANSACTION_COMPLETED' as const,
         title: 'SafeTrade Completed!',
         message: `Your SafeTrade at ${transaction.shop.name} has been successfully completed.`,
-        data: JSON.stringify({
+        data: {
           transactionId: id,
           shopId: transaction.shopId,
-        }),
+        },
       },
     ]
 

@@ -58,11 +58,10 @@ export default function VLSAppointmentsPage() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                  filter === f
+                className={`px-4 py-2 rounded-full text-sm font-medium transition ${filter === f
                     ? 'bg-primary text-white'
                     : 'bg-white/5 text-white/70 hover:bg-white/10'
-                }`}
+                  }`}
               >
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
@@ -77,11 +76,10 @@ export default function VLSAppointmentsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-4">
                       <h3 className="text-xl font-bold">{apt.user.name}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                        apt.status === 'scheduled' ? 'bg-blue-500/20 text-blue-400' :
-                        apt.status === 'in-progress' ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-green-500/20 text-green-400'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${apt.status === 'scheduled' ? 'bg-blue-500/20 text-blue-400' :
+                          apt.status === 'in-progress' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-green-500/20 text-green-400'
+                        }`}>
                         {apt.status}
                       </span>
                     </div>
@@ -95,7 +93,7 @@ export default function VLSAppointmentsPage() {
                         <span>
                           {apt.transaction.type}
                           {apt.transaction.type === 'Sale' && ` • €${apt.transaction.amount}`}
-                          {apt.transaction.type === 'Trade' && ` • ${apt.transaction.items.join(', ')}`}
+                          {apt.transaction.type === 'Trade' && ` • ${apt.transaction.items?.join(', ')}`}
                         </span>
                       </div>
                     </div>

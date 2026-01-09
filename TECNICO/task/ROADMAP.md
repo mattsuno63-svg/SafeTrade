@@ -1,7 +1,7 @@
 # 🗺️ Roadmap - SafeTrade
 
-**Versione**: 1.0  
-**Ultimo Aggiornamento**: 2025-01-29
+**Versione**: 1.1  
+**Ultimo Aggiornamento**: 2025-01-30
 
 ---
 
@@ -42,32 +42,34 @@
 
 ## 🚀 FASE 1: Launch (In Corso - Q1 2025)
 
-**Status**: 🟡 In Progress (80% completato)  
+**Status**: 🟡 In Progress (90% completato)  
 **Periodo**: Gennaio 2025 - Marzo 2025
 
 ### Obiettivi
-- [x] Completare sistema SafeTrade Escrow
-- [x] Dashboard Merchant completa
-- [x] Pannello Admin
-- [ ] Sistema pagamenti online (Stripe)
-- [ ] Testing completo
-- [ ] Launch beta privata
+- [x] Completare sistema SafeTrade Escrow - ✅ COMPLETATO
+- [x] Dashboard Merchant completa - ✅ COMPLETATO
+- [x] Pannello Admin - ✅ COMPLETATO
+- [ ] Sistema pagamenti online (Stripe) - Piano futuro
+- [ ] Testing completo - In corso
+- [ ] Launch beta privata - Pianificato
 
 ### Milestone
 
-#### Gennaio 2025 ✅
-- [x] Sistema escrow backend
-- [x] API escrow complete
-- [x] Database escrow schema
-- [x] Dashboard merchant
-- [x] Gestione tornei
+#### Gennaio 2025 ✅ COMPLETATO
+- [x] Sistema escrow backend - ✅ COMPLETATO
+- [x] API escrow complete - ✅ COMPLETATO (sessions, payments, messages)
+- [x] Database escrow schema - ✅ COMPLETATO
+- [x] Dashboard merchant - ✅ COMPLETATO (inventory, offers, tournaments, shop, orders, promos, social)
+- [x] Gestione tornei - ✅ COMPLETATO
+- [x] Sistema escrow UI completa - ✅ COMPLETATO (hold, release, refund implementati)
+- [x] Sistema community - ✅ COMPLETATO (posts, topics)
 
 #### Febbraio 2025 (In Corso)
-- [ ] Sistema pagamenti Stripe
-- [ ] Ottimizzazione UI escrow
-- [ ] Testing end-to-end
-- [ ] Bug fixes critici
-- [ ] Performance optimization
+- [ ] Sistema pagamenti Stripe - Piano futuro (non MVP)
+- [x] Ottimizzazione UI escrow - ✅ COMPLETATO
+- [ ] Testing end-to-end - Da fare
+- [ ] Bug fixes critici - Ongoing
+- [ ] Performance optimization - Ongoing
 
 #### Marzo 2025 (Planned)
 - [ ] Beta testing privata (50 utenti)

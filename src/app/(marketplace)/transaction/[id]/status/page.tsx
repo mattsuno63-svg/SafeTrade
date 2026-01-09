@@ -68,6 +68,46 @@ export default function TransactionStatusPage({ params }: { params: { id: string
   const [qrCodeData, setQrCodeData] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [qrCode, setQrCode] = useState<string>('')
+  const [cancelling, setCancelling] = useState(false)
+
+  const handleCancelTransaction = async () => {
+    if (!transaction || !user) return
+    
+    const confirmed = window.confirm('Sei sicuro di voler annullare questa transazione? Questa azione non può essere annullata.')
+    if (!confirmed) return
+
+    setCancelling(true)
+    try {
+      const res = await fetch(`/api/transactions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'CANCELLED',
+          notes: 'Cancelled by user',
+        }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to cancel transaction')
+      }
+
+      toast({
+        title: 'Transazione Annullata',
+        description: 'La transazione è stata annullata con successo',
+      })
+
+      router.push('/dashboard')
+    } catch (error: any) {
+      toast({
+        title: 'Errore',
+        description: error.message || 'Impossibile annullare la transazione',
+        variant: 'destructive',
+      })
+    } finally {
+      setCancelling(false)
+    }
+  }
 
   useEffect(() => {
     const fetchTransaction = async () => {
@@ -443,17 +483,12 @@ export default function TransactionStatusPage({ params }: { params: { id: string
               </Button>
               {transaction.status === 'PENDING' && (
                 <Button
-                  onClick={() => {
-                    // TODO: Implement cancel
-                    toast({
-                      title: 'Info',
-                      description: 'Cancel functionality coming soon',
-                    })
-                  }}
+                  onClick={handleCancelTransaction}
+                  disabled={cancelling}
                   variant="outline"
                   className="flex-1 border-red-500 text-red-500 hover:bg-red-500/10"
                 >
-                  Cancel Transaction
+                  {cancelling ? 'Annullamento...' : 'Annulla Transazione'}
                 </Button>
               )}
             </div>

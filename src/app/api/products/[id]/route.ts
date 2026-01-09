@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
@@ -45,10 +46,27 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id } = params
     const body = await request.json()
 
-    // TODO: Verificare autenticazione e permessi
+    // Verify user owns the product's shop
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      include: { shop: true },
+    })
+
+    if (!existingProduct) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    }
+
+    if (existingProduct.shop.merchantId !== user.id && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const product = await prisma.product.update({
       where: { id },
@@ -73,9 +91,26 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id } = params
 
-    // TODO: Verificare autenticazione e permessi
+    // Verify user owns the product's shop
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      include: { shop: true },
+    })
+
+    if (!existingProduct) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    }
+
+    if (existingProduct.shop.merchantId !== user.id && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     await prisma.product.update({
       where: { id },

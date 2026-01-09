@@ -11,6 +11,7 @@ interface UseListingsParams {
   query?: string
   page?: number
   limit?: number
+  sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc'
 }
 
 export function useListings(params: UseListingsParams = {}) {
@@ -22,6 +23,7 @@ export function useListings(params: UseListingsParams = {}) {
     query,
     page = 1,
     limit = 20,
+    sort = 'newest',
   } = params
 
   return useQuery({
@@ -35,11 +37,14 @@ export function useListings(params: UseListingsParams = {}) {
       if (query) searchParams.set('q', query)
       searchParams.set('page', page.toString())
       searchParams.set('limit', limit.toString())
+      searchParams.set('sort', sort)
 
       const res = await fetch(`/api/listings?${searchParams}`)
       if (!res.ok) throw new Error('Failed to fetch listings')
       return res.json()
     },
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false,
   })
 }
 

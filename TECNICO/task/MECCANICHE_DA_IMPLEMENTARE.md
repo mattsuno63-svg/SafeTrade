@@ -1,6 +1,6 @@
 # 🎮 Meccaniche da Implementare - SafeTrade
 
-**Ultimo Aggiornamento**: 2025-01-29
+**Ultimo Aggiornamento**: 2025-01-30
 
 Questo documento descrive in dettaglio le meccaniche e funzionalità da implementare nel progetto SafeTrade.
 

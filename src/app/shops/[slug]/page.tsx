@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import { cache } from 'react'
 import { prisma } from '@/lib/db'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
@@ -18,7 +19,8 @@ interface PageProps {
   }
 }
 
-async function getShopData(slug: string) {
+// Use React.cache to deduplicate queries between generateMetadata and component
+const getShopData = cache(async (slug: string) => {
   const shop = await prisma.shop.findUnique({
     where: { slug },
     include: {
@@ -63,7 +65,7 @@ async function getShopData(slug: string) {
   })
 
   return { shop, listings }
-}
+})
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const data = await getShopData(params.slug)

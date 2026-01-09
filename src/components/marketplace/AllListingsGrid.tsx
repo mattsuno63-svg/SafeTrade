@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatPriceNumber } from '@/lib/utils'
+import { useListings } from '@/hooks/use-listings'
 
 interface Listing {
   id: string
@@ -28,27 +28,8 @@ interface Listing {
 }
 
 export function AllListingsGrid() {
-  const [listings, setListings] = useState<Listing[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchListings()
-  }, [])
-
-  const fetchListings = async () => {
-    try {
-      // Fetch only 4 cards for the homepage preview
-      const res = await fetch('/api/listings?limit=4&sort=newest')
-      if (res.ok) {
-        const data = await res.json()
-        setListings(data.listings || [])
-      }
-    } catch (error) {
-      console.error('Error fetching listings:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data, isLoading: loading } = useListings({ limit: 4, sort: 'newest' })
+  const listings = (data?.listings || []) as Listing[]
 
   const getConditionColor = (cond: string) => {
     const colors: Record<string, string> = {

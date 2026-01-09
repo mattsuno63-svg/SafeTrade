@@ -2,6 +2,32 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/db'
 
 /**
+ * Get current session (lighter than getCurrentUser, doesn't hit Prisma)
+ */
+export async function getSession() {
+  try {
+    const supabase = await createClient()
+    const { data: { session }, error } = await supabase.auth.getSession()
+    
+    if (error || !session) {
+      return null
+    }
+    
+    return {
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+      },
+      accessToken: session.access_token,
+      expiresAt: session.expires_at,
+    }
+  } catch (error) {
+    console.error('[getSession] Error:', error)
+    return null
+  }
+}
+
+/**
  * Get current authenticated user
  */
 export async function getCurrentUser() {

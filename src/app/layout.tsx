@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   title: "SafeTrade - Marketplace Carte Collezionabili",
   description: "Il punto di riferimento per collezionisti di carte. Compra, vendi e scambia in modo sicuro.",
   manifest: "/manifest.json",
+}
+
+export const viewport: Viewport = {
   themeColor: "#3b82f6",
 }
 

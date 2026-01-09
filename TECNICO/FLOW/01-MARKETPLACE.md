@@ -22,7 +22,7 @@ Il flusso del marketplace permette agli utenti di cercare, visualizzare e acquis
 - Ordina risultati
 - Clicca su listing → Dettaglio
 
-**Stato**: ✅ UI completata, ⏳ API da collegare
+**Stato**: ✅ Completato (API implementata)
 
 ---
 
@@ -43,7 +43,7 @@ Il flusso del marketplace permette agli utenti di cercare, visualizzare e acquis
 - Clicca "Propose Trade" → Flow proposte
 - Clicca "Contact Seller" (opzionale)
 
-**Stato**: ✅ UI completata, ⏳ API da collegare
+**Stato**: ✅ Completato (API implementata)
 
 ---
 
@@ -157,7 +157,7 @@ Il flusso del marketplace permette agli utenti di cercare, visualizzare e acquis
 - Clicca "Reject" → Aggiorna status proposta
 - Notifica real-time ad acquirente
 
-**Stato**: ✅ UI completata, ⏳ API da collegare
+**Stato**: ✅ Completato (API implementata)
 
 ---
 

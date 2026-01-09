@@ -7,24 +7,76 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
+import { useToast } from '@/hooks/use-toast'
 
 export default function CreateOfferPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [step, setStep] = useState(1)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     productId: '',
-    originalPrice: 0,
-    offerPrice: 0,
+    originalPrice: 100,
+    offerPrice: 79,
     quantity: 1,
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   })
+
+  const handleSubmit = async () => {
+    if (!formData.title || !formData.offerPrice) {
+      toast({
+        title: 'Errore',
+        description: 'Compila tutti i campi richiesti',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/merchant/promos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          description: `Offerta speciale: da €${formData.originalPrice} a €${formData.offerPrice}`,
+          discountType: 'FIXED',
+          discountValue: formData.originalPrice - formData.offerPrice,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          appliesTo: ['PRODUCTS'],
+          targetIds: formData.productId ? [formData.productId] : [],
+        }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to create offer')
+      }
+
+      toast({
+        title: 'Offerta Creata!',
+        description: 'La tua offerta è stata pubblicata con successo',
+      })
+      router.push('/merchant/promos')
+    } catch (error: any) {
+      toast({
+        title: 'Errore',
+        description: error.message || 'Impossibile creare l\'offerta',
+        variant: 'destructive',
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const handleNext = () => {
     if (step < 3) {
       setStep(step + 1)
     } else {
-      // TODO: Submit offer
-      router.push('/dashboard/merchant/offers')
+      handleSubmit()
     }
   }
 
@@ -212,10 +264,11 @@ export default function CreateOfferPage() {
                 </button>
                 <Button
                   onClick={handleNext}
-                  className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 group"
+                  disabled={submitting}
+                  className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
                 >
-                  {step === 3 ? 'Create Offer' : 'Next Step'}
-                  <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                  {submitting ? 'Creazione...' : step === 3 ? 'Crea Offerta' : 'Prossimo'}
+                  {!submitting && <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>}
                 </Button>
               </div>
             </Card>

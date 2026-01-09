@@ -76,7 +76,6 @@ export async function POST(
       where: { id },
       data: {
         status: SafeTradeStatus.CONFIRMED,
-        checkedInAt: new Date(),
       },
       include: {
         shop: true,

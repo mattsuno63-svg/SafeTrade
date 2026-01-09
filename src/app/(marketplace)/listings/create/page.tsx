@@ -33,14 +33,13 @@ export default function CreateListingPage() {
   const [images, setImages] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [previewImages, setPreviewImages] = useState<string[]>([])
 
   // Redirect if not authenticated
   if (!userLoading && !user) {
     router.push('/login')
     return null
   }
-
-  const [previewImages, setPreviewImages] = useState<string[]>([])
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files

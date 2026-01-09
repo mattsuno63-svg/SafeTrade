@@ -57,10 +57,10 @@ export async function PATCH(
         message: status === 'ACCEPTED'
           ? `Your offer on "${proposal.listing.title}" has been accepted!`
           : `Your offer on "${proposal.listing.title}" has been rejected.`,
-        data: JSON.stringify({
+        data: {
           proposalId: id,
           listingId: proposal.listingId,
-        }),
+        },
       },
     })
 

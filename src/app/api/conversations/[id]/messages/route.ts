@@ -124,8 +124,8 @@ export async function POST(
     }
 
     // Determine receiver
-    const receiverId = conversation.userAId === user.id 
-      ? conversation.userBId 
+    const receiverId = conversation.userAId === user.id
+      ? conversation.userBId
       : conversation.userAId
 
     // Create message
@@ -166,11 +166,11 @@ export async function POST(
         type: 'NEW_MESSAGE',
         title: 'New Message',
         message: `${sender?.name || sender?.email}: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
-        data: JSON.stringify({
+        data: {
           conversationId: id,
           messageId: message.id,
           senderId: user.id,
-        }),
+        },
       },
     })
 

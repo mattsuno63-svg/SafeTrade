@@ -7,29 +7,37 @@ SafeTrade è una piattaforma innovativa per lo scambio sicuro di carte da gioco 
 ### 🔐 Sistema SafeTrade Escrow
 - **Garanzia di sicurezza** tramite negozi verificati locali (VLS)
 - **Protezione completa** per acquirenti e venditori
-- **Chat integrata** per comunicazione sicura tra le parti
-- **Gestione pagamenti** con trattenimento e rilascio fondi
+- **Chat integrata** per comunicazione sicura tra le parti (EscrowSession, EscrowMessage)
+- **Gestione pagamenti** con trattenimento e rilascio fondi (hold, release, refund)
 - **Sistema anti-frode** con risk scoring automatico
+- **QR code** per check-in in negozio
+- **Sistema fee** completo (SELLER, BUYER, SPLIT)
 
 ### 🏪 Dashboard Merchant
-- Gestione completa del negozio
+- Gestione completa del negozio (shop setup, logo, cover, gallery)
 - Creazione e gestione tornei
-- Inventario prodotti
-- Sistema di offerte e promozioni
-- Landing page pubblica personalizzata
+- Inventario prodotti (CRUD completo)
+- Sistema di offerte esclusive
+- Sistema di promozioni
+- Gestione ordini e appuntamenti SafeTrade
+- Landing page pubblica personalizzata (/shops/[slug])
+- Gestione social media links
 
 ### 👥 Funzionalità Utente
-- Marketplace con filtri avanzati
-- Sistema di proposte P2P
-- Dashboard personale
-- Gestione carte collezionabili
-- Sistema di notifiche real-time
+- Marketplace con filtri avanzati (game, condition, price, location)
+- Sistema di proposte P2P (accept, reject)
+- Dashboard personale completa
+- Gestione carte collezionabili (create, edit, delete listings)
+- Sistema di notifiche real-time (Supabase Realtime)
+- Gestione escrow sessions
+- Profilo utente e impostazioni
 
 ### 🛡️ Pannello Admin
-- Approvazione merchant
-- Moderazione inserzioni
+- Approvazione merchant (applications management)
+- Moderazione inserzioni (approval system con notes)
 - Gestione tornei
 - Statistiche piattaforma
+- Gestione listings (create, edit, delete per admin)
 
 ## 🛠️ Stack Tecnologico
 
@@ -135,6 +143,7 @@ Modifica lo script con la tua email prima di eseguirlo.
 
 ## 📚 Documentazione
 
+- **[TEST_CHECKLIST.md](./TEST_CHECKLIST.md)** - ✅ Checklist completa test pre-deploy (IMPORTANTE!)
 - **[DAFARENUOVO.md](./DAFARENUOVO.md)** - Checklist completa funzionalità
 - **[SAFETRADE_ESCROW_IMPLEMENTATION.md](./SAFETRADE_ESCROW_IMPLEMENTATION.md)** - Sistema escrow
 - **[TECNICO/SEGUI.MD](./TECNICO/SEGUI.MD)** - Requirements originali

@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { CardGame, CardCondition } from '@prisma/client'
+import { getSession } from '@/lib/auth'
+
+// Helper to check if user has premium subscription
+async function getUserSubscriptionTier(userId: string | null): Promise<'FREE' | 'PREMIUM' | 'PRO'> {
+  if (!userId) return 'FREE'
+  
+  const subscription = await prisma.userSubscription.findUnique({
+    where: { userId },
+    include: { plan: true },
+  })
+  
+  if (!subscription || subscription.status !== 'ACTIVE') return 'FREE'
+  if (subscription.endDate && subscription.endDate < new Date()) return 'FREE'
+  
+  return subscription.plan.tier as 'FREE' | 'PREMIUM' | 'PRO'
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,10 +33,32 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const skip = (page - 1) * limit
     const sort = searchParams.get('sort') || 'newest'
+    const showEarlyAccess = searchParams.get('earlyAccess') === 'true'
+
+    // Check user's subscription tier for early access filtering
+    const session = await getSession()
+    const userTier = await getUserSubscriptionTier(session?.user?.id || null)
+    const canSeeEarlyAccess = userTier === 'PREMIUM' || userTier === 'PRO'
 
     const where: any = {
       isActive: true,
       isApproved: true, // Only show approved listings
+    }
+    
+    // Early Access filtering
+    // If user is not premium, only show PUBLIC listings or EARLY_ACCESS that have expired
+    if (!canSeeEarlyAccess) {
+      where.OR = [
+        { visibility: 'PUBLIC' },
+        { 
+          visibility: 'EARLY_ACCESS',
+          earlyAccessEnd: { lt: new Date() }
+        }
+      ]
+    } else if (showEarlyAccess) {
+      // Premium users filtering for early access only
+      where.visibility = 'EARLY_ACCESS'
+      where.earlyAccessEnd = { gt: new Date() }
     }
 
     if (game) where.game = game
@@ -78,6 +116,9 @@ export async function GET(request: NextRequest) {
               avatar: true,
               role: true,
               city: true,
+              subscription: {
+                include: { plan: true }
+              }
             },
           },
         },
@@ -88,12 +129,28 @@ export async function GET(request: NextRequest) {
       prisma.listingP2P.count({ where }),
     ])
 
-    return NextResponse.json({
-      listings,
+    // Add isEarlyAccess flag to each listing for UI display
+    const listingsWithFlags = listings.map(listing => ({
+      ...listing,
+      isEarlyAccess: listing.visibility === 'EARLY_ACCESS' && 
+                     listing.earlyAccessEnd && 
+                     listing.earlyAccessEnd > new Date(),
+      earlyAccessEndsIn: listing.earlyAccessEnd ? 
+        Math.max(0, Math.floor((listing.earlyAccessEnd.getTime() - Date.now()) / 1000 / 60 / 60)) : null, // hours
+    }))
+
+    const response = NextResponse.json({
+      listings: listingsWithFlags,
       total,
       page,
       totalPages: Math.ceil(total / limit),
+      userTier, // Include user's tier for frontend
     })
+
+    // Cache for 30 seconds for GET requests
+    response.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60')
+    
+    return response
   } catch (error) {
     console.error('Error fetching listings:', error)
     return NextResponse.json(
@@ -154,6 +211,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if user has premium subscription for early access
+    const userSubscription = await prisma.userSubscription.findUnique({
+      where: { userId: user.id },
+      include: { plan: true },
+    })
+    
+    let visibility: 'EARLY_ACCESS' | 'PUBLIC' = 'PUBLIC'
+    let earlyAccessEnd: Date | null = null
+    
+    // If subscription is active and premium/pro, enable early access
+    if (userSubscription && 
+        userSubscription.status === 'ACTIVE' &&
+        (!userSubscription.endDate || userSubscription.endDate > new Date())) {
+      const earlyAccessHours = userSubscription.plan.earlyAccessHours
+      if (earlyAccessHours > 0) {
+        visibility = 'EARLY_ACCESS'
+        earlyAccessEnd = new Date()
+        earlyAccessEnd.setHours(earlyAccessEnd.getHours() + earlyAccessHours)
+      }
+    }
+
     const listing = await prisma.listingP2P.create({
       data: {
         title,
@@ -166,7 +244,9 @@ export async function POST(request: NextRequest) {
         cardNumber,
         images,
         wants,
-        userId: user.id, // Use authenticated user ID
+        userId: user.id,
+        visibility,
+        earlyAccessEnd,
       },
       include: {
         user: {
@@ -180,8 +260,14 @@ export async function POST(request: NextRequest) {
         },
       },
     })
+    
+    // Trigger price alerts check (async, don't wait)
+    checkPriceAlerts(listing).catch(console.error)
 
-    return NextResponse.json(listing, { status: 201 })
+    return NextResponse.json({
+      ...listing,
+      isEarlyAccess: visibility === 'EARLY_ACCESS',
+    }, { status: 201 })
   } catch (error: any) {
     console.error('Error creating listing:', error)
     if (error.message === 'Unauthorized') {
@@ -194,6 +280,95 @@ export async function POST(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     )
+  }
+}
+
+// Check price alerts when a new listing is created
+async function checkPriceAlerts(listing: any) {
+  try {
+    // Find all active alerts that might match this listing
+    const alerts = await prisma.priceAlert.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          // Match by game
+          { game: listing.game },
+          // Match by card name (fuzzy)
+          listing.title ? { 
+            cardName: { 
+              contains: listing.title.split(' ')[0], // First word match
+              mode: 'insensitive' 
+            } 
+          } : {},
+        ],
+      },
+      include: {
+        user: {
+          include: {
+            subscription: { include: { plan: true } }
+          }
+        }
+      }
+    })
+
+    for (const alert of alerts) {
+      // Check if alert conditions are met
+      let matches = true
+
+      if (alert.maxPrice && listing.price && listing.price > alert.maxPrice) {
+        matches = false
+      }
+      if (alert.minPrice && listing.price && listing.price < alert.minPrice) {
+        matches = false
+      }
+      if (alert.condition && listing.condition !== alert.condition) {
+        matches = false
+      }
+      if (alert.cardSet && listing.set && !listing.set.toLowerCase().includes(alert.cardSet.toLowerCase())) {
+        matches = false
+      }
+      if (alert.cardName && listing.title && !listing.title.toLowerCase().includes(alert.cardName.toLowerCase())) {
+        matches = false
+      }
+
+      if (matches) {
+        // Create alert trigger
+        await prisma.alertTrigger.create({
+          data: {
+            alertId: alert.id,
+            listingId: listing.id,
+            matchedPrice: listing.price || 0,
+          }
+        })
+
+        // Update alert
+        await prisma.priceAlert.update({
+          where: { id: alert.id },
+          data: {
+            lastTriggeredAt: new Date(),
+            triggerCount: { increment: 1 }
+          }
+        })
+
+        // Create notification
+        await prisma.notification.create({
+          data: {
+            userId: alert.userId,
+            type: 'price_alert',
+            title: '🔔 Price Alert Triggered!',
+            message: `"${listing.title}" disponibile a €${listing.price?.toFixed(2) || 'N/A'}`,
+            link: `/listings/${listing.id}`,
+            data: {
+              alertId: alert.id,
+              listingId: listing.id,
+              price: listing.price
+            }
+          }
+        })
+      }
+    }
+  } catch (error) {
+    console.error('Error checking price alerts:', error)
   }
 }
 

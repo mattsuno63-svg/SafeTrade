@@ -95,6 +95,12 @@ model User {
   posts         Post[]
   comments      Comment[]
   badges        UserBadge[]
+  
+  // Premium & Subscription
+  subscription  UserSubscription?
+  karma         UserKarma?
+  priceAlerts   PriceAlert[]
+  eventRegistrations EventRegistration[]
 
   @@index([email])
   @@index([role])
@@ -175,6 +181,11 @@ model Product {
   // Note: Full-text and trigram indexes will be created manually via SQL after db:push
 }
 
+enum ListingVisibility {
+  EARLY_ACCESS  // Solo Premium per 24h
+  PUBLIC        // Tutti possono vedere
+}
+
 model ListingP2P {
   id          String      @id @default(cuid())
   title       String
@@ -197,9 +208,14 @@ model ListingP2P {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  
+  // Early Access System (Premium Feature)
+  visibility      ListingVisibility @default(PUBLIC)
+  earlyAccessEnd  DateTime?         // Timestamp fine early access (24h dopo creazione)
 
   proposals        Proposal[]
   featuredListings FeaturedListing[]
+  alertTriggers    AlertTrigger[]
 
   @@index([userId])
   @@index([game])
@@ -209,6 +225,8 @@ model ListingP2P {
   @@index([isApproved])
   @@index([price])
   @@index([createdAt])
+  @@index([visibility])
+  @@index([earlyAccessEnd])
   // Note: Full-text and trigram indexes will be created manually via SQL after db:push
 }
 
@@ -238,6 +256,12 @@ model Proposal {
   @@index([createdAt])
 }
 
+enum PriorityTier {
+  STANDARD     // Free users
+  PRIORITY     // Premium users
+  FAST_TRACK   // PRO users
+}
+
 model SafeTradeTransaction {
   id            String          @id @default(cuid())
   proposalId    String?         @unique
@@ -256,6 +280,10 @@ model SafeTradeTransaction {
   completedAt   DateTime?      // When transaction was completed
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  
+  // Priority Queue System
+  priorityTier  PriorityTier    @default(STANDARD)
+  priorityPaid  Boolean         @default(false) // Se ha pagato per priority (pay-per-use)
 
   // Relations
   escrowSession EscrowSession?
@@ -267,6 +295,7 @@ model SafeTradeTransaction {
   @@index([status])
   @@index([scheduledDate])
   @@index([verificationCode])
+  @@index([priorityTier])
 }
 
 model Notification {
@@ -673,6 +702,10 @@ model Topic {
   posts       Post[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  // Premium Community (Insider Circle)
+  isPremiumOnly Boolean @default(false)
+  requiredTier  String?  // "PREMIUM", "PRO", null = public
 }
 
 model Post {
@@ -689,10 +722,20 @@ model Post {
   isLocked    Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  // Karma & Moderation System
+  upvotes     Int       @default(0)
+  downvotes   Int       @default(0)
+  spamScore   Float     @default(0)   // 0-1, higher = more likely spam
+  isAutoApproved Boolean @default(false) // Auto-approved se karma utente > 50
+  isFlagged   Boolean   @default(false)
+  flagReason  String?
+  karmaChange Int       @default(0)   // Karma gained/lost from this post
 
   @@index([topicId])
   @@index([authorId])
   @@index([createdAt])
+  @@index([isFlagged])
 }
 
 model Comment {
@@ -734,4 +777,253 @@ model UserBadge {
   awardedAt DateTime @default(now())
 
   @@unique([userId, badgeId])
+}
+
+// ============= SUBSCRIPTION SYSTEM =============
+
+enum SubscriptionTier {
+  FREE
+  PREMIUM
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PAST_DUE
+}
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
+}
+
+model SubscriptionPlan {
+  id            String         @id @default(cuid())
+  name          String         @unique // "FREE", "PREMIUM", "PRO"
+  tier          SubscriptionTier
+  description   String?
+  priceMonthly  Float          @default(0)
+  priceYearly   Float          @default(0)
+  
+  // Features
+  earlyAccessHours    Int      @default(0)   // 0 = no early access, 24 = 24h head start
+  maxAlerts           Int      @default(3)   // Max price alerts
+  prioritySafeTrade   Boolean  @default(false)
+  instantNotifications Boolean @default(false)
+  premiumCommunity    Boolean  @default(false)
+  bulkListingTools    Boolean  @default(false)
+  priorityMonthlyLimit Int     @default(0)   // Free priority SafeTrades per month
+  
+  subscriptions UserSubscription[]
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model UserSubscription {
+  id            String             @id @default(cuid())
+  userId        String             @unique
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId        String
+  plan          SubscriptionPlan   @relation(fields: [planId], references: [id])
+  
+  status        SubscriptionStatus @default(ACTIVE)
+  billingPeriod BillingPeriod      @default(MONTHLY)
+  
+  // Dates
+  startDate     DateTime           @default(now())
+  endDate       DateTime?          // null = never expires (lifetime or free)
+  cancelledAt   DateTime?
+  
+  // Payment tracking (for future Stripe integration)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  lastPaymentAt        DateTime?
+  nextPaymentAt        DateTime?
+  
+  // Usage tracking
+  priorityUsedThisMonth Int       @default(0)
+  
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+  @@index([endDate])
+}
+
+// ============= KARMA SYSTEM =============
+
+enum KarmaLevel {
+  NEW           // 0-49 karma
+  TRUSTED       // 50-199 karma
+  ELITE         // 200-499 karma
+  LEGEND        // 500+ karma
+  BANNED        // < 0 karma
+}
+
+model UserKarma {
+  id          String     @id @default(cuid())
+  userId      String     @unique
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  karma       Int        @default(0)
+  level       KarmaLevel @default(NEW)
+  
+  // Activity tracking
+  postsCount      Int    @default(0)
+  commentsCount   Int    @default(0)
+  upvotesGiven    Int    @default(0)
+  upvotesReceived Int    @default(0)
+  flagsReceived   Int    @default(0)
+  
+  // Rate limiting
+  lastPostAt      DateTime?
+  postsToday      Int    @default(0)
+  lastResetDate   DateTime @default(now())
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  @@index([userId])
+  @@index([karma])
+  @@index([level])
+}
+
+// ============= PRICE ALERTS SYSTEM =============
+
+model PriceAlert {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Alert conditions (any combination)
+  cardName    String?   // Specifica carta (fuzzy match)
+  cardSet     String?   // Specifico set
+  game        CardGame?
+  maxPrice    Float?    // Alert se prezzo < maxPrice
+  minPrice    Float?    // Alert se prezzo > minPrice (for selling)
+  rarity      String?   // Alert per rarità
+  condition   CardCondition?
+  
+  // Notification settings
+  notifyEmail Boolean   @default(true)
+  notifyPush  Boolean   @default(false) // Solo Premium
+  notifySMS   Boolean   @default(false) // Solo PRO
+  
+  isActive    Boolean   @default(true)
+  lastTriggeredAt DateTime?
+  triggerCount Int      @default(0)
+  
+  triggers    AlertTrigger[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([game])
+  @@index([isActive])
+  @@index([cardName])
+}
+
+model AlertTrigger {
+  id          String     @id @default(cuid())
+  alertId     String
+  alert       PriceAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  listingId   String
+  listing     ListingP2P @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  matchedPrice Float
+  notificationSent Boolean @default(false)
+  
+  triggeredAt DateTime   @default(now())
+  
+  @@index([alertId])
+  @@index([listingId])
+  @@index([triggeredAt])
+}
+
+// ============= EVENTS CALENDAR SYSTEM =============
+
+enum EventType {
+  TOURNAMENT
+  MEETUP
+  RELEASE_PARTY
+  TRADE_NIGHT
+  PREMIUM_EVENT
+  OTHER
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+model CommunityEvent {
+  id          String      @id @default(cuid())
+  title       String
+  description String?     @db.Text
+  type        EventType
+  game        CardGame?
+  
+  // Organizer (can be User or Shop)
+  organizerUserId String?
+  organizerShopId String?
+  
+  // Event details
+  date        DateTime
+  endDate     DateTime?   // For multi-day events
+  time        String?     // e.g., "14:00"
+  location    String?     // Address or "Online"
+  isOnline    Boolean     @default(false)
+  onlineLink  String?     // Zoom/Discord link
+  
+  // Capacity
+  maxParticipants Int?
+  entryFee    Float?
+  
+  // Premium features
+  isPremiumOnly Boolean   @default(false)
+  requiredTier  String?   // "PREMIUM", "PRO"
+  
+  // Community integration
+  discussionTopicId String? // Auto-create topic for discussion
+  
+  status      EventStatus @default(DRAFT)
+  
+  registrations EventRegistration[]
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([type])
+  @@index([game])
+  @@index([date])
+  @@index([status])
+  @@index([isPremiumOnly])
+}
+
+model EventRegistration {
+  id        String         @id @default(cuid())
+  eventId   String
+  event     CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  status    String         @default("REGISTERED") // REGISTERED, WAITLIST, CANCELLED, ATTENDED
+  
+  // Premium priority tracking
+  isPriorityRegistration Boolean @default(false)
+  
+  createdAt DateTime       @default(now())
+  
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
 }

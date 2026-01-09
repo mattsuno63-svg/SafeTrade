@@ -85,7 +85,7 @@ export default function MerchantShopPage() {
 
   useEffect(() => {
     console.log('🔍 useEffect triggered:', { userLoading, user: !!user, roleLoading, userRole })
-    
+
     // Check if user is authenticated
     if (!userLoading && !user) {
       console.log('❌ No user, redirecting to login')
@@ -110,34 +110,38 @@ export default function MerchantShopPage() {
   const fetchStats = async (shopId: string) => {
     try {
       // Add timeout to prevent hanging
-      const timeout = (ms: number) => new Promise((_, reject) => 
+      const timeout = (ms: number) => new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Timeout')), ms)
       )
-      
-      const fetchWithTimeout = (url: string) => 
+
+      const fetchWithTimeout = (url: string): Promise<Response> =>
         Promise.race([fetch(url), timeout(5000)])
-      
-      const [productsRes, tournamentsRes, transactionsRes] = await Promise.allSettled([
+
+      const [productsRes, tournamentsRes, transactionsRes, ordersRes] = await Promise.allSettled([
         fetchWithTimeout(`/api/merchant/products?shopId=${shopId}`),
         fetchWithTimeout(`/api/merchant/tournaments`),
         fetchWithTimeout(`/api/merchant/appointments`),
+        fetchWithTimeout(`/api/merchant/orders`),
       ])
-      
-      const products = productsRes.status === 'fulfilled' && productsRes.value.ok 
-        ? await productsRes.value.json() 
+
+      const products = (productsRes.status === 'fulfilled' && productsRes.value.ok)
+        ? await productsRes.value.json()
         : []
-      const tournaments = tournamentsRes.status === 'fulfilled' && tournamentsRes.value.ok 
-        ? await tournamentsRes.value.json() 
+      const tournaments = (tournamentsRes.status === 'fulfilled' && tournamentsRes.value.ok)
+        ? await tournamentsRes.value.json()
         : []
-      const transactions = transactionsRes.status === 'fulfilled' && transactionsRes.value.ok 
-        ? await transactionsRes.value.json() 
+      const transactions = (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok)
+        ? await transactionsRes.value.json()
         : []
-      
+      const ordersData = (ordersRes.status === 'fulfilled' && ordersRes.value.ok)
+        ? await ordersRes.value.json()
+        : { stats: { total: 0 } }
+
       setStats({
         products: Array.isArray(products) ? products.length : 0,
         tournaments: Array.isArray(tournaments) ? tournaments.length : 0,
         transactions: Array.isArray(transactions) ? transactions.length : 0,
-        orders: 0, // TODO: implement orders API
+        orders: ordersData.stats?.total || 0,
       })
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -242,8 +246,8 @@ export default function MerchantShopPage() {
                       Visualizza Sito
                     </Button>
                   </Link>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}/shops/${shop.slug}`)

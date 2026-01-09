@@ -64,28 +64,23 @@ export function Header() {
   const router = useRouter()
   const { locale, setLocale, t } = useLocale()
 
-  // Force refresh session on mount and periodically
+  // Refresh session only on mount and window focus (not periodically - auth state change handles that)
   useEffect(() => {
-    // Refresh immediately on mount
-    refreshSession()
-
-    // Also refresh when window gains focus (user returns to tab)
+    // Refresh on mount only if needed (useUser hook already handles initial session)
+    // Only refresh on window focus to catch session changes from other tabs
     const handleFocus = () => {
+      // Only refresh if user was logged in (avoid unnecessary calls)
+      if (user) {
       refreshSession()
+      }
     }
-
-    // Refresh periodically to catch any session updates
-    const interval = setInterval(() => {
-      refreshSession()
-    }, 5000) // Every 5 seconds
 
     window.addEventListener('focus', handleFocus)
 
     return () => {
-      clearInterval(interval)
       window.removeEventListener('focus', handleFocus)
     }
-  }, [refreshSession])
+  }, [refreshSession, user])
 
   const handleLogout = async () => {
     try {

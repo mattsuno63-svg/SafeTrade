@@ -22,6 +22,9 @@ interface Topic {
   description: string
   icon: string
   _count: { posts: number }
+  isPremiumOnly: boolean
+  requiredTier: string | null
+  isLocked?: boolean
 }
 
 interface Post {
@@ -91,11 +94,21 @@ export default function CommunityPage() {
                     <Button
                       key={topic.id}
                       variant={selectedTopic === topic.slug ? 'secondary' : 'ghost'}
-                      className="w-full justify-start"
-                      onClick={() => setSelectedTopic(topic.slug)}
+                      className={`w-full justify-start ${topic.isLocked ? 'opacity-60' : ''}`}
+                      onClick={() => !topic.isLocked && setSelectedTopic(topic.slug)}
+                      disabled={topic.isLocked}
                     >
-                      <span className="material-symbols-outlined mr-2 text-lg">{topic.icon || 'tag'}</span>
+                      {topic.isLocked ? (
+                        <span className="material-symbols-outlined mr-2 text-lg text-gray-400">lock</span>
+                      ) : (
+                        <span className="material-symbols-outlined mr-2 text-lg">{topic.icon || 'tag'}</span>
+                      )}
                       <span className="truncate">{topic.name}</span>
+                      {topic.isPremiumOnly && (
+                        <Badge className="ml-1 text-[10px] px-1 py-0 bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0">
+                          {topic.requiredTier || 'PREMIUM'}
+                        </Badge>
+                      )}
                       <span className="ml-auto text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
                         {topic._count.posts}
                       </span>
@@ -109,6 +122,25 @@ export default function CommunityPage() {
               <span className="material-symbols-outlined mr-2">add</span>
               Nuovo Post
             </Button>
+
+            {/* Premium Upgrade Card */}
+            {topics?.some(t => t.isLocked) && (
+              <Card className="p-4 bg-gradient-to-br from-orange-500/10 to-purple-500/10 border-orange-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-orange-500">workspace_premium</span>
+                  <h3 className="font-bold text-orange-600">Insider Circle</h3>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                  Sblocca accesso a canali esclusivi con drop alerts, market analysis e molto altro!
+                </p>
+                <Button asChild variant="outline" className="w-full border-orange-500 text-orange-600 hover:bg-orange-50">
+                  <Link href="/pricing">
+                    <span className="material-symbols-outlined mr-1 text-sm">upgrade</span>
+                    Passa a Premium
+                  </Link>
+                </Button>
+              </Card>
+            )}
           </div>
 
           {/* Main Feed */}
