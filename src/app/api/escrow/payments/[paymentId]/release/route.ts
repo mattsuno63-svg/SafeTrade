@@ -5,11 +5,11 @@ import { requireAuth } from '@/lib/auth'
 // POST - Release funds to seller (called when transaction is verified)
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ paymentId: string }> }
+  { params }: { params: { paymentId: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { paymentId } = await params
+    const { paymentId } = params
 
     // Get payment
     const payment = await prisma.escrowPayment.findUnique({

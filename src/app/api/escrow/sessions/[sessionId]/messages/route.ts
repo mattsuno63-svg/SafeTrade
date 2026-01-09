@@ -5,11 +5,11 @@ import { requireAuth } from '@/lib/auth'
 // GET - Fetch messages in session
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ sessionId: string }> }
+  { params }: { params: { sessionId: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { sessionId } = await params
+    const { sessionId } = params
 
     // Verify user has access to session
     const session = await prisma.escrowSession.findUnique({
@@ -55,11 +55,11 @@ export async function GET(
 // POST - Send message in session
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ sessionId: string }> }
+  { params }: { params: { sessionId: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { sessionId } = await params
+    const { sessionId } = params
     const body = await request.json()
     const { content } = body
 

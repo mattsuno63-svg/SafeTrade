@@ -5,11 +5,11 @@ import { requireAuth } from '@/lib/auth'
 // GET - Get specific escrow session by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ sessionId: string }> }
+  { params }: { params: { sessionId: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { sessionId } = await params
+    const { sessionId } = params
 
     const session = await prisma.escrowSession.findUnique({
       where: { id: sessionId },

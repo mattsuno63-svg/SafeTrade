@@ -5,11 +5,11 @@ import { requireAuth } from '@/lib/auth'
 // POST - Refund funds to buyer (called if transaction fails or is disputed)
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ paymentId: string }> }
+  { params }: { params: { paymentId: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { paymentId } = await params
+    const { paymentId } = params
     const body = await request.json()
     const { reason } = body
 

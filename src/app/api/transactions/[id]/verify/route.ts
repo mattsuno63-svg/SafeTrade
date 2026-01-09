@@ -4,11 +4,11 @@ import { requireAuth } from '@/lib/auth'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = await params
+    const { id } = params
     const body = await request.json()
     const { code, verified, notes } = body
 

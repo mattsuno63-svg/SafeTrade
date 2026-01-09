@@ -5,10 +5,10 @@ import { prisma } from '@/lib/db'
 // Accepts both slug (for public pages) and id (for internal use)
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = await params
+    const { slug } = params
 
     // Try to find by slug first, then by id if not found
     let shop = await prisma.shop.findUnique({

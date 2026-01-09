@@ -4,11 +4,11 @@ import { requireAuth } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = await params
+    const { id } = params
 
     const tournament = await prisma.tournament.findUnique({
       where: { id },
@@ -72,11 +72,11 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = await params
+    const { id } = params
     const body = await request.json()
 
     // Get tournament with shop info
@@ -161,11 +161,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = await params
+    const { id } = params
 
     // Get tournament with shop info
     const tournament = await prisma.tournament.findUnique({

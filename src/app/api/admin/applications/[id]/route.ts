@@ -3,13 +3,15 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { createClient } from '@supabase/supabase-js'
 
+export const dynamic = 'force-dynamic'
+
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = await params
+    const { id } = params
     const body = await request.json()
     const { status, reviewNotes } = body
 

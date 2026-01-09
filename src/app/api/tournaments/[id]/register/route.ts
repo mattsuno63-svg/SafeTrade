@@ -5,11 +5,11 @@ import { requireAuth } from '@/lib/auth'
 // Register for a tournament
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = await params
+    const { id } = params
 
     // Get tournament
     const tournament = await prisma.tournament.findUnique({
@@ -103,11 +103,11 @@ export async function POST(
 // Unregister from a tournament
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = await params
+    const { id } = params
 
     // Get tournament
     const tournament = await prisma.tournament.findUnique({

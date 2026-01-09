@@ -5,11 +5,11 @@ import { requireAuth } from '@/lib/auth'
 // POST /api/events/[id]/register - Register for an event
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id: eventId } = await params
+    const { id: eventId } = params
 
     // Get event
     const event = await prisma.communityEvent.findUnique({
@@ -125,11 +125,11 @@ export async function POST(
 // DELETE /api/events/[id]/register - Cancel registration
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id: eventId } = await params
+    const { id: eventId } = params
 
     const registration = await prisma.eventRegistration.findUnique({
       where: {

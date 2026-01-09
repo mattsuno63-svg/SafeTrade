@@ -5,11 +5,11 @@ import { requireAuth } from '@/lib/auth'
 // Get messages for a conversation
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = await params
+    const { id } = params
     const { searchParams } = new URL(request.url)
     const cursor = searchParams.get('cursor')
     const limit = parseInt(searchParams.get('limit') || '50')
@@ -90,11 +90,11 @@ export async function GET(
 // Send a message
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = await params
+    const { id } = params
     const body = await request.json()
     const { content } = body
 
