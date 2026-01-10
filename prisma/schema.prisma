@@ -1033,6 +1033,13 @@ model EventRegistration {
 
 // ============= CONTACT SUPPORT MESSAGES =============
 
+enum ContactStatus {
+  PENDING
+  READ
+  REPLIED
+  CLOSED
+}
+
 model ContactMessage {
   id          String   @id @default(cuid())
   userId      String?  // Can be null for anonymous users
@@ -1053,11 +1060,4 @@ model ContactMessage {
   @@index([email])
   @@index([status])
   @@index([createdAt])
-}
-
-enum ContactStatus {
-  PENDING
-  READ
-  REPLIED
-  CLOSED
 }
