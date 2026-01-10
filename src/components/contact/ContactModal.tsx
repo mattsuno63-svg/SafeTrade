@@ -19,7 +19,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    name: user?.user_metadata?.full_name || user?.user_metadata?.name || '',
     email: user?.email || '',
     subject: '',
     message: '',
@@ -62,7 +62,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
 
       // Reset form
       setFormData({
-        name: user?.name || '',
+        name: user?.user_metadata?.full_name || user?.user_metadata?.name || '',
         email: user?.email || '',
         subject: '',
         message: '',
