@@ -6,6 +6,7 @@ import { CategoryCard } from '@/components/homepage/CategoryCard'
 import { TournamentCard } from '@/components/homepage/TournamentCard'
 import { FeaturedSection } from '@/components/homepage/FeaturedSection'
 
+// SafeTrade Homepage - Updated for Vercel deployment
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background-light text-text-primary dark:bg-background-dark dark:text-white font-display antialiased">
