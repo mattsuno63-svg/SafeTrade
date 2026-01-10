@@ -101,6 +101,9 @@ model User {
   karma         UserKarma?
   priceAlerts   PriceAlert[]
   eventRegistrations EventRegistration[]
+  
+  // Contact Support
+  contactMessages ContactMessage[] @relation("ContactMessages")
 
   @@index([email])
   @@index([role])
@@ -1026,4 +1029,35 @@ model EventRegistration {
   @@index([eventId])
   @@index([userId])
   @@index([status])
+}
+
+// ============= CONTACT SUPPORT MESSAGES =============
+
+model ContactMessage {
+  id          String   @id @default(cuid())
+  userId      String?  // Can be null for anonymous users
+  user        User?    @relation("ContactMessages", fields: [userId], references: [id], onDelete: SetNull)
+  email       String   // Email for reply
+  name        String   // Name of sender
+  subject     String
+  message     String   @db.Text
+  status      ContactStatus @default(PENDING)
+  adminReply  String?  @db.Text
+  repliedAt   DateTime?
+  repliedBy   String?  // Admin user ID who replied
+  ipAddress   String?  // For rate limiting anonymous users
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ContactStatus {
+  PENDING
+  READ
+  REPLIED
+  CLOSED
 }
