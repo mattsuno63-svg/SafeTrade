@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
+import { getTranslation } from '@/lib/i18n'
 
 type Locale = 'it' | 'en'
 
@@ -17,26 +18,36 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Load saved locale from localStorage
-    const savedLocale = localStorage.getItem('locale') as Locale | null
-    if (savedLocale && (savedLocale === 'it' || savedLocale === 'en')) {
-      setLocaleState(savedLocale)
+    try {
+      const savedLocale = localStorage.getItem('locale') as Locale | null
+      if (savedLocale && (savedLocale === 'it' || savedLocale === 'en')) {
+        setLocaleState(savedLocale)
+      }
+    } catch {
+      // localStorage not available (SSR)
     }
   }, [])
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale)
-    localStorage.setItem('locale', newLocale)
-    // Update HTML lang attribute
-    document.documentElement.lang = newLocale
+    try {
+      localStorage.setItem('locale', newLocale)
+      document.documentElement.lang = newLocale
+    } catch {
+      // localStorage not available
+    }
   }
 
-  const t = (key: string): string => {
-    const { getTranslation } = require('@/lib/i18n')
+  const t = useCallback((key: string): string => {
     return getTranslation(locale, key)
-  }
+  }, [locale])
 
   useEffect(() => {
-    document.documentElement.lang = locale
+    try {
+      document.documentElement.lang = locale
+    } catch {
+      // document not available (SSR)
+    }
   }, [locale])
 
   return (
