@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 // For now, we'll simulate offers on products
 // In a full implementation, you'd have a separate ProductOffer model
 // Here we reuse the Proposal model concept for shop products
