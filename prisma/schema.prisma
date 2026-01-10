@@ -46,6 +46,16 @@ enum SafeTradeStatus {
   CANCELLED
 }
 
+enum HubPackageStatus {
+  PENDING // Package not yet sent
+  IN_TRANSIT // Package sent to hub
+  RECEIVED // Package received at hub
+  VERIFIED // Contents verified
+  SHIPPED // Package shipped to buyer
+  DELIVERED // Package delivered to buyer
+  RETURNED // Package returned to seller
+}
+
 enum CardGame {
   POKEMON
   MAGIC
@@ -56,52 +66,54 @@ enum CardGame {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String
-  name          String?
-  avatar        String?
-  role          UserRole  @default(USER)
-  city          String?   // User's city for geographic filtering
-  province      String?   // Province/region
-  bio           String?   // User's passion description (Onboarding)
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  name            String?
+  avatar          String?
+  role            UserRole @default(USER)
+  city            String? // User's city for geographic filtering
+  province        String? // Province/region
+  bio             String? // User's passion description (Onboarding)
   preferredShopId String? // Preferred SafeTrade store
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
-  listings      ListingP2P[]
-  proposalsSent Proposal[] @relation("Proposer")
-  proposalsReceived Proposal[] @relation("Receiver")
-  safeTradeTransactionsAsA SafeTradeTransaction[] @relation("UserA")
-  safeTradeTransactionsAsB SafeTradeTransaction[] @relation("UserB")
-  shop          Shop?
-  notifications Notification[]
-  tournamentRegistrations TournamentRegistration[]
-  messagesSent  Message[] @relation("Sender")
-  messagesReceived Message[] @relation("Receiver")
-  conversationsAsUserA Conversation[] @relation("ConversationUserA")
-  conversationsAsUserB Conversation[] @relation("ConversationUserB")
-  merchantApplication MerchantApplication?
-  
+  listings                 ListingP2P[]
+  proposalsSent            Proposal[]               @relation("Proposer")
+  proposalsReceived        Proposal[]               @relation("Receiver")
+  safeTradeTransactionsAsA SafeTradeTransaction[]   @relation("UserA")
+  safeTradeTransactionsAsB SafeTradeTransaction[]   @relation("UserB")
+  shop                     Shop?
+  notifications            Notification[]
+  tournamentRegistrations  TournamentRegistration[]
+  messagesSent             Message[]                @relation("Sender")
+  messagesReceived         Message[]                @relation("Receiver")
+  conversationsAsUserA     Conversation[]           @relation("ConversationUserA")
+  conversationsAsUserB     Conversation[]           @relation("ConversationUserB")
+  merchantApplication      MerchantApplication?
+
   // Escrow relations
-  escrowSessionsAsBuyer EscrowSession[] @relation("EscrowBuyer")
-  escrowSessionsAsSeller EscrowSession[] @relation("EscrowSeller")
-  escrowSessionsAsMerchant EscrowSession[] @relation("EscrowMerchant")
-  escrowMessagesSent EscrowMessage[] @relation("EscrowMessageSender")
-  escrowWallet EscrowWallet? @relation("EscrowWallet")
-  
+  escrowSessionsAsBuyer    EscrowSession[]   @relation("EscrowBuyer")
+  escrowSessionsAsSeller   EscrowSession[]   @relation("EscrowSeller")
+  escrowSessionsAsMerchant EscrowSession[]   @relation("EscrowMerchant")
+  escrowMessagesSent       EscrowMessage[]   @relation("EscrowMessageSender")
+  escrowWallet             EscrowWallet?     @relation("EscrowWallet")
+  escrowHub                EscrowHub?        @relation("EscrowHubProvider")
+  escrowHubReviews         EscrowHubReview[] @relation("EscrowHubReviewer")
+
   // Community Relations
-  posts         Post[]
-  comments      Comment[]
-  badges        UserBadge[]
-  
+  posts    Post[]
+  comments Comment[]
+  badges   UserBadge[]
+
   // Premium & Subscription
-  subscription  UserSubscription?
-  karma         UserKarma?
-  priceAlerts   PriceAlert[]
+  subscription       UserSubscription?
+  karma              UserKarma?
+  priceAlerts        PriceAlert[]
   eventRegistrations EventRegistration[]
-  
+
   // Contact Support
   contactMessages ContactMessage[] @relation("ContactMessages")
 
@@ -122,40 +134,123 @@ model Shop {
   city        String?
   postalCode  String?
   phone       String?
-  email       String?  // Shop email
-  website     String?  // Shop website
+  email       String? // Shop email
+  website     String? // Shop website
   rating      Float    @default(0)
   ratingCount Int      @default(0)
   merchantId  String   @unique
   merchant    User     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   isApproved  Boolean  @default(false) // Manual approval required
-  
+
   // Opening hours (JSON string: {"monday": {"open": "09:00", "close": "18:00", "closed": false}, ...})
   openingHours String?
-  
+
   // Social media links
   facebookUrl  String?
   instagramUrl String?
   twitterUrl   String?
   youtubeUrl   String?
   tiktokUrl    String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
-  products    Product[]
-  transactions SafeTradeTransaction[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products      Product[]
+  transactions  SafeTradeTransaction[]
   importBatches ImportBatch[]
-  tournaments Tournament[]
-  apiKey      String?  @unique // For Chrome extension
+  tournaments   Tournament[]
+  apiKey        String?                @unique // For Chrome extension
+  // Note: Full-text index will be created manually via SQL after db:push
+  promotions    Promotion[]
 
   @@index([merchantId])
   @@index([name])
   @@index([slug])
   @@index([city])
   @@index([isApproved])
-  // Note: Full-text index will be created manually via SQL after db:push
-  promotions  Promotion[]
+}
+
+// ============= ESCROW HUB (PERSONAL ESCROW SERVICE) =============
+
+model EscrowHub {
+  id         String @id @default(cuid())
+  providerId String @unique // User who provides escrow service
+  provider   User   @relation("EscrowHubProvider", fields: [providerId], references: [id], onDelete: Cascade)
+
+  // Hub Information
+  name        String // Hub name (e.g., "Mario's Escrow Hub")
+  description String? // Description of services
+
+  // Address (home address for package receiving)
+  address    String
+  city       String
+  province   String?
+  postalCode String?
+  country    String  @default("IT")
+
+  // Contact
+  phone String?
+  email String? // Contact email
+
+  // Hub Status
+  isActive   Boolean @default(true)
+  isApproved Boolean @default(false) // Manual approval required
+  isVerified Boolean @default(false) // Identity verified by admin
+
+  // Ratings & Stats
+  rating                Float @default(0) // Average rating (0-5)
+  ratingCount           Int   @default(0) // Number of ratings
+  transactionsCompleted Int   @default(0) // Total transactions completed
+
+  // Service Settings
+  serviceFee        Float    @default(5.0) // Service fee percentage (default 5%)
+  maxPackageValue   Float? // Maximum package value accepted (null = no limit)
+  acceptedCountries String[] // Countries from which packages are accepted (empty = all)
+
+  // Availability
+  isAvailable Boolean @default(true) // Currently accepting new packages
+
+  // Admin Review
+  reviewNotes String? // Admin review notes
+  reviewedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  transactions SafeTradeTransaction[]
+  reviews      EscrowHubReview[]
+
+  @@index([providerId])
+  @@index([city])
+  @@index([isActive])
+  @@index([isApproved])
+  @@index([isAvailable])
+  @@index([rating])
+}
+
+// Hub Reviews & Ratings
+model EscrowHubReview {
+  id            String    @id @default(cuid())
+  hubId         String
+  hub           EscrowHub @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  reviewerId    String // User who left review
+  reviewer      User      @relation("EscrowHubReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  transactionId String? // Related transaction (optional)
+
+  rating  Int // 1-5 stars
+  comment String?  @db.Text
+  pros    String[] // Positive aspects
+  cons    String[] // Negative aspects
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([hubId, reviewerId, transactionId])
+  @@index([hubId])
+  @@index([reviewerId])
+  @@index([rating])
+  @@index([createdAt])
 }
 
 model Product {
@@ -165,60 +260,61 @@ model Product {
   price       Float
   condition   CardCondition
   game        CardGame
-  set         String?       // Set name
-  cardNumber  String?       // e.g., "25/102"
-  rarity      String?       // Common, Rare, Ultra Rare, etc.
+  set         String? // Set name
+  cardNumber  String? // e.g., "25/102"
+  rarity      String? // Common, Rare, Ultra Rare, etc.
   language    String        @default("IT")
-  images      String[]      // Array of image URLs (Supabase Storage)
+  images      String[] // Array of image URLs (Supabase Storage)
   isActive    Boolean       @default(true)
   stock       Int           @default(1)
   shopId      String
   shop        Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  // Note: Full-text and trigram indexes will be created manually via SQL after db:push
 
   @@index([shopId])
   @@index([game])
   @@index([isActive])
   @@index([price])
-  // Note: Full-text and trigram indexes will be created manually via SQL after db:push
 }
 
 enum ListingVisibility {
-  EARLY_ACCESS  // Solo Premium per 24h
-  PUBLIC        // Tutti possono vedere
+  EARLY_ACCESS // Solo Premium per 24h
+  PUBLIC // Tutti possono vedere
 }
 
 model ListingP2P {
-  id          String      @id @default(cuid())
-  title       String
-  description String?
-  type        ListingType
-  price       Float?      // If sale or both
-  condition   CardCondition
-  game        CardGame
-  set         String?     // Set name
-  cardNumber  String?     // e.g., "25/102"
-  rarity      String?
-  language    String      @default("IT")
-  images      String[]    // Array of image URLs (Cloudinary)
-  wants       String?     // What they want in trade
-  isActive    Boolean     @default(true)
-  isSold      Boolean     @default(false) // Marcato come venduto quando transazione completata
-  isApproved  Boolean     @default(false) // Manual approval required by admin
-  approvalNotes String?   // Admin notes for approval/rejection
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
+  id            String        @id @default(cuid())
+  title         String
+  description   String?
+  type          ListingType
+  price         Float? // If sale or both
+  condition     CardCondition
+  game          CardGame
+  set           String? // Set name
+  cardNumber    String? // e.g., "25/102"
+  rarity        String?
+  language      String        @default("IT")
+  images        String[] // Array of image URLs (Cloudinary)
+  wants         String? // What they want in trade
+  isActive      Boolean       @default(true)
+  isSold        Boolean       @default(false) // Marcato come venduto quando transazione completata
+  isApproved    Boolean       @default(false) // Manual approval required by admin
+  approvalNotes String? // Admin notes for approval/rejection
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
   // Early Access System (Premium Feature)
-  visibility      ListingVisibility @default(PUBLIC)
-  earlyAccessEnd  DateTime?         // Timestamp fine early access (24h dopo creazione)
+  visibility     ListingVisibility @default(PUBLIC)
+  earlyAccessEnd DateTime? // Timestamp fine early access (24h dopo creazione)
 
   proposals        Proposal[]
   featuredListings FeaturedListing[]
   alertTriggers    AlertTrigger[]
+  // Note: Full-text and trigram indexes will be created manually via SQL after db:push
 
   @@index([userId])
   @@index([game])
@@ -230,25 +326,24 @@ model ListingP2P {
   @@index([createdAt])
   @@index([visibility])
   @@index([earlyAccessEnd])
-  // Note: Full-text and trigram indexes will be created manually via SQL after db:push
 }
 
 model Proposal {
-  id          String          @id @default(cuid())
-  listingId   String
-  listing     ListingP2P      @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  proposerId  String
-  proposer    User            @relation("Proposer", fields: [proposerId], references: [id], onDelete: Cascade)
-  receiverId  String
-  receiver    User            @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  type        ListingType     // SALE or TRADE
-  offerPrice  Float?          // Counter-offer if sale
-  tradeItems  String?         // Description of items offered in trade
-  message     String?          // Optional message from proposer
-  feePaidBy   FeePaidBy       @default(SELLER) // Chi paga la commissione SafeTrade
-  status      ProposalStatus  @default(PENDING)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id         String         @id @default(cuid())
+  listingId  String
+  listing    ListingP2P     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  proposerId String
+  proposer   User           @relation("Proposer", fields: [proposerId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User           @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  type       ListingType // SALE or TRADE
+  offerPrice Float? // Counter-offer if sale
+  tradeItems String? // Description of items offered in trade
+  message    String? // Optional message from proposer
+  feePaidBy  FeePaidBy      @default(SELLER) // Chi paga la commissione SafeTrade
+  status     ProposalStatus @default(PENDING)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   transaction SafeTradeTransaction?
 
@@ -260,33 +355,48 @@ model Proposal {
 }
 
 enum PriorityTier {
-  STANDARD     // Free users
-  PRIORITY     // Premium users
-  FAST_TRACK   // PRO users
+  STANDARD // Free users
+  PRIORITY // Premium users
+  FAST_TRACK // PRO users
 }
 
 model SafeTradeTransaction {
-  id            String          @id @default(cuid())
-  proposalId    String?         @unique
-  proposal      Proposal?       @relation(fields: [proposalId], references: [id], onDelete: SetNull)
-  userAId       String
-  userA         User            @relation("UserA", fields: [userAId], references: [id], onDelete: Cascade)
-  userBId       String
-  userB         User            @relation("UserB", fields: [userBId], references: [id], onDelete: Cascade)
-  shopId        String
-  shop          Shop            @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  scheduledDate DateTime?
-  scheduledTime String?         // Time slot (e.g., "10:00-11:00")
-  status        SafeTradeStatus @default(PENDING)
-  notes         String?         // Notes from shop or users
-  verificationCode String?      // Code for verification at store
-  completedAt   DateTime?      // When transaction was completed
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  
+  id         String    @id @default(cuid())
+  proposalId String?   @unique
+  proposal   Proposal? @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  userAId    String
+  userA      User      @relation("UserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userBId    String
+  userB      User      @relation("UserB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  // Support for both Shop-based and Hub-based escrow
+  shopId String? // Optional - for shop-based escrow
+  shop   Shop?      @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  hubId  String? // Optional - for hub-based escrow
+  hub    EscrowHub? @relation(fields: [hubId], references: [id], onDelete: Restrict)
+
+  scheduledDate    DateTime?
+  scheduledTime    String? // Time slot (e.g., "10:00-11:00")
+  status           SafeTradeStatus @default(PENDING)
+  notes            String? // Notes from shop/hub or users
+  verificationCode String? // Code for verification at store/hub
+  completedAt      DateTime? // When transaction was completed
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
   // Priority Queue System
-  priorityTier  PriorityTier    @default(STANDARD)
-  priorityPaid  Boolean         @default(false) // Se ha pagato per priority (pay-per-use)
+  priorityTier PriorityTier @default(STANDARD)
+  priorityPaid Boolean      @default(false) // Se ha pagato per priority (pay-per-use)
+
+  // Hub Package Tracking (only for hub-based transactions)
+  packageStatus        HubPackageStatus? // Status of package in hub
+  trackingNumber       String? // Shipping tracking number (to hub)
+  returnTrackingNumber String? // Return tracking number (to buyer)
+  packageReceivedAt    DateTime? // When package received at hub
+  packageVerifiedAt    DateTime? // When package verified at hub
+  packageShippedAt     DateTime? // When package shipped to buyer
+  packageDeliveredAt   DateTime? // When package delivered to buyer
+  verificationPhotos   String[] // Photos of package contents for verification
 
   // Relations
   escrowSession EscrowSession?
@@ -295,21 +405,23 @@ model SafeTradeTransaction {
   @@index([userAId])
   @@index([userBId])
   @@index([shopId])
+  @@index([hubId])
   @@index([status])
   @@index([scheduledDate])
   @@index([verificationCode])
   @@index([priorityTier])
+  @@index([packageStatus])
 }
 
 model Notification {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // "proposal_received", "proposal_accepted", "transaction_confirmed", etc.
+  type      String // "proposal_received", "proposal_accepted", "transaction_confirmed", etc.
   title     String
   message   String
-  link      String?  // URL to related page
-  data      Json?    // Generic data field for structured info
+  link      String? // URL to related page
+  data      Json? // Generic data field for structured info
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -319,16 +431,16 @@ model Notification {
 }
 
 model ImportBatch {
-  id          String   @id @default(cuid())
-  shopId      String
-  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  source      String   // "vinted", "cardmarket", "manual"
-  status      String   // "pending", "processing", "completed", "failed"
-  itemsCount  Int      @default(0)
-  itemsData   Json?    // Raw data from extension
-  error       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  shopId     String
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  source     String // "vinted", "cardmarket", "manual"
+  status     String // "pending", "processing", "completed", "failed"
+  itemsCount Int      @default(0)
+  itemsData  Json? // Raw data from extension
+  error      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([shopId])
   @@index([status])
@@ -346,23 +458,23 @@ enum TournamentStatus {
 }
 
 model Tournament {
-  id              String            @id @default(cuid())
+  id              String           @id @default(cuid())
   title           String
   description     String?
   game            CardGame
   shopId          String
-  shop            Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shop            Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
   date            DateTime
-  time            String            // e.g., "14:00"
+  time            String // e.g., "14:00"
   maxParticipants Int
-  entryFee        Float?            // Optional entry fee
-  prizePool       String?           // Description of prizes
-  rules           String?           // Tournament rules
-  status          TournamentStatus  @default(DRAFT)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  entryFee        Float? // Optional entry fee
+  prizePool       String? // Description of prizes
+  rules           String? // Tournament rules
+  status          TournamentStatus @default(DRAFT)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
-  registrations   TournamentRegistration[]
+  registrations TournamentRegistration[]
 
   @@index([shopId])
   @@index([game])
@@ -371,13 +483,13 @@ model Tournament {
 }
 
 model TournamentRegistration {
-  id            String     @id @default(cuid())
-  tournamentId  String
-  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status        String     @default("CONFIRMED") // CONFIRMED, CANCELLED, WAITLIST
-  createdAt     DateTime   @default(now())
+  id           String     @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       String     @default("CONFIRMED") // CONFIRMED, CANCELLED, WAITLIST
+  createdAt    DateTime   @default(now())
 
   @@unique([tournamentId, userId])
   @@index([tournamentId])
@@ -387,15 +499,15 @@ model TournamentRegistration {
 // ============= FEATURED LISTINGS (VETRINA) =============
 
 model FeaturedListing {
-  id          String    @id @default(cuid())
-  listingId   String
-  listing     ListingP2P @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  startDate   DateTime  @default(now())
-  endDate     DateTime
-  tier        String    @default("BASIC") // BASIC (3 days), PREMIUM (1 week)
-  amountPaid  Float
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
+  id         String     @id @default(cuid())
+  listingId  String
+  listing    ListingP2P @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  startDate  DateTime   @default(now())
+  endDate    DateTime
+  tier       String     @default("BASIC") // BASIC (3 days), PREMIUM (1 week)
+  amountPaid Float
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
 
   @@index([listingId])
   @@index([endDate])
@@ -405,16 +517,16 @@ model FeaturedListing {
 // ============= CHAT / MESSAGING =============
 
 model Conversation {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   userAId   String
-  userA     User      @relation("ConversationUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userA     User     @relation("ConversationUserA", fields: [userAId], references: [id], onDelete: Cascade)
   userBId   String
-  userB     User      @relation("ConversationUserB", fields: [userBId], references: [id], onDelete: Cascade)
-  listingId String?   // Optional - conversation about a listing
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  userB     User     @relation("ConversationUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  listingId String? // Optional - conversation about a listing
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  messages  Message[]
+  messages Message[]
 
   @@unique([userAId, userBId])
   @@index([userAId])
@@ -422,16 +534,16 @@ model Conversation {
 }
 
 model Message {
-  id              String       @id @default(cuid())
-  conversationId  String
-  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  senderId        String
-  sender          User         @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
-  receiverId      String
-  receiver        User         @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  content         String
-  read            Boolean      @default(false)
-  createdAt       DateTime     @default(now())
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId     String
+  receiver       User         @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  content        String
+  read           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
 
   @@index([conversationId])
   @@index([senderId])
@@ -448,29 +560,29 @@ enum ApplicationStatus {
 }
 
 model MerchantApplication {
-  id            String            @id @default(cuid())
-  userId        String            @unique
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  shopName      String            // Nome azienda
-  companyName   String            // Ragione sociale
-  vatNumber     String            // Partita IVA
-  taxCode       String?           // Codice fiscale
-  uniqueCode    String?           // Codice univoco azienda
-  description   String?
-  address       String
-  city          String
-  province      String?           // Provincia
-  postalCode    String?           // CAP
-  phone         String
-  email         String?           // Email aziendale
-  website       String?           // Sito web
-  documentUrl   String?           // Business license or ID
-  legalForm     String?           // Forma giuridica (SRL, SNC, ecc.)
-  status        ApplicationStatus @default(PENDING)
-  reviewNotes   String?           // Admin notes
-  reviewedAt    DateTime?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id          String            @id @default(cuid())
+  userId      String            @unique
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopName    String // Nome azienda
+  companyName String // Ragione sociale
+  vatNumber   String // Partita IVA
+  taxCode     String? // Codice fiscale
+  uniqueCode  String? // Codice univoco azienda
+  description String?
+  address     String
+  city        String
+  province    String? // Provincia
+  postalCode  String? // CAP
+  phone       String
+  email       String? // Email aziendale
+  website     String? // Sito web
+  documentUrl String? // Business license or ID
+  legalForm   String? // Forma giuridica (SRL, SNC, ecc.)
+  status      ApplicationStatus @default(PENDING)
+  reviewNotes String? // Admin notes
+  reviewedAt  DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   @@index([status])
   @@index([createdAt])
@@ -487,62 +599,62 @@ enum EscrowSessionStatus {
 }
 
 enum FeePaidBy {
-  SELLER   // Fee detratta dal venditore (dal prezzo di vendita)
-  BUYER    // Fee aggiunta e pagata dal compratore
-  SPLIT    // Fee divisa 50/50 tra venditore e compratore
+  SELLER // Fee detratta dal venditore (dal prezzo di vendita)
+  BUYER // Fee aggiunta e pagata dal compratore
+  SPLIT // Fee divisa 50/50 tra venditore e compratore
 }
 
 enum EscrowPaymentStatus {
-  PENDING        // Payment initiated but not confirmed
-  HELD           // Funds held in escrow
-  RELEASED       // Funds released to seller
-  REFUNDED       // Funds refunded to buyer
-  CANCELLED      // Payment cancelled
+  PENDING // Payment initiated but not confirmed
+  HELD // Funds held in escrow
+  RELEASED // Funds released to seller
+  REFUNDED // Funds refunded to buyer
+  CANCELLED // Payment cancelled
 }
 
 enum EscrowPaymentMethod {
-  CASH           // Cash payment at store
-  ONLINE         // Online payment (future)
-  BANK_TRANSFER  // Bank transfer (future)
+  CASH // Cash payment at store
+  ONLINE // Online payment (future)
+  BANK_TRANSFER // Bank transfer (future)
 }
 
 // Escrow Session - Connects buyer, seller, and merchant in a communication session
 model EscrowSession {
-  id            String                @id @default(cuid())
-  transactionId String                @unique
-  transaction   SafeTradeTransaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  
+  id            String               @id @default(cuid())
+  transactionId String               @unique
+  transaction   SafeTradeTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
   // Participants
-  buyerId       String                // User A (proposer)
-  buyer         User                  @relation("EscrowBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
-  sellerId      String                // User B (receiver)
-  seller        User                  @relation("EscrowSeller", fields: [sellerId], references: [id], onDelete: Cascade)
-  merchantId    String                // Shop owner
-  merchant      User                  @relation("EscrowMerchant", fields: [merchantId], references: [id], onDelete: Cascade)
-  
-  status        EscrowSessionStatus   @default(ACTIVE)
-  
+  buyerId    String // User A (proposer)
+  buyer      User   @relation("EscrowBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  sellerId   String // User B (receiver)
+  seller     User   @relation("EscrowSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  merchantId String // Shop owner
+  merchant   User   @relation("EscrowMerchant", fields: [merchantId], references: [id], onDelete: Cascade)
+
+  status EscrowSessionStatus @default(ACTIVE)
+
   // Payment & Fee Management
-  totalAmount   Float                 @default(0) // Prezzo totale concordato
-  feePercentage Float                 @default(5.0) // Percentuale fee (default 5%)
-  feePaidBy     FeePaidBy             @default(SELLER) // Chi paga la fee
-  feeAmount     Float                 @default(0) // Fee calcolata
-  finalAmount   Float                 @default(0) // Importo finale (dopo fee)
-  paymentMethod EscrowPaymentMethod   @default(CASH) // Solo CASH per ora
-  
+  totalAmount   Float               @default(0) // Prezzo totale concordato
+  feePercentage Float               @default(5.0) // Percentuale fee (default 5%)
+  feePaidBy     FeePaidBy           @default(SELLER) // Chi paga la fee
+  feeAmount     Float               @default(0) // Fee calcolata
+  finalAmount   Float               @default(0) // Importo finale (dopo fee)
+  paymentMethod EscrowPaymentMethod @default(CASH) // Solo CASH per ora
+
   // QR Code for in-store verification
-  qrCode        String?               @unique // Codice univoco per QR (nullable per record esistenti)
-  qrScannedAt   DateTime?             // Timestamp quando il QR è stato scannerizzato
-  qrScannedBy   String?               // ID del merchant che ha scannerizzato
-  
+  qrCode      String?   @unique // Codice univoco per QR (nullable per record esistenti)
+  qrScannedAt DateTime? // Timestamp quando il QR è stato scannerizzato
+  qrScannedBy String? // ID del merchant che ha scannerizzato
+
   // Session metadata
-  lastActivity  DateTime              @default(now())
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  
+  lastActivity DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   // Relations
-  messages      EscrowMessage[]
-  
+  messages EscrowMessage[]
+
   @@index([transactionId])
   @@index([buyerId])
   @@index([sellerId])
@@ -554,16 +666,16 @@ model EscrowSession {
 
 // Messages within escrow session
 model EscrowMessage {
-  id            String        @id @default(cuid())
-  sessionId     String
-  session       EscrowSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  senderId      String
-  sender        User          @relation("EscrowMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  content       String
-  isSystem      Boolean       @default(false) // System messages (e.g., "Payment received")
-  readBy        String[]      // Array of user IDs who read this message
-  createdAt     DateTime      @default(now())
-  
+  id        String        @id @default(cuid())
+  sessionId String
+  session   EscrowSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User          @relation("EscrowMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  content   String
+  isSystem  Boolean       @default(false) // System messages (e.g., "Payment received")
+  readBy    String[] // Array of user IDs who read this message
+  createdAt DateTime      @default(now())
+
   @@index([sessionId])
   @@index([senderId])
   @@index([createdAt])
@@ -571,35 +683,35 @@ model EscrowMessage {
 
 // Escrow Payment - Manages funds in escrow
 model EscrowPayment {
-  id                String                @id @default(cuid())
-  transactionId     String                @unique
-  transaction       SafeTradeTransaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  
+  id            String               @id @default(cuid())
+  transactionId String               @unique
+  transaction   SafeTradeTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
   // Payment details
-  amount            Float                 // Total amount in escrow
-  currency          String                @default("EUR")
-  paymentMethod     EscrowPaymentMethod   @default(CASH)
-  status            EscrowPaymentStatus   @default(PENDING)
-  
+  amount        Float // Total amount in escrow
+  currency      String              @default("EUR")
+  paymentMethod EscrowPaymentMethod @default(CASH)
+  status        EscrowPaymentStatus @default(PENDING)
+
   // Payment tracking
-  paymentInitiatedAt DateTime?            // When payment was initiated
-  paymentHeldAt      DateTime?            // When funds were held
-  paymentReleasedAt  DateTime?            // When funds were released to seller
-  paymentRefundedAt   DateTime?           // When funds were refunded
-  
+  paymentInitiatedAt DateTime? // When payment was initiated
+  paymentHeldAt      DateTime? // When funds were held
+  paymentReleasedAt  DateTime? // When funds were released to seller
+  paymentRefundedAt  DateTime? // When funds were refunded
+
   // Payment references (for online payments)
-  paymentProviderId  String?              // External payment provider transaction ID
-  paymentProvider    String?              // e.g., "stripe", "paypal"
-  
+  paymentProviderId String? // External payment provider transaction ID
+  paymentProvider   String? // e.g., "stripe", "paypal"
+
   // Security & fraud prevention
-  riskScore          Float?               // Risk assessment score (0-100)
-  flaggedForReview   Boolean              @default(false)
-  reviewNotes        String?              // Admin review notes
-  
+  riskScore        Float? // Risk assessment score (0-100)
+  flaggedForReview Boolean @default(false)
+  reviewNotes      String? // Admin review notes
+
   // Audit trail
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([transactionId])
   @@index([status])
   @@index([paymentProviderId])
@@ -608,55 +720,55 @@ model EscrowPayment {
 
 // Escrow Wallet - User's escrow balance (for future online payments)
 model EscrowWallet {
-  id            String    @id @default(cuid())
-  userId        String    @unique
-  user          User      @relation("EscrowWallet", fields: [userId], references: [id], onDelete: Cascade)
-  
-  balance       Float     @default(0)     // Available balance
-  pendingBalance Float    @default(0)    // Funds in pending transactions
-  totalDeposited Float    @default(0)     // Total ever deposited
-  totalWithdrawn Float    @default(0)     // Total ever withdrawn
-  
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation("EscrowWallet", fields: [userId], references: [id], onDelete: Cascade)
+
+  balance        Float @default(0) // Available balance
+  pendingBalance Float @default(0) // Funds in pending transactions
+  totalDeposited Float @default(0) // Total ever deposited
+  totalWithdrawn Float @default(0) // Total ever withdrawn
+
   // Security
-  isActive      Boolean   @default(true)
-  lastActivity  DateTime  @default(now())
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  isActive     Boolean  @default(true)
+  lastActivity DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  transactions  EscrowWalletTransaction[]
-  
+  transactions EscrowWalletTransaction[]
+
   @@index([userId])
 }
 
 enum EscrowWalletTransactionType {
   DEPOSIT
   WITHDRAWAL
-  ESCROW_HOLD      // Funds held for transaction
-  ESCROW_RELEASE   // Funds released from escrow
-  ESCROW_REFUND    // Funds refunded from escrow
+  ESCROW_HOLD // Funds held for transaction
+  ESCROW_RELEASE // Funds released from escrow
+  ESCROW_REFUND // Funds refunded from escrow
 }
 
 // Wallet transaction history
 model EscrowWalletTransaction {
-  id            String                      @id @default(cuid())
-  walletId      String
-  wallet        EscrowWallet                @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  
-  type          EscrowWalletTransactionType
-  amount        Float
-  description   String?
-  
+  id       String       @id @default(cuid())
+  walletId String
+  wallet   EscrowWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  type        EscrowWalletTransactionType
+  amount      Float
+  description String?
+
   // Reference to related transaction/payment
-  relatedTransactionId String?              // SafeTradeTransaction ID
-  relatedPaymentId     String?              // EscrowPayment ID
-  
+  relatedTransactionId String? // SafeTradeTransaction ID
+  relatedPaymentId     String? // EscrowPayment ID
+
   balanceBefore Float
   balanceAfter  Float
-  
-  createdAt     DateTime                    @default(now())
-  
+
+  createdAt DateTime @default(now())
+
   @@index([walletId])
   @@index([type])
   @@index([createdAt])
@@ -681,8 +793,8 @@ model Promotion {
   startDate     DateTime
   endDate       DateTime
   isActive      Boolean      @default(true)
-  appliesTo     String[]     // "ALL", "PRODUCTS", "LISTINGS"
-  targetIds     String[]     // IDs of specific items if appliesTo is specific
+  appliesTo     String[] // "ALL", "PRODUCTS", "LISTINGS"
+  targetIds     String[] // IDs of specific items if appliesTo is specific
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
@@ -692,8 +804,6 @@ model Promotion {
   @@index([endDate])
 }
 
-
-
 // ============= COMMUNITY SYSTEM =============
 
 model Topic {
@@ -701,39 +811,39 @@ model Topic {
   slug        String   @unique
   name        String
   description String?
-  icon        String?  // Material symbol name
+  icon        String? // Material symbol name
   posts       Post[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Premium Community (Insider Circle)
   isPremiumOnly Boolean @default(false)
-  requiredTier  String?  // "PREMIUM", "PRO", null = public
+  requiredTier  String? // "PREMIUM", "PRO", null = public
 }
 
 model Post {
-  id          String    @id @default(cuid())
-  title       String
-  content     String    @db.Text
-  topicId     String
-  topic       Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  authorId    String
-  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments    Comment[]
-  views       Int       @default(0)
-  isPinned    Boolean   @default(false)
-  isLocked    Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  id        String    @id @default(cuid())
+  title     String
+  content   String    @db.Text
+  topicId   String
+  topic     Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  views     Int       @default(0)
+  isPinned  Boolean   @default(false)
+  isLocked  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
   // Karma & Moderation System
-  upvotes     Int       @default(0)
-  downvotes   Int       @default(0)
-  spamScore   Float     @default(0)   // 0-1, higher = more likely spam
+  upvotes        Int     @default(0)
+  downvotes      Int     @default(0)
+  spamScore      Float   @default(0) // 0-1, higher = more likely spam
   isAutoApproved Boolean @default(false) // Auto-approved se karma utente > 50
-  isFlagged   Boolean   @default(false)
-  flagReason  String?
-  karmaChange Int       @default(0)   // Karma gained/lost from this post
+  isFlagged      Boolean @default(false)
+  flagReason     String?
+  karmaChange    Int     @default(0) // Karma gained/lost from this post
 
   @@index([topicId])
   @@index([authorId])
@@ -742,17 +852,17 @@ model Post {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
+  id        String    @id @default(cuid())
+  content   String    @db.Text
   postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parentId  String?  // For nested comments
-  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentId  String? // For nested comments
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[] @relation("CommentReplies")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([postId])
   @@index([authorId])
@@ -765,7 +875,7 @@ model Badge {
   id          String      @id @default(cuid())
   name        String      @unique
   description String?
-  icon        String      // Material symbol or image URL
+  icon        String // Material symbol or image URL
   color       String      @default("blue") // e.g., "blue", "red", "gold"
   users       UserBadge[]
   createdAt   DateTime    @default(now())
@@ -803,55 +913,55 @@ enum BillingPeriod {
 }
 
 model SubscriptionPlan {
-  id            String         @id @default(cuid())
-  name          String         @unique // "FREE", "PREMIUM", "PRO"
-  tier          SubscriptionTier
-  description   String?
-  priceMonthly  Float          @default(0)
-  priceYearly   Float          @default(0)
-  
+  id           String           @id @default(cuid())
+  name         String           @unique // "FREE", "PREMIUM", "PRO"
+  tier         SubscriptionTier
+  description  String?
+  priceMonthly Float            @default(0)
+  priceYearly  Float            @default(0)
+
   // Features
-  earlyAccessHours    Int      @default(0)   // 0 = no early access, 24 = 24h head start
-  maxAlerts           Int      @default(3)   // Max price alerts
-  prioritySafeTrade   Boolean  @default(false)
+  earlyAccessHours     Int     @default(0) // 0 = no early access, 24 = 24h head start
+  maxAlerts            Int     @default(3) // Max price alerts
+  prioritySafeTrade    Boolean @default(false)
   instantNotifications Boolean @default(false)
-  premiumCommunity    Boolean  @default(false)
-  bulkListingTools    Boolean  @default(false)
-  priorityMonthlyLimit Int     @default(0)   // Free priority SafeTrades per month
-  
+  premiumCommunity     Boolean @default(false)
+  bulkListingTools     Boolean @default(false)
+  priorityMonthlyLimit Int     @default(0) // Free priority SafeTrades per month
+
   subscriptions UserSubscription[]
-  
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model UserSubscription {
-  id            String             @id @default(cuid())
-  userId        String             @unique
-  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId        String
-  plan          SubscriptionPlan   @relation(fields: [planId], references: [id])
-  
+  id     String           @id @default(cuid())
+  userId String           @unique
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId String
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+
   status        SubscriptionStatus @default(ACTIVE)
   billingPeriod BillingPeriod      @default(MONTHLY)
-  
+
   // Dates
-  startDate     DateTime           @default(now())
-  endDate       DateTime?          // null = never expires (lifetime or free)
-  cancelledAt   DateTime?
-  
+  startDate   DateTime  @default(now())
+  endDate     DateTime? // null = never expires (lifetime or free)
+  cancelledAt DateTime?
+
   // Payment tracking (for future Stripe integration)
   stripeCustomerId     String?
   stripeSubscriptionId String?
   lastPaymentAt        DateTime?
   nextPaymentAt        DateTime?
-  
+
   // Usage tracking
-  priorityUsedThisMonth Int       @default(0)
-  
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  
+  priorityUsedThisMonth Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([planId])
   @@index([status])
@@ -861,36 +971,36 @@ model UserSubscription {
 // ============= KARMA SYSTEM =============
 
 enum KarmaLevel {
-  NEW           // 0-49 karma
-  TRUSTED       // 50-199 karma
-  ELITE         // 200-499 karma
-  LEGEND        // 500+ karma
-  BANNED        // < 0 karma
+  NEW // 0-49 karma
+  TRUSTED // 50-199 karma
+  ELITE // 200-499 karma
+  LEGEND // 500+ karma
+  BANNED // < 0 karma
 }
 
 model UserKarma {
-  id          String     @id @default(cuid())
-  userId      String     @unique
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  karma       Int        @default(0)
-  level       KarmaLevel @default(NEW)
-  
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  karma Int        @default(0)
+  level KarmaLevel @default(NEW)
+
   // Activity tracking
-  postsCount      Int    @default(0)
-  commentsCount   Int    @default(0)
-  upvotesGiven    Int    @default(0)
-  upvotesReceived Int    @default(0)
-  flagsReceived   Int    @default(0)
-  
+  postsCount      Int @default(0)
+  commentsCount   Int @default(0)
+  upvotesGiven    Int @default(0)
+  upvotesReceived Int @default(0)
+  flagsReceived   Int @default(0)
+
   // Rate limiting
-  lastPostAt      DateTime?
-  postsToday      Int    @default(0)
-  lastResetDate   DateTime @default(now())
-  
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  
+  lastPostAt    DateTime?
+  postsToday    Int       @default(0)
+  lastResetDate DateTime  @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([karma])
   @@index([level])
@@ -899,33 +1009,33 @@ model UserKarma {
 // ============= PRICE ALERTS SYSTEM =============
 
 model PriceAlert {
-  id          String    @id @default(cuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Alert conditions (any combination)
-  cardName    String?   // Specifica carta (fuzzy match)
-  cardSet     String?   // Specifico set
-  game        CardGame?
-  maxPrice    Float?    // Alert se prezzo < maxPrice
-  minPrice    Float?    // Alert se prezzo > minPrice (for selling)
-  rarity      String?   // Alert per rarità
-  condition   CardCondition?
-  
+  cardName  String? // Specifica carta (fuzzy match)
+  cardSet   String? // Specifico set
+  game      CardGame?
+  maxPrice  Float? // Alert se prezzo < maxPrice
+  minPrice  Float? // Alert se prezzo > minPrice (for selling)
+  rarity    String? // Alert per rarità
+  condition CardCondition?
+
   // Notification settings
-  notifyEmail Boolean   @default(true)
-  notifyPush  Boolean   @default(false) // Solo Premium
-  notifySMS   Boolean   @default(false) // Solo PRO
-  
-  isActive    Boolean   @default(true)
+  notifyEmail Boolean @default(true)
+  notifyPush  Boolean @default(false) // Solo Premium
+  notifySMS   Boolean @default(false) // Solo PRO
+
+  isActive        Boolean   @default(true)
   lastTriggeredAt DateTime?
-  triggerCount Int      @default(0)
-  
-  triggers    AlertTrigger[]
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  triggerCount    Int       @default(0)
+
+  triggers AlertTrigger[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([game])
   @@index([isActive])
@@ -933,17 +1043,17 @@ model PriceAlert {
 }
 
 model AlertTrigger {
-  id          String     @id @default(cuid())
-  alertId     String
-  alert       PriceAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
-  listingId   String
-  listing     ListingP2P @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  
-  matchedPrice Float
+  id        String     @id @default(cuid())
+  alertId   String
+  alert     PriceAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   ListingP2P @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  matchedPrice     Float
   notificationSent Boolean @default(false)
-  
-  triggeredAt DateTime   @default(now())
-  
+
+  triggeredAt DateTime @default(now())
+
   @@index([alertId])
   @@index([listingId])
   @@index([triggeredAt])
@@ -968,42 +1078,42 @@ enum EventStatus {
 }
 
 model CommunityEvent {
-  id          String      @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
-  description String?     @db.Text
+  description String?   @db.Text
   type        EventType
   game        CardGame?
-  
+
   // Organizer (can be User or Shop)
   organizerUserId String?
   organizerShopId String?
-  
+
   // Event details
-  date        DateTime
-  endDate     DateTime?   // For multi-day events
-  time        String?     // e.g., "14:00"
-  location    String?     // Address or "Online"
-  isOnline    Boolean     @default(false)
-  onlineLink  String?     // Zoom/Discord link
-  
+  date       DateTime
+  endDate    DateTime? // For multi-day events
+  time       String? // e.g., "14:00"
+  location   String? // Address or "Online"
+  isOnline   Boolean   @default(false)
+  onlineLink String? // Zoom/Discord link
+
   // Capacity
   maxParticipants Int?
-  entryFee    Float?
-  
+  entryFee        Float?
+
   // Premium features
-  isPremiumOnly Boolean   @default(false)
-  requiredTier  String?   // "PREMIUM", "PRO"
-  
+  isPremiumOnly Boolean @default(false)
+  requiredTier  String? // "PREMIUM", "PRO"
+
   // Community integration
   discussionTopicId String? // Auto-create topic for discussion
-  
-  status      EventStatus @default(DRAFT)
-  
+
+  status EventStatus @default(DRAFT)
+
   registrations EventRegistration[]
-  
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([type])
   @@index([game])
   @@index([date])
@@ -1012,19 +1122,19 @@ model CommunityEvent {
 }
 
 model EventRegistration {
-  id        String         @id @default(cuid())
-  eventId   String
-  event     CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  status    String         @default("REGISTERED") // REGISTERED, WAITLIST, CANCELLED, ATTENDED
-  
+  id      String         @id @default(cuid())
+  eventId String
+  event   CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status String @default("REGISTERED") // REGISTERED, WAITLIST, CANCELLED, ATTENDED
+
   // Premium priority tracking
   isPriorityRegistration Boolean @default(false)
-  
-  createdAt DateTime       @default(now())
-  
+
+  createdAt DateTime @default(now())
+
   @@unique([eventId, userId])
   @@index([eventId])
   @@index([userId])
@@ -1041,20 +1151,20 @@ enum ContactStatus {
 }
 
 model ContactMessage {
-  id          String   @id @default(cuid())
-  userId      String?  // Can be null for anonymous users
-  user        User?    @relation("ContactMessages", fields: [userId], references: [id], onDelete: SetNull)
-  email       String   // Email for reply
-  name        String   // Name of sender
-  subject     String
-  message     String   @db.Text
-  status      ContactStatus @default(PENDING)
-  adminReply  String?  @db.Text
-  repliedAt   DateTime?
-  repliedBy   String?  // Admin user ID who replied
-  ipAddress   String?  // For rate limiting anonymous users
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String        @id @default(cuid())
+  userId     String? // Can be null for anonymous users
+  user       User?         @relation("ContactMessages", fields: [userId], references: [id], onDelete: SetNull)
+  email      String // Email for reply
+  name       String // Name of sender
+  subject    String
+  message    String        @db.Text
+  status     ContactStatus @default(PENDING)
+  adminReply String?       @db.Text
+  repliedAt  DateTime?
+  repliedBy  String? // Admin user ID who replied
+  ipAddress  String? // For rate limiting anonymous users
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
   @@index([userId])
   @@index([email])
