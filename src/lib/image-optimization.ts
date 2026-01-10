@@ -1,4 +1,5 @@
-import sharp from 'sharp'
+// Import dinamico di Sharp solo a runtime per evitare problemi durante il build
+// Sharp è una libreria nativa che può causare problemi durante il build time
 
 // Configurazione ottimizzazione
 const MAX_WIDTH = 1200
@@ -6,6 +7,13 @@ const MAX_HEIGHT = 1200
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB max file size
 const WEBP_QUALITY = 80 // Qualità WebP (0-100)
 const JPEG_QUALITY = 85 // Qualità JPEG (0-100)
+
+// Dynamic import function per Sharp
+async function getSharp() {
+  // Import dinamico solo quando necessario (runtime)
+  const sharp = (await import('sharp')).default
+  return sharp
+}
 
 interface OptimizeOptions {
   maxWidth?: number
@@ -31,6 +39,8 @@ export async function optimizeImage(
     maxFileSize = MAX_FILE_SIZE,
   } = options
 
+  // Import dinamico di Sharp solo a runtime
+  const sharp = await getSharp()
   let image = sharp(input)
   const metadata = await image.metadata()
 
@@ -89,6 +99,8 @@ export async function optimizeImage(
     currentQuality -= 10
     attempts++
     
+    // Re-import Sharp per creare una nuova istanza
+    const sharp = await getSharp()
     image = sharp(input)
     if (metadata.width && metadata.height) {
       const shouldResize =
