@@ -1,57 +1,82 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { updateSession } from '@/lib/supabase/middleware'
+import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request })
+
   try {
-    // 1. Update Supabase session (refresh cookies)
-    // This helps keep the user logged in across tabs/pages
-    const supabaseResponse = await updateSession(request)
+    // Check if Supabase env vars are available
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    // If updateSession returned a redirect (e.g. to /login), return it immediately
-    if (supabaseResponse.headers.get('location')) {
-      return supabaseResponse
+    if (supabaseUrl && supabaseAnonKey) {
+      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+        cookieEncoding: 'base64url',
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            supabaseResponse = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            )
+          },
+        },
+      })
+
+      // Refresh session
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      // Redirect to login if accessing dashboard without auth
+      if (
+        !user &&
+        !request.nextUrl.pathname.startsWith('/login') &&
+        !request.nextUrl.pathname.startsWith('/signup') &&
+        !request.nextUrl.pathname.startsWith('/api') &&
+        request.nextUrl.pathname.startsWith('/dashboard')
+      ) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
+      }
     }
-
-    const hostname = request.headers.get('host') || ''
-
-    // Check if it's a subdomain request (e.g., nomenegozio.safetrade.com)
-    // In development, it might be localhost:3001, so we check for subdomain pattern
-    const subdomain = hostname.split('.')[0]
-
-    // Skip if it's the main domain, localhost, or Vercel domain
-    if (
-      hostname.includes('localhost') ||
-      hostname.includes('127.0.0.1') ||
-      hostname.includes('vercel.app') ||
-      hostname === 'safetrade.com' ||
-      hostname === 'www.safetrade.com' ||
-      subdomain === 'www' ||
-      subdomain === 'safetrade' ||
-      subdomain === 'safe-trade'
-    ) {
-      return supabaseResponse
-    }
-
-    // If it's a subdomain, redirect to the shop page
-    // Format: nomenegozio.safetrade.com -> /shops/nomenegozio
-    const url = request.nextUrl.clone()
-    url.pathname = `/shops/${subdomain}`
-
-    const rewriteResponse = NextResponse.rewrite(url)
-
-    // CRITICAL: Copy cookies from supabaseResponse to the new rewrite response
-    // otherwise the session refresh is lost!
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      rewriteResponse.cookies.set(cookie.name, cookie.value, cookie)
-    })
-
-    return rewriteResponse
   } catch (error) {
-    // If middleware fails, still allow the request to proceed
-    console.error('Middleware error:', error)
-    return NextResponse.next()
+    // If Supabase middleware fails, continue with request
+    console.error('Supabase middleware error:', error)
   }
+
+  const hostname = request.headers.get('host') || ''
+  const subdomain = hostname.split('.')[0]
+
+  // Skip subdomain logic for main domain, localhost, or Vercel
+  if (
+    hostname.includes('localhost') ||
+    hostname.includes('127.0.0.1') ||
+    hostname.includes('vercel.app') ||
+    hostname === 'safetrade.com' ||
+    hostname === 'www.safetrade.com' ||
+    subdomain === 'www' ||
+    subdomain === 'safetrade' ||
+    subdomain === 'safe-trade'
+  ) {
+    return supabaseResponse
+  }
+
+  // Handle subdomain routing for shops
+  const url = request.nextUrl.clone()
+  url.pathname = `/shops/${subdomain}`
+  const rewriteResponse = NextResponse.rewrite(url)
+
+  // Copy cookies from supabaseResponse
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
+    rewriteResponse.cookies.set(cookie.name, cookie.value, cookie)
+  })
+
+  return rewriteResponse
 }
 
 export const config = {
