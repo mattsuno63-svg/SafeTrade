@@ -93,7 +93,13 @@ export default function AdminDisputesPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
+  const fetchDisputesRef = useRef(false)
+
   const fetchDisputes = useCallback(async () => {
+    // Prevenire chiamate multiple simultanee
+    if (fetchDisputesRef.current) return
+    fetchDisputesRef.current = true
+
     try {
       setLoading(true)
       const params = new URLSearchParams()
@@ -128,6 +134,7 @@ export default function AdminDisputesPage() {
       })
     } finally {
       setLoading(false)
+      fetchDisputesRef.current = false
     }
   }, [statusFilter, page, router, toast])
 
@@ -137,7 +144,7 @@ export default function AdminDisputesPage() {
       return
     }
     
-    if (user) {
+    if (user && !loading && !fetchDisputesRef.current) {
       fetchDisputes()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
