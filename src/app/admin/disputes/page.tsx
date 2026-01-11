@@ -140,7 +140,8 @@ export default function AdminDisputesPage() {
     if (user) {
       fetchDisputes()
     }
-  }, [user, userLoading, router, fetchDisputes])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, userLoading])
 
   const getDeadlineInfo = (dispute: Dispute) => {
     if (!dispute.sellerResponseDeadline) return null
