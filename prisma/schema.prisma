@@ -14,6 +14,7 @@ datasource db {
 enum UserRole {
   USER
   MERCHANT
+  MODERATOR  // Nuovo ruolo: può approvare rilascio fondi e gestire dispute, ma meno controllo di ADMIN
   ADMIN
 }
 
@@ -116,6 +117,18 @@ model User {
 
   // Contact Support
   contactMessages ContactMessage[] @relation("ContactMessages")
+
+  // Dispute relations
+  disputesOpened    Dispute[]        @relation("DisputeOpener")
+  disputeMessages   DisputeMessage[] @relation("DisputeMessageSender")
+  packages          Package[]        @relation("PackageSeller")
+
+  // Approvazione Manuale Rilascio Fondi
+  pendingReleasesAsRecipient PendingRelease[]    @relation("PendingReleaseRecipient")
+  pendingReleasesApproved    PendingRelease[]    @relation("PendingReleaseApprover")
+  pendingReleasesRejected    PendingRelease[]    @relation("PendingReleaseRejecter")
+  financialAuditLogs         FinancialAuditLog[] @relation("AuditPerformer")
+  adminNotificationsActioned AdminNotification[] @relation("NotificationActioner")
 
   @@index([email])
   @@index([role])
@@ -399,8 +412,15 @@ model SafeTradeTransaction {
   verificationPhotos   String[] // Photos of package contents for verification
 
   // Relations
-  escrowSession EscrowSession?
-  escrowPayment EscrowPayment?
+  escrowSession   EscrowSession?
+  escrowPayment   EscrowPayment?
+  pendingReleases PendingRelease[] @relation("PendingReleases")
+
+  // Insurance, Disputes, Packages
+  insurance      PackageInsurance?       @relation("PackageInsurance")
+  disputes       Dispute[]               @relation("Disputes")
+  packages       Package[]               @relation("Packages")
+  consolidations PackageConsolidation[]  @relation("Consolidations")
 
   @@index([userAId])
   @@index([userBId])
@@ -1170,4 +1190,359 @@ model ContactMessage {
   @@index([email])
   @@index([status])
   @@index([createdAt])
+}
+
+// ============= SISTEMA APPROVAZIONE MANUALE RILASCIO FONDI =============
+
+enum PendingReleaseType {
+  RELEASE_TO_SELLER   // Rilascio fondi al venditore
+  REFUND_FULL         // Rimborso totale al buyer
+  REFUND_PARTIAL      // Rimborso parziale
+  HUB_COMMISSION      // Commissione Hub Provider
+  WITHDRAWAL          // Prelievo wallet
+}
+
+enum PendingReleaseStatus {
+  PENDING             // In attesa di approvazione
+  APPROVED            // Approvato e processato
+  REJECTED            // Rifiutato
+  EXPIRED             // Scaduto senza azione
+}
+
+model PendingRelease {
+  id              String              @id @default(cuid())
+  
+  // Riferimenti
+  orderId         String?
+  order           SafeTradeTransaction? @relation("PendingReleases", fields: [orderId], references: [id], onDelete: SetNull)
+  disputeId       String?
+  dispute         Dispute?            @relation("PendingReleaseDispute", fields: [disputeId], references: [id], onDelete: SetNull)
+  
+  // Dettagli rilascio
+  type            PendingReleaseType
+  amount          Float
+  recipientId     String
+  recipient       User                @relation("PendingReleaseRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientType   String              // 'SELLER', 'BUYER', 'HUB'
+  
+  // Status
+  status          PendingReleaseStatus @default(PENDING)
+  
+  // Motivo/contesto
+  reason          String?             @db.Text
+  triggeredBy     String?             // 'DELIVERY_CONFIRMED', 'HUB_VERIFIED', 'DISPUTE_RESOLVED', 'WITHDRAWAL_REQUEST'
+  triggeredAt     DateTime            @default(now())
+  
+  // Token conferma doppia (valido 5 minuti)
+  confirmationToken String?           @unique
+  tokenExpiresAt    DateTime?
+  
+  // Approvazione
+  approvedById    String?
+  approvedBy      User?               @relation("PendingReleaseApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt      DateTime?
+  approvalNotes   String?             @db.Text
+  
+  // Rifiuto
+  rejectedById    String?
+  rejectedBy      User?               @relation("PendingReleaseRejecter", fields: [rejectedById], references: [id], onDelete: SetNull)
+  rejectedAt      DateTime?
+  rejectionReason String?             @db.Text
+  
+  // Audit
+  auditLog        FinancialAuditLog?  @relation("PendingReleaseAudit")
+  
+  createdAt       DateTime            @default(now())
+  expiresAt       DateTime?           // Opzionale: scadenza se non processato
+  
+  @@index([status])
+  @@index([type])
+  @@index([recipientId])
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+// Log Audit per tutte le azioni finanziarie
+model FinancialAuditLog {
+  id                  String    @id @default(cuid())
+  
+  // Tipo azione
+  actionType          String    // 'RELEASE_APPROVED', 'RELEASE_REJECTED', 'REFUND_APPROVED', etc.
+  
+  // Riferimenti
+  pendingReleaseId    String?   @unique
+  pendingRelease      PendingRelease? @relation("PendingReleaseAudit", fields: [pendingReleaseId], references: [id], onDelete: SetNull)
+  orderId             String?
+  
+  // Dettagli finanziari
+  amount              Float
+  recipientId         String?
+  
+  // Chi ha eseguito l'azione
+  performedById       String
+  performedBy         User      @relation("AuditPerformer", fields: [performedById], references: [id], onDelete: Cascade)
+  performedByRole     String    // 'ADMIN', 'MODERATOR'
+  
+  // Sicurezza e tracciabilità
+  ipAddress           String?
+  userAgent           String?   @db.Text
+  
+  // Timestamp doppia conferma
+  firstClickAt        DateTime
+  confirmClickAt      DateTime
+  
+  notes               String?   @db.Text
+  
+  createdAt           DateTime  @default(now())
+  
+  @@index([actionType])
+  @@index([performedById])
+  @@index([createdAt])
+  @@index([orderId])
+}
+
+// Notifiche per Admin/Moderator
+enum AdminNotificationType {
+  PENDING_RELEASE     // Nuovo rilascio in attesa
+  DISPUTE_ESCALATED   // Dispute escalata
+  WITHDRAWAL_REQUEST  // Richiesta prelievo
+  HUB_VERIFICATION    // Hub ha verificato pacco
+  URGENT_ACTION       // Azione urgente richiesta
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model AdminNotification {
+  id              String                  @id @default(cuid())
+  
+  type            AdminNotificationType
+  referenceType   String                  // 'PENDING_RELEASE', 'DISPUTE', 'ORDER'
+  referenceId     String
+  
+  title           String
+  message         String                  @db.Text
+  priority        NotificationPriority    @default(NORMAL)
+  
+  // Targeting (quali ruoli devono vedere)
+  targetRoles     String[]                @default(["ADMIN", "MODERATOR"])
+  
+  // Tracking lettura
+  readByIds       String[]                @default([])
+  
+  // Azione presa
+  actionedById    String?
+  actionedBy      User?                   @relation("NotificationActioner", fields: [actionedById], references: [id], onDelete: SetNull)
+  actionedAt      DateTime?
+  
+  createdAt       DateTime                @default(now())
+  
+  @@index([type])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+// ============= SISTEMA DISPUTE =============
+
+enum DisputeStatus {
+  OPEN              // Dispute aperta
+  SELLER_RESPONSE   // In attesa risposta seller
+  IN_MEDIATION      // In mediazione admin
+  RESOLVED          // Risolta
+  ESCALATED         // Escalation ad admin senior
+  CLOSED            // Chiusa
+}
+
+enum DisputeType {
+  NOT_DELIVERED     // Pacco non arrivato
+  DAMAGED_CARDS     // Carte danneggiate
+  WRONG_CONTENT     // Contenuto errato
+  MISSING_ITEMS     // Articoli mancanti
+  CONDITION_MISMATCH // Condizione non conforme
+  DELAY             // Ritardo eccessivo
+  OTHER             // Altro
+}
+
+enum DisputeResolution {
+  REFUND_FULL       // Rimborso totale buyer
+  REFUND_PARTIAL    // Rimborso parziale
+  REPLACEMENT       // Sostituzione
+  RETURN_REQUIRED   // Reso richiesto
+  REJECTED          // Dispute rifiutata
+  IN_FAVOR_BUYER    // A favore buyer
+  IN_FAVOR_SELLER   // A favore seller
+}
+
+model Dispute {
+  id              String            @id @default(cuid())
+  transactionId   String
+  transaction     SafeTradeTransaction @relation("Disputes", fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  // Dispute Details
+  type            DisputeType
+  status          DisputeStatus     @default(OPEN)
+  title           String
+  description     String            @db.Text
+  openedById      String
+  openedBy        User              @relation("DisputeOpener", fields: [openedById], references: [id], onDelete: Cascade)
+  
+  // Resolution
+  resolution      DisputeResolution?
+  resolutionNotes String?           @db.Text
+  resolutionAmount Float?           // Importo rimborso se parziale
+  resolvedById    String?
+  resolvedAt      DateTime?
+  
+  // Mediation
+  mediatorId      String?
+  mediationNotes  String?           @db.Text
+  mediationDeadline DateTime?
+  
+  // Evidence
+  photos          String[]          // Foto documentazione
+  documents       String[]          // Documenti allegati
+  
+  // Timeline
+  sellerResponseDeadline DateTime?  // 48h per rispondere
+  openedAt        DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  closedAt        DateTime?
+  
+  // Relations
+  messages        DisputeMessage[]
+  pendingReleases PendingRelease[]  @relation("PendingReleaseDispute")
+  
+  @@index([transactionId])
+  @@index([status])
+  @@index([type])
+  @@index([openedById])
+}
+
+model DisputeMessage {
+  id          String    @id @default(cuid())
+  disputeId   String
+  dispute     Dispute   @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User      @relation("DisputeMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  content     String    @db.Text
+  photos      String[]  // Foto aggiuntive
+  isInternal  Boolean   @default(false) // Messaggio interno admin
+  createdAt   DateTime  @default(now())
+  
+  @@index([disputeId])
+  @@index([senderId])
+}
+
+// ============= ASSICURAZIONE PACCHI =============
+
+enum InsuranceStatus {
+  NOT_INSURED      // Nessuna assicurazione
+  ACTIVE           // Assicurazione attiva
+  CLAIMED          // Sinistro dichiarato
+  SETTLED          // Sinistro risolto
+  EXPIRED          // Scaduta
+}
+
+model PackageInsurance {
+  id                String              @id @default(cuid())
+  transactionId     String              @unique
+  transaction       SafeTradeTransaction @relation("PackageInsurance", fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  // Insurance Details
+  insuredValue      Float               // Valore assicurato
+  premiumAmount     Float               // Premio pagato
+  coverageType      String              @default("STANDARD") // STANDARD, PREMIUM
+  status            InsuranceStatus     @default(ACTIVE)
+  
+  // Premium Calculation
+  baseRate          Float               @default(2.0) // Percentuale base (2%)
+  riskFactor        Float               @default(1.0) // Fattore rischio (1.0-2.0)
+  
+  // Claim Details (se sinistro)
+  claimAmount       Float?              // Importo sinistro richiesto
+  claimReason       String?             @db.Text
+  claimPhotos       String[]            // Foto documentazione sinistro
+  claimSubmittedAt  DateTime?
+  claimSettledAt    DateTime?
+  claimSettledAmount Float?
+  claimNotes        String?             @db.Text
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  @@index([transactionId])
+  @@index([status])
+}
+
+// ============= MULTI-PACKAGE SYSTEM =============
+
+model Package {
+  id              String              @id @default(cuid())
+  transactionId   String
+  transaction     SafeTradeTransaction @relation("Packages", fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  // Package Details
+  packageNumber   Int                 // Numero pacco nella transazione (1, 2, 3...)
+  sellerId        String              // Seller che ha inviato questo pacco
+  seller          User                @relation("PackageSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  
+  // Tracking
+  trackingNumber  String?             // Tracking pacco verso hub
+  status          HubPackageStatus    @default(PENDING)
+  
+  // Timestamps
+  receivedAt      DateTime?
+  verifiedAt      DateTime?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  
+  // Verification
+  verificationPhotos String[]         // Foto verifica questo pacco
+  verifiedById       String?          // Hub provider ID
+  
+  // Value
+  packageValue    Float               // Valore questo pacco
+  
+  // Consolidation
+  isConsolidated  Boolean             @default(false)
+  consolidationGroupId String?        // ID gruppo consolidazione
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  @@index([transactionId])
+  @@index([sellerId])
+  @@index([status])
+  @@unique([transactionId, packageNumber])
+}
+
+model PackageConsolidation {
+  id              String              @id @default(cuid())
+  transactionId   String
+  transaction     SafeTradeTransaction @relation("Consolidations", fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  // Consolidation Details
+  packageIds      String[]            // IDs dei pacchi consolidati
+  totalValue      Float               // Valore totale consolidato
+  
+  // Shipping
+  consolidatedTrackingNumber String?  // Tracking pacco consolidato
+  consolidatedAt  DateTime?
+  shippedAt       DateTime?
+  
+  // Cost Savings
+  individualShippingCost Float        // Costo spedizioni separate
+  consolidatedShippingCost Float      // Costo spedizione consolidata
+  savingsAmount   Float               // Risparmio
+  
+  status          String              @default("PENDING") // PENDING, READY, SHIPPED, DELIVERED
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  @@index([transactionId])
 }

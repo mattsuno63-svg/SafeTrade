@@ -3,6 +3,60 @@
 
 ---
 
+## 0. REGOLE FONDAMENTALI SAFETRADE
+
+### ⚠️ RILASCIO FONDI SEMPRE MANUALE
+
+**NESSUN rilascio automatico di fondi.** Ogni pagamento deve essere:
+1. Approvato manualmente da Admin o Moderator
+2. Confermato con doppio click ("Sì, sono sicuro!")
+
+### Ruoli di Approvazione
+
+| Ruolo | Può Approvare Rilascio | Può Gestire Dispute | Può Gestire Utenti | Accesso Completo |
+|-------|----------------------|-------------------|-------------------|-----------------|
+| **USER** | ❌ | ❌ | ❌ | ❌ |
+| **MERCHANT** | ❌ | ❌ | ❌ | ❌ |
+| **MODERATOR** | ✅ | ✅ | ❌ | ❌ |
+| **ADMIN** | ✅ | ✅ | ✅ | ✅ |
+
+### Tipi di Pagamento che Richiedono Approvazione Manuale
+
+1. **Rilascio fondi a seller** (ordine completato)
+2. **Rimborso totale a buyer** (dispute/cancellazione)
+3. **Rimborso parziale** (dispute risolta)
+4. **Pagamento Hub Provider** (commissioni)
+5. **Prelievo wallet** (verso conto bancario)
+
+### Workflow Doppia Conferma
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Admin/Moderator clicca "Rilascia Fondi"                   │
+└──────────────────────────┬──────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│  MODAL: "Stai per rilasciare €XX.XX a [Utente]"            │
+│                                                             │
+│  Dettagli transazione:                                      │
+│  - Ordine: #12345                                          │
+│  - Importo: €45.50                                         │
+│  - Destinatario: seller@email.com                          │
+│                                                             │
+│  [Annulla]  [✓ Sì, sono sicuro!]                          │
+└──────────────────────────┬──────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Pagamento eseguito + Log audit                            │
+│  - Chi ha approvato                                        │
+│  - Quando                                                   │
+│  - IP address                                              │
+│  - Note opzionali                                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## 1. MAPPA DEI FLUSSI
 
 ### 1.1 Ordine Diretto Buyer↔Seller CON Spedizione Tracciata
@@ -272,27 +326,34 @@ IF (
 
 ## 6. REGOLE CORE (IF/THEN)
 
-### 6.1 Holding e Rilascio Fondi
+### 6.1 Holding e Rilascio Fondi (MANUALE)
 
 ```python
 # REGOLA 1: Holding fondi
 IF order.paid:
-    IF shipping.is_tracked:
-        HOLD funds IN escrow
-        RELEASE WHEN (buyer_confirms OR tracking_delivered + 7d)
-    ELSE:
-        RELEASE funds WHEN seller_marks_shipped
+    HOLD funds IN escrow
+    # NON rilasciare MAI automaticamente!
 
-# REGOLA 2: Rilascio automatico
+# REGOLA 2: Rilascio SEMPRE manuale
 IF order.status == DELIVERED:
     IF no_dispute_within(7 days):
-        AUTO_RELEASE funds TO seller
+        # NON auto-release! Solo notifica admin/moderator
+        CREATE pending_release_request
+        NOTIFY admins_and_moderators("Ordine pronto per rilascio fondi")
+        # Admin/Moderator deve approvare manualmente
 
 # REGOLA 3: Ordine via Hub
 IF order.via_hub:
     HOLD funds UNTIL hub_verifies_content
-    THEN RELEASE TO seller
-    THEN ship_to_buyer
+    THEN CREATE pending_release_request  # Non rilascio auto!
+    NOTIFY admins_and_moderators("Hub ha verificato, pronto per rilascio")
+
+# REGOLA 4: Doppia conferma obbligatoria
+EVERY release_funds_action REQUIRES:
+    1. Click "Rilascia Fondi"
+    2. Modal conferma con dettagli
+    3. Click "Sì, sono sicuro!"
+    4. Log audit completo
 ```
 
 ### 6.2 Soglie e Limitazioni
@@ -512,6 +573,101 @@ CREATE TABLE shipping_methods (
     
     is_active BOOLEAN DEFAULT true
 );
+
+-- ============================================
+-- SISTEMA APPROVAZIONE MANUALE RILASCIO FONDI
+-- ============================================
+
+-- RICHIESTE RILASCIO PENDENTI
+CREATE TABLE pending_releases (
+    id UUID PRIMARY KEY,
+    order_id UUID NOT NULL REFERENCES orders(id),
+    escrow_hold_id UUID NOT NULL REFERENCES escrow_holds(id),
+    
+    type VARCHAR(50) NOT NULL,
+    -- RELEASE_TO_SELLER, REFUND_FULL, REFUND_PARTIAL, HUB_COMMISSION, WITHDRAWAL
+    
+    amount DECIMAL(10,2) NOT NULL,
+    recipient_id UUID NOT NULL REFERENCES users(id),
+    recipient_type VARCHAR(50) NOT NULL,  -- 'SELLER', 'BUYER', 'HUB'
+    
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    -- PENDING, APPROVED, REJECTED, EXPIRED
+    
+    reason TEXT,  -- Motivo della richiesta
+    
+    -- Auto-generated quando condizioni soddisfatte
+    triggered_by VARCHAR(50),  -- 'DELIVERY_CONFIRMED', 'HUB_VERIFIED', 'DISPUTE_RESOLVED'
+    triggered_at TIMESTAMP DEFAULT NOW(),
+    
+    -- Approvazione
+    approved_by UUID REFERENCES users(id),  -- Admin/Moderator che approva
+    approved_at TIMESTAMP,
+    approval_notes TEXT,
+    
+    -- Rejection
+    rejected_by UUID REFERENCES users(id),
+    rejected_at TIMESTAMP,
+    rejection_reason TEXT,
+    
+    created_at TIMESTAMP DEFAULT NOW(),
+    expires_at TIMESTAMP  -- Opzionale: scadenza se non processato
+);
+
+-- AUDIT LOG PER TUTTE LE AZIONI FINANZIARIE
+CREATE TABLE financial_audit_log (
+    id UUID PRIMARY KEY,
+    
+    action_type VARCHAR(50) NOT NULL,
+    -- RELEASE_APPROVED, RELEASE_REJECTED, REFUND_APPROVED, 
+    -- REFUND_REJECTED, WITHDRAWAL_APPROVED, WITHDRAWAL_REJECTED
+    
+    pending_release_id UUID REFERENCES pending_releases(id),
+    order_id UUID REFERENCES orders(id),
+    
+    amount DECIMAL(10,2) NOT NULL,
+    recipient_id UUID REFERENCES users(id),
+    
+    -- Chi ha eseguito l'azione
+    performed_by UUID NOT NULL REFERENCES users(id),
+    performed_by_role VARCHAR(50) NOT NULL,  -- 'ADMIN', 'MODERATOR'
+    
+    -- Dettagli sicurezza
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    
+    -- Doppia conferma timestamp
+    first_click_at TIMESTAMP NOT NULL,
+    confirm_click_at TIMESTAMP NOT NULL,
+    
+    notes TEXT,
+    
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- NOTIFICHE ADMIN/MODERATOR PER RILASCI PENDENTI
+CREATE TABLE admin_notifications (
+    id UUID PRIMARY KEY,
+    
+    type VARCHAR(50) NOT NULL,
+    -- PENDING_RELEASE, DISPUTE_ESCALATED, WITHDRAWAL_REQUEST
+    
+    reference_type VARCHAR(50) NOT NULL,  -- 'PENDING_RELEASE', 'DISPUTE', etc.
+    reference_id UUID NOT NULL,
+    
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    priority VARCHAR(20) DEFAULT 'NORMAL',  -- LOW, NORMAL, HIGH, URGENT
+    
+    -- Targeting
+    target_roles VARCHAR(50)[] DEFAULT ARRAY['ADMIN', 'MODERATOR'],
+    
+    read_by UUID[],  -- Array di user IDs che hanno letto
+    actioned_by UUID REFERENCES users(id),
+    actioned_at TIMESTAMP,
+    
+    created_at TIMESTAMP DEFAULT NOW()
+);
 ```
 
 ### 7.2 Indici Critici
@@ -640,37 +796,168 @@ Body:
   amount: 50.00
   method: "card" | "bank_transfer"
 
-# Preleva
+# Preleva (crea richiesta pendente)
 POST /api/wallet/withdraw
 Body:
   amount: 100.00
   iban: "IT60X0542811101000000123456"
 
+Response:
+  pending_release_id: "uuid"
+  status: "PENDING_APPROVAL"
+  message: "Richiesta inviata. Un admin la processerà a breve."
+
 # Storico
 GET /api/wallet/transactions?page=1&limit=20
+```
+
+### 8.5 Approvazione Manuale (Solo Admin/Moderator)
+
+```yaml
+# Lista rilasci pendenti
+GET /api/admin/pending-releases?status=PENDING&page=1
+Headers:
+  Authorization: Bearer <admin_or_moderator_token>
+
+Response:
+  items: [
+    {
+      id: "uuid",
+      order_id: "uuid",
+      type: "RELEASE_TO_SELLER",
+      amount: 45.50,
+      recipient: {
+        id: "uuid",
+        name: "Mario Rossi",
+        email: "mario@email.com"
+      },
+      reason: "Ordine #12345 consegnato, buyer confermato",
+      triggered_at: "2026-01-11T10:00:00Z",
+      order: {
+        id: "uuid",
+        items_count: 3,
+        delivered_at: "2026-01-04T10:00:00Z"
+      }
+    }
+  ]
+  total: 15
+
+# Dettaglio rilascio pendente
+GET /api/admin/pending-releases/{id}
+
+# STEP 1: Inizia approvazione (primo click)
+POST /api/admin/pending-releases/{id}/initiate-approval
+Headers:
+  Authorization: Bearer <admin_or_moderator_token>
+
+Response:
+  confirmation_token: "temp_token_uuid"  # Valido 5 minuti
+  expires_at: "2026-01-11T10:05:00Z"
+  details: {
+    amount: 45.50,
+    recipient: "Mario Rossi (mario@email.com)",
+    order_id: "12345",
+    type: "RELEASE_TO_SELLER"
+  }
+  message: "Conferma cliccando 'Sì, sono sicuro!' entro 5 minuti"
+
+# STEP 2: Conferma finale (secondo click - "Sì, sono sicuro!")
+POST /api/admin/pending-releases/{id}/confirm-approval
+Headers:
+  Authorization: Bearer <admin_or_moderator_token>
+Body:
+  confirmation_token: "temp_token_uuid"
+  notes: "Verificato tracking, tutto ok"  # Opzionale
+
+Response:
+  status: "APPROVED"
+  transaction_id: "uuid"
+  amount_released: 45.50
+  recipient: "Mario Rossi"
+  audit_log_id: "uuid"
+
+# Rifiuta rilascio
+POST /api/admin/pending-releases/{id}/reject
+Headers:
+  Authorization: Bearer <admin_or_moderator_token>
+Body:
+  reason: "Dispute aperta dal buyer, in attesa verifica"
+
+Response:
+  status: "REJECTED"
+  audit_log_id: "uuid"
+
+# Dashboard notifiche admin
+GET /api/admin/notifications?unread=true
+
+Response:
+  items: [
+    {
+      id: "uuid",
+      type: "PENDING_RELEASE",
+      title: "Rilascio fondi in attesa - Ordine #12345",
+      message: "€45.50 pronti per rilascio a Mario Rossi",
+      priority: "NORMAL",
+      created_at: "2026-01-11T10:00:00Z",
+      is_read: false
+    }
+  ]
+  unread_count: 5
+
+# Audit log
+GET /api/admin/audit-log?action_type=RELEASE_APPROVED&page=1
 ```
 
 ---
 
 ## 9. CRON JOBS / WORKERS
 
-### 9.1 Auto-Release Fondi
+### 9.1 Crea Richieste Rilascio Pendenti (NO Auto-Release!)
 
 ```python
 # Esegue ogni ora
 CRON: 0 * * * *
 
-def auto_release_funds():
+def create_pending_releases():
+    """
+    NON rilascia fondi automaticamente!
+    Crea solo richieste pendenti che Admin/Moderator devono approvare.
+    """
     orders = Order.query.filter(
         Order.status == 'DELIVERED',
-        Order.auto_release_at <= now(),
-        Order.has_open_dispute == False
+        Order.delivered_at <= now() - timedelta(days=7),
+        Order.has_open_dispute == False,
+        Order.has_pending_release == False  # Non duplicare
     ).all()
     
     for order in orders:
-        release_escrow(order)
-        order.status = 'COMPLETED'
-        notify_seller(order, "Fondi rilasciati")
+        # Crea richiesta pendente (NON rilascio automatico!)
+        pending = PendingRelease.create(
+            order_id=order.id,
+            escrow_hold_id=order.escrow_hold.id,
+            type='RELEASE_TO_SELLER',
+            amount=order.seller_amount,
+            recipient_id=order.seller_id,
+            recipient_type='SELLER',
+            triggered_by='DELIVERY_CONFIRMED_TIMEOUT',
+            reason=f"Ordine #{order.id} consegnato da 7+ giorni, nessuna dispute"
+        )
+        
+        # Notifica Admin/Moderator
+        AdminNotification.create(
+            type='PENDING_RELEASE',
+            reference_type='PENDING_RELEASE',
+            reference_id=pending.id,
+            title=f"Rilascio fondi in attesa - Ordine #{order.id}",
+            message=f"€{order.seller_amount} pronti per rilascio a {order.seller.name}",
+            priority='NORMAL'
+        )
+        
+        # Email notifica
+        notify_admins_moderators(
+            "Nuovo rilascio fondi in attesa di approvazione",
+            order
+        )
 ```
 
 ### 9.2 Timeout Dispute
@@ -867,8 +1154,10 @@ def send_delivery_reminders():
 
 ### Database
 - [ ] Creare tabelle orders, escrow_holds, shipments, disputes, refunds, wallet_transactions
+- [ ] **Creare tabelle pending_releases, financial_audit_log, admin_notifications**
 - [ ] Aggiungere indici per query frequenti
 - [ ] Trigger per auto-update timestamps
+- [ ] **Aggiungere ruolo MODERATOR a UserRole enum**
 
 ### API
 - [ ] CRUD ordini con state machine
@@ -877,19 +1166,29 @@ def send_delivery_reminders():
 - [ ] API dispute completa
 - [ ] API wallet (depositi, prelievi, storico)
 - [ ] API Hub operations
+- [ ] **API approvazione manuale rilascio fondi**
+  - [ ] GET /api/admin/pending-releases
+  - [ ] POST /api/admin/pending-releases/{id}/initiate-approval
+  - [ ] POST /api/admin/pending-releases/{id}/confirm-approval (doppia conferma)
+  - [ ] POST /api/admin/pending-releases/{id}/reject
+- [ ] **API notifiche admin**
+- [ ] **API audit log**
 
 ### Workers
-- [ ] Auto-release fondi (hourly)
+- [ ] ~~Auto-release fondi~~ → **Crea pending_release (NO auto-release!)**
 - [ ] Tracking update (every 4h)
 - [ ] Dispute timeout (every 30min)
 - [ ] Auto-dispute non consegnato (daily)
 - [ ] Reminder conferma (daily)
+- [ ] **Notifica admin per pending_release in attesa da >24h**
+- [ ] **Cleanup confirmation_tokens scaduti**
 
 ### Integrazioni
 - [ ] Tracking API (17track, AfterShip, o simili)
 - [ ] Payment gateway (Stripe, PayPal)
 - [ ] Email notifications
 - [ ] Push notifications
+- [ ] **Email urgenti ad admin per pending releases**
 
 ### UI
 - [ ] Dashboard ordini buyer/seller
@@ -897,6 +1196,19 @@ def send_delivery_reminders():
 - [ ] Stato tracking real-time
 - [ ] Wallet con storico
 - [ ] Hub dashboard (se modalità Hub)
+- [ ] **Dashboard Admin/Moderator**
+  - [ ] Lista pending releases con filtri
+  - [ ] Modal doppia conferma ("Sì, sono sicuro!")
+  - [ ] Badge notifiche non lette
+  - [ ] Audit log consultabile
+  - [ ] Statistiche approvazioni
+
+### Sicurezza Approvazione Manuale
+- [ ] **Verifica ruolo ADMIN o MODERATOR per ogni azione**
+- [ ] **Confirmation token con scadenza 5 minuti**
+- [ ] **Log IP address e user agent**
+- [ ] **Rate limiting sulle approvazioni**
+- [ ] **Notifica email quando fondi rilasciati**
 
 ---
 
