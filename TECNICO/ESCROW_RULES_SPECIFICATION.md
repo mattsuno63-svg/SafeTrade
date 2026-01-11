@@ -84,27 +84,7 @@ BUYER                    ESCROW                      SELLER
 - Se buyer non conferma entro X giorni da tracking delivered → auto-release
 - Se tracking non aggiorna per 30+ giorni oltre tempo stimato → buyer può richiedere rimborso
 
-### 1.2 Ordine Diretto Buyer↔Seller SENZA Spedizione Tracciata
-
-```
-BUYER                    ESCROW                      SELLER
-  |                         |                           |
-  |------ Paga ordine ----->|                           |
-  |                         |-- Trasferisce SUBITO --->|
-  |                         |   quando seller marca    |
-  |                         |   "Spedito"              |
-  |                         |                           |
-  |<-- Notifica spedizione -|                           |
-  |                         |                           |
-  |   ⚠️ NESSUNA PROTEZIONE                            |
-```
-
-**Regole chiave:**
-- Fondi rilasciati IMMEDIATAMENTE quando seller marca "Shipped"
-- **NESSUNA protezione escrow** - buyer assume il rischio
-- Nessun rimborso disponibile tramite piattaforma
-
-### 1.3 Ordine via Hub Escrow (SafeTrade Hub)
+### 1.2 Ordine via Hub Escrow (SafeTrade Hub)
 
 ```
 BUYER                    HUB                        SELLER
@@ -156,9 +136,10 @@ FULL   REFUND
 
 | Tipo Ordine | Chi Gestisce Dispute | Chi è Responsabile |
 |-------------|---------------------|-------------------|
-| Diretto tracciato | Buyer↔Seller, poi Admin | Seller fino a consegna |
-| Diretto non tracciato | Buyer↔Seller | Seller (ma no protezione) |
-| Via Hub | Hub/Admin | Hub dopo ricezione |
+| **Diretto (sempre tracciato)** | Buyer↔Seller, poi Admin | Seller fino a consegna |
+| **Via Hub** | Hub/Admin | Hub dopo ricezione |
+
+> ⚠️ **IMPORTANTE**: Su SafeTrade TUTTI gli ordini sono tracciati e protetti da escrow. Non esistono ordini "non tracciati".
 
 ### 2.3 Casi Dispute Validi
 
@@ -176,12 +157,13 @@ FULL   REFUND
 
 | Condizione | Rimborso | Note |
 |-----------|----------|------|
-| Spedizione tracciata + non consegnato dopo 30gg + tempo max | ✅ SÌ | Buyer richiede via "Segnala problema" |
+| Non consegnato dopo 30gg + tempo max stimato | ✅ SÌ | Buyer richiede via "Segnala problema" |
 | Tracking dice "consegnato" | ❌ NO | Eccezione: modifiche ultimi 10gg |
-| Spedizione non tracciata | ❌ NO | Nessuna protezione |
-| Ordine cancellato prima spedizione | ✅ SÌ | Rimborso automatico |
+| Ordine cancellato prima spedizione | ✅ SÌ | Richiede approvazione manuale |
 | Contenuto non conforme (via Hub) | ✅ SÌ | Hub verifica e riacquista/rimborsa |
-| Dispute risolta a favore buyer | ✅ SÌ | Full o partial |
+| Dispute risolta a favore buyer | ✅ SÌ | Full o partial, approvazione manuale |
+
+> ⚠️ **NOTA**: Su SafeTrade TUTTI gli ordini sono protetti. Il rimborso è sempre possibile in caso di problemi verificati.
 
 ### 3.2 Tempi per Rimborso "Non Consegnato"
 
@@ -356,17 +338,16 @@ EVERY release_funds_action REQUIRES:
     4. Log audit completo
 ```
 
-### 6.2 Soglie e Limitazioni
+### 6.2 Regola Fondamentale SafeTrade
 
 ```python
-# REGOLA 4: Nuovi venditori
-IF seller.completed_tracked_orders < 10:
-    FORCE shipping_method = TRACKED_ONLY
-    REASON: "Protezione buyer per nuovi seller"
+# REGOLA UNICA: TUTTI gli ordini sono tracciati e protetti
+# Non esiste modalità "non tracciato" su SafeTrade
 
-# REGOLA 5: Limite valore senza tracking
-IF order.total > MAX_UNTRACKED_VALUE:
+EVERY order ON SafeTrade:
     REQUIRE shipping.is_tracked = True
+    REQUIRE escrow_protection = ACTIVE
+    REASON: "SafeTrade = Sicurezza. Ogni transazione è protetta."
 ```
 
 ### 6.3 Resi
@@ -1121,32 +1102,39 @@ def send_delivery_reminders():
 
 ### 10.4 Quando Usare Quale
 
-**Usa Escrow Piattaforma quando:**
-- Transazioni a basso valore
+**Escrow Piattaforma (default):**
+- Transazioni standard
 - Seller/Buyer stesso paese
-- Spedizione tracciata affidabile
-- Volume alto, margini bassi
+- Spedizione tracciata diretta
+- Processo più veloce
 
-**Usa Escrow Hub quando:**
-- Transazioni alto valore
+**Escrow Hub (opzionale, consigliato per alto valore):**
+- Transazioni alto valore (>€100)
 - Buyer/Seller paesi diversi
-- Carte rare/costose che richiedono verifica
-- Buyer vuole massima sicurezza
-- Consolidamento più pacchi
+- Carte rare/costose che richiedono verifica fisica
+- Massima sicurezza con foto verifica
+- Consolidamento più pacchi da seller diversi
+
+> **NOTA**: In entrambi i casi, l'escrow è SEMPRE attivo e il tracking è SEMPRE obbligatorio.
 
 ---
 
-## 11. DIFFERENZE CHIAVE: TRACCIATO vs NON TRACCIATO
+## 11. PRINCIPIO FONDAMENTALE SAFETRADE
 
-| Aspetto | Tracciato | Non Tracciato |
-|---------|-----------|---------------|
-| **Escrow attivo** | ✅ Sì | ❌ No |
-| **Fondi trattenuti** | Fino a consegna | Rilascio immediato a ship |
-| **Rimborso possibile** | ✅ Sì | ❌ No |
-| **Dispute supportata** | ✅ Sì | Solo tra parti |
-| **Timeout auto-release** | 7gg post-consegna | N/A |
-| **Soglia non consegnato** | max_days + 30 | N/A |
-| **Nuovi seller** | ✅ Permesso | ❌ Bloccato primi 10 ordini |
+### ⚠️ OGNI ORDINE È PROTETTO
+
+Su SafeTrade **NON ESISTONO ordini non tracciati**. Il concept del sito è la sicurezza:
+
+| Aspetto | SafeTrade |
+|---------|-----------|
+| **Escrow attivo** | ✅ SEMPRE |
+| **Fondi trattenuti** | ✅ Fino a conferma + approvazione manuale |
+| **Tracking obbligatorio** | ✅ SEMPRE |
+| **Rimborso possibile** | ✅ SEMPRE (se problema verificato) |
+| **Dispute supportata** | ✅ SEMPRE |
+| **Protezione buyer** | ✅ MASSIMA |
+
+> **"SafeTrade = Safe Trade"** - Il nome dice tutto. Sicurezza al 100%.
 
 ---
 
