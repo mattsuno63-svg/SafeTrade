@@ -460,7 +460,7 @@ export default function AdminPendingReleasesPage() {
 
               <Button 
                 variant="outline" 
-                onClick={fetchPendingReleases}
+                onClick={() => fetchPendingReleases(false)}
                 className="gap-2"
               >
                 <span className="material-symbols-outlined text-sm">refresh</span>
