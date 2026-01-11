@@ -1,326 +1,315 @@
-# 📋 CHECKLIST PRIORITARIA - Pre-Deploy SafeTrade
+# 📋 CHECKLIST PRIORITARIA - SafeTrade Escrow Hub Avanzato
 
-## 🔴 PRIORITÀ CRITICA (Bloccanti per deploy)
+## 🔴 PRIORITÀ CRITICA (Sistema Escrow Hub Base)
 
-### 1. **Autenticazione e Sicurezza**
-- [x] Login/Signup funzionanti
-- [x] Session management
-- [x] Protected routes (middleware)
-- [ ] Password reset (`/forgot-password`) - **OPZIONALE per MVP**
-- [x] Email verification bypass per merchants
-- [ ] Logout funzionante - **VERIFICARE**
-
-### 2. **Marketplace P2P Base**
-- [x] Lista listings (`/listings`)
-- [x] Dettaglio listing (`/listings/[id]`)
-- [x] Create listing (`/listings/create`)
-- [x] Edit listing (`/listings/[id]/edit`) - **COMPLETATO**
-- [x] Delete listing - **COMPLETATO**
-- [x] Sistema approvazione admin
-- [x] Filtri base (gioco, ricerca)
-
-### 3. **Dashboard Merchant Completa**
-- [x] Dashboard principale (`/merchant/shop`)
-- [x] Inventario (`/merchant/inventory`)
-- [x] Setup shop (`/merchant/setup`)
-- [x] Tornei (`/merchant/tournaments`)
-- [x] Ordini (`/merchant/orders`) - **COMPLETATO**
-- [x] Promozioni (`/merchant/promos`) - **COMPLETATO**
-- [x] Social (`/merchant/social`) - **COMPLETATO**
-- [x] Appuntamenti SafeTrade (`/merchant/appointments`)
-
-### 4. **Dashboard Admin**
-- [x] Dashboard admin (`/admin`)
-- [x] Gestione applicazioni merchant (`/admin/applications`)
-- [x] Moderazione listings (`/admin/listings`)
-- [x] Creazione/modifica tornei (per admin)
-- [x] Creazione/modifica listings (per admin)
-- [ ] Statistiche complete (`/admin/stats`) - **DA MIGLIORARE**
-
-### 5. **SafeTrade Flow**
-- [x] Selezione negozio (`/select-store`)
-- [x] Selezione appuntamento (`/select-appointment`)
-- [x] Conferma appuntamento (`/appointment-confirmation`)
-- [x] Tracking transazione (`/transaction/[id]/status`)
-- [ ] Verifica transazione (VLS) - **DA TESTARE**
-
-### 6. **Landing Page Negozi**
-- [x] Public shop page (`/shops/[slug]`)
-- [x] Subdomain routing (middleware)
-- [x] Informazioni negozio complete
-- [x] Prodotti attivi
-- [x] Tornei attivi
+### 1. **Sistema Escrow Hub Base** ✅ COMPLETATO
+- [x] Schema database EscrowHub
+- [x] API registrazione hub (`POST /api/hub/register`)
+- [x] API gestione hub (`GET/PATCH /api/hub/my`)
+- [x] API lista hub (`GET /api/hub/list`)
+- [x] API dettagli hub (`GET /api/hub/[id]`)
+- [x] API gestione pacchi (`POST /api/transactions/[id]/package/*`)
+- [x] API reviews hub (`POST/GET /api/hub/[id]/review`)
+- [ ] UI registrazione hub (`/hub/register`)
+- [ ] UI dashboard hub (`/hub/dashboard`)
+- [ ] UI gestione pacchi (`/hub/packages`)
+- [ ] UI lista hub (`/hub/list`)
+- [ ] UI dettagli hub (`/hub/[id]`)
+- [ ] Integrazione selezione hub nelle transazioni
 
 ---
 
-## 🟡 PRIORITÀ ALTA (Importanti per MVP completo)
+## 🟡 PRIORITÀ ALTA (Funzionalità Core)
 
-### 7. **Sistema Proposte**
-- [x] API proposte
-- [x] Pagina proposte ricevute (`/dashboard/proposals/received`)
-- [x] Pagina proposte inviate (`/dashboard/proposals/sent`) - **VERIFICATO - FUNZIONA**
-- [x] Accettazione proposta → SafeTrade flow
+### 2. **Assicurazione Pacchi**
+- [ ] Schema database `PackageInsurance`
+- [ ] Calcolo automatico premio (formula: valore × percentuale × fattore rischio)
+- [ ] API creazione assicurazione (`POST /api/transactions/[id]/insurance`)
+- [ ] API gestione sinistri (`POST /api/insurance/[id]/claim`)
+- [ ] Calcolo fattore rischio (valore, tipo pacco, storia buyer/seller)
+- [ ] Sistema rimborsi automatici
+- [ ] UI opzione assicurazione (durante creazione transazione)
+- [ ] UI gestione sinistri (dashboard hub/buyer/seller)
 
-### 8. **Gestione Immagini**
-- [x] Upload API (`/api/upload`)
-- [x] Upload multiplo nel setup shop
-- [x] Preview immagini prima upload - **MIGLIORATO**
-- [x] Gestione errori upload - **MIGLIORATO**
+### 3. **Sistema Disputes**
+- [ ] Schema database `Dispute` e `DisputeMessage`
+- [ ] API apertura dispute (`POST /api/transactions/[id]/dispute`)
+- [ ] API gestione dispute (`GET/PATCH /api/disputes/[id]`)
+- [ ] API messaggi dispute (`POST/GET /api/disputes/[id]/messages`)
+- [ ] Workflow 3-fasi (Auto-resolution → Mediation → Escalation)
+- [ ] Sistema timer automatici (deadline risposte)
+- [ ] Upload foto/documenti per dispute
+- [ ] Notifiche automatiche per dispute
+- [ ] UI apertura dispute (buyer/seller/hub)
+- [ ] UI dashboard disputes (admin/hub/buyer/seller)
+- [ ] UI timeline dispute con foto/documenti
 
-### 9. **Notifiche**
-- [x] Sistema notifiche base
-- [x] NotificationBell component
-- [ ] Real-time updates (Supabase Realtime) - **OPZIONALE**
-- [x] Badge contatore funzionante - **VERIFICATO - FUNZIONA**
+### 4. **Dashboard Analytics Hub**
+- [ ] API metriche hub (`GET /api/hub/my/analytics`)
+- [ ] Calcolo metriche (revenue, transazioni, rating, tempi)
+- [ ] Aggiornamento automatico metriche
+- [ ] Grafici revenue (giornaliero/settimanale/mensile)
+- [ ] Grafici transazioni (trend temporale)
+- [ ] Grafici rating (trend nel tempo)
+- [ ] Statistiche disputes (aperte/risolte/rate)
+- [ ] Performance vs media piattaforma
+- [ ] UI dashboard analytics (`/hub/analytics`)
+- [ ] Export dati (CSV/Excel)
 
-### 10. **Dashboard Utente (Collector)**
-- [x] Dashboard base (`/dashboard`)
-- [x] Lista listings (`/dashboard/listings`)
-- [x] Profilo (`/dashboard/profile`)
-- [x] Impostazioni (`/dashboard/settings`)
-
----
-
-## 🟢 PRIORITÀ MEDIA (Nice to have)
-
-### 11. **Feature Avanzate Marketplace**
-- [x] Filtri avanzati (prezzo range, condizione, set) - **GIÀ IMPLEMENTATO**
-- [x] Paginazione o infinite scroll - **GIÀ IMPLEMENTATO**
-- [x] Sort options (prezzo, data, rilevanza) - **GIÀ IMPLEMENTATO**
-- [ ] Saved searches - **OPZIONALE**
-
-### 12. **Pagine Informative**
-- [x] SafeTrade explanation (`/safetrade`)
-- [x] Footer con link legali - **COMPLETATO**
-- [x] Terms & Conditions - **COMPLETATO**
-- [x] Privacy Policy - **COMPLETATO**
-- [x] FAQ - **COMPLETATO**
-
-### 13. **Community**
-- [x] Pagina community (`/community`)
-- [ ] Chat interna (solo stessa zona) - **DA IMPLEMENTARE**
-- [ ] Messaging tra utenti - **FUTURO**
-
----
-
-## ⚠️ PAGINE MANCANTI (Referenziate ma non create)
-
-Da creare urgentemente:
-
-1. `/merchant/orders` - Gestione ordini merchant
-2. `/merchant/promos` - Gestione promozioni/offerte
-3. `/merchant/social` - Gestione social media shop
+### 5. **Hub Certification Program**
+- [ ] Schema database `HubCertification`
+- [ ] Sistema verifica identità (carta identità, selfie, indirizzo, telefono)
+- [ ] API upload documenti verifica (`POST /api/hub/certification/verify`)
+- [ ] API gestione certificazione (`GET/PATCH /api/hub/certification`)
+- [ ] Calcolo automatico livello certificazione
+- [ ] Sistema badge visuali (Basic → Verified → Certified → Premium)
+- [ ] Requisiti per ogni livello (transazioni, rating, dispute rate)
+- [ ] Notifiche upgrade/downgrade livello
+- [ ] UI verifica identità (`/hub/certification/verify`)
+- [ ] UI stato certificazione (`/hub/certification`)
+- [ ] Badge visuali su profilo hub
 
 ---
 
-## 🐛 BUG E PROBLEMI DA RISOLVERE
+## 🟢 PRIORITÀ MEDIA (Funzionalità Avanzate)
 
-### Cache e Performance
-- [ ] Aggiungere `Cache-Control` headers alle API dinamiche
-- [ ] Implementare `revalidate` per pagine statiche
-- [ ] Ottimizzare query Prisma (evitare N+1)
-- [ ] Aggiungere loading states ovunque
+### 6. **Sistema Referral Hub**
+- [ ] Schema database `HubReferral`
+- [ ] Generazione codici referral univoci (automatica alla registrazione hub)
+- [ ] API gestione referral (`GET /api/hub/my/referrals`)
+- [ ] API registrazione con referral (`POST /api/hub/register?ref=CODE`)
+- [ ] Calcolo commissioni referral (10% prima transazione, max €50)
+- [ ] Tracking conversioni referral
+- [ ] Sistema pagamenti commissioni
+- [ ] UI dashboard referral (`/hub/referrals`)
+- [ ] UI condivisione codice referral
+- [ ] Statistiche referral (click, conversioni, revenue)
 
-### Error Handling
-- [ ] Gestione errori upload immagini
-- [ ] Messaggi errore user-friendly
-- [ ] 404 page personalizzata
-- [ ] 500 error page
+### 7. **Sistema Multi-Package**
+- [ ] Schema database `Package` e `PackageConsolidation`
+- [ ] Modifica `SafeTradeTransaction` per supportare più pacchi
+- [ ] API creazione package (`POST /api/transactions/[id]/packages`)
+- [ ] API gestione package (`GET/PATCH /api/packages/[id]`)
+- [ ] Tracking individuale per ogni package
+- [ ] Verifica individuale per ogni package
+- [ ] UI gestione pacchi multipli (dashboard hub/transazione)
+- [ ] UI creazione transazione multi-package
 
-### Validazione
-- [ ] Validazione form completa (client + server)
-- [ ] Sanitizzazione input
-- [ ] Rate limiting API
+### 8. **Sistema Consolidamento Pacchi**
+- [ ] Schema database `PackageConsolidation`
+- [ ] API richiesta consolidamento (`POST /api/transactions/[id]/consolidate`)
+- [ ] Logica consolidamento (tutti pacchi → hub → verifica → spedizione unica)
+- [ ] Calcolo risparmio spedizione (individuale vs consolidata)
+- [ ] Opzione buyer: consolidare o spedire separato
+- [ ] Tracking consolidato
+- [ ] UI richiesta consolidamento (durante creazione transazione/gestione pacchi)
+- [ ] UI dashboard consolidamenti (hub/buyer)
+- [ ] Mostra risparmio costo spedizione
+
+---
+
+## 🔵 PRIORITÀ BASSA (Opzionali/Futuro)
+
+### 9. **API Pubbliche Hub** (Opzionale - Future Integrazioni)
+- [ ] API pubblica stats hub (`GET /api/public/hub/[id]/stats`)
+- [ ] API webhook eventi (`POST /api/public/webhook/packages`)
+- [ ] Sistema webhook configurabile (URL, eventi, secret)
+- [ ] API verifica disponibilità (`GET /api/public/hub/[id]/availability`)
+- [ ] Documentazione API pubblica (Swagger/OpenAPI)
+- [ ] Sistema autenticazione API (API keys)
+- [ ] Rate limiting API pubbliche
+
+### 10. **Miglioramenti Generali**
+- [ ] Notifiche email per eventi hub (pacco ricevuto, verificato, spedito)
+- [ ] Notifiche SMS (opzionale, Premium feature)
+- [ ] Integrazione tracking corrieri (Poste Italiane, DHL) - Futuro
+- [ ] Sistema rating dettagliato (velocità, accuratezza, comunicazione)
+- [ ] Badge hub top-rated
+- [ ] Filtri ricerca hub avanzati (rating, certificazione, location)
 
 ---
 
 ## 📊 STATO ATTUALE
 
-**Completamento stimato: ~90%**
+**Sistema Escrow Hub Base**: ✅ ~70% (Backend completo, UI da implementare)
+**Funzionalità Avanzate**: ⏳ 0% (Da implementare)
 
-- ✅ **Completato**: 
-  - Autenticazione completa
-  - Marketplace base (create, edit, delete, filtri avanzati, paginazione, sort)
-  - Dashboard merchant completa (tutte le pagine)
-  - Dashboard admin funzionante
-  - SafeTrade flow completo
-  - Landing negozi con subdomain routing
-  - Pagine informative (Terms, Privacy, FAQ)
-  - Footer con link legali
-  - Preview immagini migliorato
-  - Sistema proposte completo
-- ⚠️ **Da completare**: 
-  - Miglioramenti cache/performance (opzionale)
-  - Real-time notifiche (opzionale)
-  - Saved searches (opzionale)
-- 🔄 **Da testare**: Flow completo end-to-end, verifica transazioni
+### ✅ Completato
+- Schema database EscrowHub base
+- API backend complete (registrazione, gestione, pacchi, reviews)
+- Sistema tracking pacchi (stati: PENDING, IN_TRANSIT, RECEIVED, VERIFIED, SHIPPED, DELIVERED)
+- Integrazione SafeTradeTransaction con Hub
+
+### ⏳ In Progress
+- UI Hub Provider (registrazione, dashboard, gestione pacchi)
+- UI Hub List (ricerca e selezione hub)
+
+### 🔴 Da Implementare
+- Tutte le funzionalità avanzate (Assicurazione, Disputes, Analytics, etc.)
 
 ---
 
-## 🎯 PIANO D'AZIONE (Ordine di esecuzione)
+## 🎯 PIANO D'AZIONE (Ordine di Esecuzione)
 
-### Fase 1: Completare Pagine Mancanti (1-2 giorni)
-1. Creare `/merchant/orders` - Gestione ordini
-2. Creare `/merchant/promos` - Gestione promozioni
-3. Creare `/merchant/social` - Gestione social
+### Fase 1: Completare UI Base Hub (2-3 giorni)
+1. UI registrazione hub (`/hub/register`)
+2. UI dashboard hub (`/hub/dashboard`)
+3. UI gestione pacchi (`/hub/packages`)
+4. UI lista hub (`/hub/list`)
+5. UI dettagli hub (`/hub/[id]`)
+6. Integrazione selezione hub nelle transazioni
 
-### Fase 2: Fix Critici (1 giorno)
-4. Implementare Edit/Delete listing
-5. Fix problemi cache
-6. Migliorare error handling
+### Fase 2: Assicurazione Pacchi (2 giorni)
+7. Schema database `PackageInsurance`
+8. Calcolo automatico premio
+9. API creazione assicurazione
+10. API gestione sinistri
+11. UI opzione assicurazione
+12. UI gestione sinistri
 
-### Fase 3: Test Completo (1 giorno)
-7. Test flow completo end-to-end
-8. Test con utenti reali (staging)
-9. Fix bug trovati
+### Fase 3: Sistema Disputes (3 giorni)
+13. Schema database `Dispute` e `DisputeMessage`
+14. API apertura/gestione dispute
+15. Workflow 3-fasi
+16. Sistema timer automatici
+17. UI dispute (apertura, dashboard, timeline)
 
-### Fase 4: Deploy Staging (1 giorno)
-10. Deploy su Vercel preview
-11. Test in ambiente reale
-12. Verifica performance
+### Fase 4: Dashboard Analytics (2 giorni)
+18. API metriche hub
+19. Calcolo metriche automatico
+20. UI dashboard analytics
+21. Grafici e visualizzazioni
 
----
+### Fase 5: Hub Certification (2 giorni)
+22. Schema database `HubCertification`
+23. Sistema verifica identità
+24. API upload documenti
+25. Calcolo automatico livello
+26. UI verifica identità
+27. Badge visuali
 
-## ✅ PRONTO PER DEPLOY QUANDO:
+### Fase 6: Referral System (1-2 giorni)
+28. Schema database `HubReferral`
+29. Generazione codici referral
+30. API gestione referral
+31. Calcolo commissioni
+32. UI dashboard referral
 
-- [x] Autenticazione funzionante
-- [x] Marketplace base funzionante (create, edit, delete, filtri, paginazione, sort)
-- [x] Dashboard merchant completa (tutte le pagine create)
-- [x] Dashboard admin funzionante
-- [x] SafeTrade flow base
-- [x] **3 pagine merchant mancanti create**
-- [ ] **Cache issues risolti** (opzionale per MVP)
-- [ ] **Test end-to-end completati**
+### Fase 7: Multi-Package System (2-3 giorni)
+33. Schema database `Package` e `PackageConsolidation`
+34. Modifica transazioni per multi-package
+35. API gestione pacchi multipli
+36. UI gestione pacchi multipli
+
+### Fase 8: Consolidamento Pacchi (2 giorni)
+37. Schema database consolidamento
+38. Logica consolidamento
+39. Calcolo risparmio
+40. UI consolidamento
+
+### Fase 9: Testing e Refinement (2-3 giorni)
+41. Test end-to-end tutte le funzionalità
+42. Fix bug trovati
+43. Ottimizzazione performance
+44. Documentazione
 
 ---
 
 ## 📝 NOTE IMPLEMENTAZIONE
 
-### Struttura File da Creare
+### Database Schema da Aggiungere
 
-#### `/merchant/orders/page.tsx`
-- Lista ordini ricevuti
-- Filtri per stato (pending, confirmed, completed, cancelled)
-- Dettagli ordine con prodotti
-- Gestione stato ordine
-- Integrazione con SafeTrade appointments
+Vedi documento completo `TECNICO/ESCROW_HUB_ADVANCED.md` per schema dettagliato:
+- `PackageInsurance` - Assicurazione pacchi
+- `Dispute` e `DisputeMessage` - Sistema disputes
+- `HubCertification` - Certificazione hub
+- `HubReferral` - Sistema referral
+- `Package` e `PackageConsolidation` - Multi-package e consolidamento
 
-#### `/merchant/promos/page.tsx`
-- Lista promozioni attive/inattive
-- Creazione nuova promozione
-- Modifica/eliminazione promozioni
-- Applicazione promozioni a prodotti/listing
-- Statistiche promozioni (views, conversioni)
+### API Routes da Implementare
 
-#### `/merchant/social/page.tsx`
-- Gestione link social media (già in setup, ma pagina dedicata)
-- Preview post social
-- Schedulazione post
-- Analytics social
-- Integrazione con shop landing page
+#### Assicurazione
+- `POST /api/transactions/[id]/insurance` - Crea assicurazione
+- `GET /api/insurance/[id]` - Dettagli assicurazione
+- `POST /api/insurance/[id]/claim` - Apri sinistro
+- `GET/PATCH /api/insurance/[id]/claim` - Gestisci sinistro
 
-### API Routes da Creare/Modificare
+#### Disputes
+- `POST /api/transactions/[id]/dispute` - Apri dispute
+- `GET /api/disputes` - Lista dispute (con filtri)
+- `GET/PATCH /api/disputes/[id]` - Dettagli/gestione dispute
+- `POST/GET /api/disputes/[id]/messages` - Messaggi dispute
 
-#### `/api/merchant/orders/route.ts`
-- `GET` - Lista ordini del merchant
-- `POST` - Creare nuovo ordine (se necessario)
-- `PATCH` - Aggiornare stato ordine
+#### Analytics
+- `GET /api/hub/my/analytics` - Metriche hub provider
+- `GET /api/hub/my/analytics/revenue` - Revenue breakdown
+- `GET /api/hub/my/analytics/transactions` - Transazioni breakdown
 
-#### `/api/merchant/promos/route.ts`
-- `GET` - Lista promozioni
-- `POST` - Creare promozione
-- `PATCH /api/merchant/promos/[id]` - Modificare promozione
-- `DELETE /api/merchant/promos/[id]` - Eliminare promozione
+#### Certification
+- `GET /api/hub/certification` - Stato certificazione
+- `POST /api/hub/certification/verify` - Upload documenti verifica
+- `PATCH /api/hub/certification` - Aggiorna certificazione (admin)
 
-#### `/api/merchant/social/route.ts`
-- `GET` - Recuperare link social
-- `PATCH` - Aggiornare link social
-- `POST /api/merchant/social/post` - Creare post (futuro)
+#### Referral
+- `GET /api/hub/my/referrals` - Lista referral
+- `GET /api/hub/my/referrals/stats` - Statistiche referral
+- `POST /api/hub/register?ref=CODE` - Registrazione con referral
 
-### Database Schema (se necessario)
+#### Multi-Package
+- `POST /api/transactions/[id]/packages` - Aggiungi package
+- `GET /api/packages/[id]` - Dettagli package
+- `PATCH /api/packages/[id]` - Aggiorna package
+- `POST /api/transactions/[id]/consolidate` - Richiedi consolidamento
 
-#### Tabella `Order` (se non esiste)
-```prisma
-model Order {
-  id            String   @id @default(cuid())
-  merchantId    String
-  merchant      User     @relation("MerchantOrders", fields: [merchantId], references: [id])
-  buyerId       String
-  buyer         User     @relation("BuyerOrders", fields: [buyerId], references: [id])
-  status        OrderStatus @default(PENDING)
-  totalAmount   Float
-  items         OrderItem[]
-  transactionId String?  // Link a SafeTradeTransaction
-  transaction   SafeTradeTransaction? @relation(fields: [transactionId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
+### UI Pages da Creare
 
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  COMPLETED
-  CANCELLED
-}
+#### Hub Base
+- `/hub/register` - Registrazione hub provider
+- `/hub/dashboard` - Dashboard hub provider
+- `/hub/packages` - Gestione pacchi
+- `/hub/list` - Lista hub disponibili
+- `/hub/[id]` - Dettagli hub (con reviews)
 
-model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String?
-  product   Product? @relation(fields: [productId], references: [id])
-  listingId String?
-  listing   ListingP2P? @relation(fields: [listingId], references: [id])
-  quantity  Int
-  price     Float
-}
-```
+#### Hub Avanzato
+- `/hub/analytics` - Dashboard analytics
+- `/hub/certification` - Certificazione hub
+- `/hub/certification/verify` - Verifica identità
+- `/hub/referrals` - Dashboard referral
+- `/hub/settings` - Impostazioni hub
 
-#### Tabella `Promotion` (se non esiste)
-```prisma
-model Promotion {
-  id          String   @id @default(cuid())
-  merchantId  String
-  merchant    User     @relation(fields: [merchantId], references: [id])
-  title       String
-  description String?
-  discountType DiscountType // PERCENTAGE, FIXED_AMOUNT
-  discountValue Float
-  startDate   DateTime
-  endDate     DateTime
-  isActive    Boolean  @default(true)
-  appliesTo   PromotionTarget[] // PRODUCTS, LISTINGS, ALL
-  targetIds   String[] // IDs di prodotti/listings specifici
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
+#### Transazioni
+- `/transactions/[id]/hub` - Dettagli transazione hub-based
+- `/transactions/[id]/insurance` - Gestione assicurazione
+- `/transactions/[id]/dispute` - Apertura/gestione dispute
+- `/transactions/[id]/packages` - Gestione pacchi multipli
+- `/transactions/[id]/consolidate` - Consolidamento pacchi
 
-enum DiscountType {
-  PERCENTAGE
-  FIXED_AMOUNT
-}
-
-enum PromotionTarget {
-  PRODUCTS
-  LISTINGS
-  ALL
-}
-```
+#### Admin
+- `/admin/hubs` - Gestione hub (approvazione, verifica)
+- `/admin/disputes` - Gestione disputes (mediation, escalation)
+- `/admin/certifications` - Gestione certificazioni
 
 ---
 
-## 🚀 PROSSIMI STEP
+## 🚀 PROSSIMI STEP IMMEDIATI
 
-1. **Creare le 3 pagine merchant mancanti**
-2. **Implementare API routes necessarie**
-3. **Aggiungere modelli database se necessario**
-4. **Testare integrazione completa**
-5. **Fix problemi cache e performance**
-6. **Implementare Edit/Delete listing**
-7. **Test end-to-end completo**
+1. **Creare documento tecnico completo** (`TECNICO/ESCROW_HUB_ADVANCED.md`)
+   - Schema database dettagliato
+   - API endpoints completi
+   - Flow e logica business
+   - Formule calcolo (assicurazione, referral, etc.)
+
+2. **Implementare Fase 1** (UI Base Hub)
+   - Registrazione hub
+   - Dashboard hub
+   - Gestione pacchi
+   - Lista hub
+   - Integrazione transazioni
+
+3. **Testare sistema base** prima di procedere con funzionalità avanzate
 
 ---
 
-**Ultimo aggiornamento**: 2024-01-XX
-**Versione**: 1.0
-
+**Ultimo aggiornamento**: 2025-01-30
+**Versione**: 2.0 - Escrow Hub Avanzato
+**Focus**: Sistema Escrow Hub completo con tutte le funzionalità avanzate
