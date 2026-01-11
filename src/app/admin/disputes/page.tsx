@@ -144,7 +144,7 @@ export default function AdminDisputesPage() {
       return
     }
     
-    if (user && !loading && !fetchDisputesRef.current) {
+    if (user && !userLoading && !fetchDisputesRef.current) {
       fetchDisputes()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
