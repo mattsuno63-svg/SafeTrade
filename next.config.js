@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Disabilita output file tracing per evitare RangeError con micromatch
+  // Questo è un workaround noto per problemi di build su Vercel
+  outputFileTracing: false,
   images: {
     remotePatterns: [
       // Rimuoviamo temporaneamente il pattern problematico *.supabase.co
