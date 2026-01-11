@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { NotificationBell } from './NotificationBell'
+import { AdminNotificationBell } from './AdminNotificationBell'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import { useLocale } from '@/contexts/LocaleContext'
@@ -176,17 +177,20 @@ export function Header() {
             <div className="h-9 w-9 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
           ) : user ? (
             <>
-              {/* Admin Button - Only for portelli.mattiaa@gmail.com */}
-              {user.email === 'portelli.mattiaa@gmail.com' && (
-                <Link href="/admin">
-                  <Button 
-                    variant="outline" 
-                    className="hidden sm:flex items-center gap-2 border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400"
-                  >
-                    <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
-                    <span className="font-bold">Admin</span>
-                  </Button>
-                </Link>
+              {/* Admin Button and Notifications - For Admin/Moderator */}
+              {(user.email === 'portelli.mattiaa@gmail.com' || user.user_metadata?.role === 'ADMIN' || user.user_metadata?.role === 'MODERATOR') && (
+                <>
+                  <AdminNotificationBell />
+                  <Link href="/admin">
+                    <Button 
+                      variant="outline" 
+                      className="hidden sm:flex items-center gap-2 border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400"
+                    >
+                      <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
+                      <span className="font-bold">Admin</span>
+                    </Button>
+                  </Link>
+                </>
               )}
               {/* Shop Button - For merchants with approved shop */}
               <ShopButton user={user} />

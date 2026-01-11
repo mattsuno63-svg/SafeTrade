@@ -60,12 +60,58 @@ export async function POST(
       )
     }
 
-    // Update payment status
-    const updatedPayment = await prisma.escrowPayment.update({
-      where: { id: paymentId },
+    // Verifica se esiste già una pending release per questo pagamento
+    const existingPendingRelease = await prisma.pendingRelease.findFirst({
+      where: {
+        orderId: payment.transactionId,
+        type: 'RELEASE_TO_SELLER',
+        status: 'PENDING',
+      },
+    })
+
+    if (existingPendingRelease) {
+      return NextResponse.json(
+        { 
+          error: 'Una richiesta di rilascio è già in attesa di approvazione',
+          pendingReleaseId: existingPendingRelease.id,
+        },
+        { status: 400 }
+      )
+    }
+
+    // Crea PendingRelease invece di rilasciare direttamente
+    const pendingRelease = await prisma.pendingRelease.create({
       data: {
-        status: 'RELEASED',
-        paymentReleasedAt: new Date(),
+        orderId: payment.transactionId,
+        type: 'RELEASE_TO_SELLER',
+        amount: payment.amount,
+        recipientId: payment.transaction.userBId, // Seller
+        recipientType: 'SELLER',
+        reason: `Rilascio fondi richiesto dal merchant dopo verifica transazione`,
+        triggeredBy: 'MERCHANT_RELEASE_REQUEST',
+        triggeredAt: new Date(),
+      },
+      include: {
+        recipient: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    // Crea notifica admin/moderator
+    await prisma.adminNotification.create({
+      data: {
+        type: 'PENDING_RELEASE',
+        referenceType: 'PENDING_RELEASE',
+        referenceId: pendingRelease.id,
+        title: `Rilascio fondi in attesa - Ordine #${payment.transactionId.slice(0, 8)}`,
+        message: `Richiesta di rilascio di €${payment.amount.toFixed(2)} al venditore ${payment.transaction.userB.name || payment.transaction.userB.email}`,
+        priority: 'NORMAL',
+        targetRoles: ['ADMIN', 'MODERATOR'],
       },
     })
 
@@ -79,15 +125,9 @@ export async function POST(
         data: {
           sessionId: session.id,
           senderId: user.id,
-          content: `Funds of €${payment.amount.toFixed(2)} have been released to the seller. Transaction completed successfully.`,
+          content: `Richiesta di rilascio fondi di €${payment.amount.toFixed(2)} inviata. In attesa di approvazione Admin/Moderator.`,
           isSystem: true,
         },
-      })
-
-      // Update session status
-      await prisma.escrowSession.update({
-        where: { id: session.id },
-        data: { status: 'COMPLETED' },
       })
     }
 
@@ -97,21 +137,29 @@ export async function POST(
         {
           userId: payment.transaction.userAId,
           type: 'ESCROW_PAYMENT_RELEASED',
-          title: 'Payment Released',
-          message: `Funds of €${payment.amount.toFixed(2)} have been released to the seller.`,
+          title: 'Richiesta Rilascio Fondi',
+          message: `Richiesta di rilascio di €${payment.amount.toFixed(2)} al venditore. In attesa di approvazione.`,
           link: `/escrow/sessions/${session?.id || payment.transactionId}`,
         },
         {
           userId: payment.transaction.userBId,
           type: 'ESCROW_PAYMENT_RELEASED',
-          title: 'Payment Received',
-          message: `You have received €${payment.amount.toFixed(2)} from the transaction.`,
+          title: 'Richiesta Rilascio Fondi',
+          message: `Richiesta di rilascio di €${payment.amount.toFixed(2)} inviata. In attesa di approvazione Admin/Moderator.`,
           link: `/escrow/sessions/${session?.id || payment.transactionId}`,
         },
       ],
     })
 
-    return NextResponse.json(updatedPayment)
+    return NextResponse.json({
+      success: true,
+      message: 'Richiesta di rilascio fondi creata. In attesa di approvazione Admin/Moderator.',
+      pendingRelease: {
+        id: pendingRelease.id,
+        amount: pendingRelease.amount,
+        status: pendingRelease.status,
+      },
+    })
   } catch (error: any) {
     console.error('Error releasing payment:', error)
     if (error.message === 'Unauthorized') {

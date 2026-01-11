@@ -149,19 +149,58 @@ export async function POST(
       },
     })
 
-    // Auto-release escrow payment if exists
+    // Crea PendingRelease invece di rilasciare automaticamente i fondi
     const payment = await prisma.escrowPayment.findUnique({
       where: { transactionId: id },
+      include: {
+        transaction: {
+          include: {
+            userB: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+      },
     })
 
     if (payment && payment.status === 'HELD') {
-      await prisma.escrowPayment.update({
-        where: { id: payment.id },
-        data: {
-          status: 'RELEASED',
-          paymentReleasedAt: new Date(),
+      // Verifica se esiste già una pending release per questo pagamento
+      const existingPendingRelease = await prisma.pendingRelease.findFirst({
+        where: {
+          orderId: id,
+          type: 'RELEASE_TO_SELLER',
+          status: 'PENDING',
         },
       })
+
+      if (!existingPendingRelease) {
+        // Crea PendingRelease invece di rilasciare direttamente
+        const pendingRelease = await prisma.pendingRelease.create({
+          data: {
+            orderId: id,
+            type: 'RELEASE_TO_SELLER',
+            amount: payment.amount,
+            recipientId: payment.transaction.userBId, // Seller
+            recipientType: 'SELLER',
+            reason: `Rilascio fondi dopo verifica transazione completata`,
+            triggeredBy: 'TRANSACTION_VERIFIED',
+            triggeredAt: new Date(),
+          },
+        })
+
+        // Crea notifica admin/moderator
+        await prisma.adminNotification.create({
+          data: {
+            type: 'PENDING_RELEASE',
+            referenceType: 'PENDING_RELEASE',
+            referenceId: pendingRelease.id,
+            title: `Rilascio fondi in attesa - Ordine #${id.slice(0, 8)}`,
+            message: `Richiesta di rilascio di €${payment.amount.toFixed(2)} al venditore dopo verifica transazione`,
+            priority: 'NORMAL',
+            targetRoles: ['ADMIN', 'MODERATOR'],
+          },
+        })
+      }
 
       // Update escrow session
       const session = await prisma.escrowSession.findUnique({
@@ -169,16 +208,11 @@ export async function POST(
       })
 
       if (session) {
-        await prisma.escrowSession.update({
-          where: { id: session.id },
-          data: { status: 'COMPLETED' },
-        })
-
         await prisma.escrowMessage.create({
           data: {
             sessionId: session.id,
             senderId: user.id,
-            content: `Transaction verified! Funds of €${payment.amount.toFixed(2)} have been automatically released to the seller.`,
+            content: `Transazione verificata! Richiesta di rilascio di €${payment.amount.toFixed(2)} al venditore creata. In attesa di approvazione Admin/Moderator.`,
             isSystem: true,
           },
         })

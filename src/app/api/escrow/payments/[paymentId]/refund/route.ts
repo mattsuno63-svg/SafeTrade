@@ -56,15 +56,58 @@ export async function POST(
       )
     }
 
-    // Update payment status
-    const updatedPayment = await prisma.escrowPayment.update({
-      where: { id: paymentId },
+    // Verifica se esiste già una pending release per questo rimborso
+    const existingPendingRelease = await prisma.pendingRelease.findFirst({
+      where: {
+        orderId: payment.transactionId,
+        type: 'REFUND_FULL',
+        status: 'PENDING',
+      },
+    })
+
+    if (existingPendingRelease) {
+      return NextResponse.json(
+        { 
+          error: 'Una richiesta di rimborso è già in attesa di approvazione',
+          pendingReleaseId: existingPendingRelease.id,
+        },
+        { status: 400 }
+      )
+    }
+
+    // Crea PendingRelease invece di rimborsare direttamente
+    const pendingRelease = await prisma.pendingRelease.create({
       data: {
-        status: 'REFUNDED',
-        paymentRefundedAt: new Date(),
-        reviewNotes: reason
-          ? `Refunded: ${reason}`
-          : 'Refunded by merchant/admin',
+        orderId: payment.transactionId,
+        type: 'REFUND_FULL',
+        amount: payment.amount,
+        recipientId: payment.transaction.userAId, // Buyer
+        recipientType: 'BUYER',
+        reason: reason || `Rimborso richiesto da ${isAdmin ? 'Admin' : 'Merchant'}`,
+        triggeredBy: isAdmin ? 'ADMIN_REFUND_REQUEST' : 'MERCHANT_REFUND_REQUEST',
+        triggeredAt: new Date(),
+      },
+      include: {
+        recipient: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    // Crea notifica admin/moderator
+    await prisma.adminNotification.create({
+      data: {
+        type: 'PENDING_RELEASE',
+        referenceType: 'PENDING_RELEASE',
+        referenceId: pendingRelease.id,
+        title: `Rimborso in attesa - Ordine #${payment.transactionId.slice(0, 8)}`,
+        message: `Richiesta di rimborso di €${payment.amount.toFixed(2)} all'acquirente ${payment.transaction.userA.name || payment.transaction.userA.email}.${reason ? ` Motivo: ${reason}` : ''}`,
+        priority: 'NORMAL',
+        targetRoles: ['ADMIN', 'MODERATOR'],
       },
     })
 
@@ -78,15 +121,9 @@ export async function POST(
         data: {
           sessionId: session.id,
           senderId: user.id,
-          content: `Funds of €${payment.amount.toFixed(2)} have been refunded to the buyer.${reason ? ` Reason: ${reason}` : ''}`,
+          content: `Richiesta di rimborso di €${payment.amount.toFixed(2)} all'acquirente creata. In attesa di approvazione Admin/Moderator.${reason ? ` Motivo: ${reason}` : ''}`,
           isSystem: true,
         },
-      })
-
-      // Update session status
-      await prisma.escrowSession.update({
-        where: { id: session.id },
-        data: { status: 'CANCELLED' },
       })
     }
 
@@ -96,21 +133,29 @@ export async function POST(
         {
           userId: payment.transaction.userAId,
           type: 'ESCROW_PAYMENT_REFUNDED',
-          title: 'Payment Refunded',
-          message: `Your payment of €${payment.amount.toFixed(2)} has been refunded.${reason ? ` Reason: ${reason}` : ''}`,
+          title: 'Richiesta Rimborso',
+          message: `Richiesta di rimborso di €${payment.amount.toFixed(2)} creata. In attesa di approvazione Admin/Moderator.${reason ? ` Motivo: ${reason}` : ''}`,
           link: `/escrow/sessions/${session?.id || payment.transactionId}`,
         },
         {
           userId: payment.transaction.userBId,
           type: 'ESCROW_PAYMENT_REFUNDED',
-          title: 'Transaction Cancelled',
-          message: `The transaction has been cancelled and funds have been refunded to the buyer.`,
+          title: 'Transazione Cancellata',
+          message: `La transazione è stata cancellata. Richiesta di rimborso all'acquirente creata. In attesa di approvazione Admin/Moderator.`,
           link: `/escrow/sessions/${session?.id || payment.transactionId}`,
         },
       ],
     })
 
-    return NextResponse.json(updatedPayment)
+    return NextResponse.json({
+      success: true,
+      message: 'Richiesta di rimborso creata. In attesa di approvazione Admin/Moderator.',
+      pendingRelease: {
+        id: pendingRelease.id,
+        amount: pendingRelease.amount,
+        status: pendingRelease.status,
+      },
+    })
   } catch (error: any) {
     console.error('Error refunding payment:', error)
     if (error.message === 'Unauthorized') {

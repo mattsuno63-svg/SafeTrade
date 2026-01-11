@@ -1304,7 +1304,9 @@ model FinancialAuditLog {
 // Notifiche per Admin/Moderator
 enum AdminNotificationType {
   PENDING_RELEASE     // Nuovo rilascio in attesa
+  DISPUTE_OPENED      // Nuova disputa aperta
   DISPUTE_ESCALATED   // Dispute escalata
+  DISPUTE_RESOLVED    // Dispute risolta
   WITHDRAWAL_REQUEST  // Richiesta prelievo
   HUB_VERIFICATION    // Hub ha verificato pacco
   URGENT_ACTION       // Azione urgente richiesta

@@ -210,16 +210,80 @@ export default function AdminDashboardPage() {
                 </Card>
               </Link>
 
+              <Link href="/admin/pending-releases">
+                <Card className="glass-panel p-6 hover:shadow-lg transition-all cursor-pointer group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
+                      <span className="material-symbols-outlined text-emerald-500">payments</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Pending Releases</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Approve fund releases (manual approval required)
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+
+              <Link href="/admin/disputes">
+                <Card className="glass-panel p-6 hover:shadow-lg transition-all cursor-pointer group border-2 border-red-500/30">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center group-hover:bg-red-500/30 transition-colors">
+                      <span className="material-symbols-outlined text-red-500">gavel</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Disputes</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Gestisci dispute tra buyer e seller
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+
               <Link href="/admin/reports">
                 <Card className="glass-panel p-6 hover:shadow-lg transition-all cursor-pointer group">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center group-hover:bg-red-500/30 transition-colors">
-                      <span className="material-symbols-outlined text-red-500">flag</span>
+                    <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center group-hover:bg-orange-500/30 transition-colors">
+                      <span className="material-symbols-outlined text-orange-500">flag</span>
                     </div>
                     <div>
                       <h3 className="font-bold text-lg">Reports</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Handle user reports and disputes
+                        Handle user reports
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+
+              <Link href="/admin/hub">
+                <Card className="glass-panel p-6 hover:shadow-lg transition-all cursor-pointer group border-2 border-cyan-500/30">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center group-hover:bg-cyan-500/30 transition-colors">
+                      <span className="material-symbols-outlined text-cyan-500">warehouse</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Hub Escrow</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Gestisci pacchi ricevuti, verifica e spedisci
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+
+              <Link href="/admin/audit-log">
+                <Card className="glass-panel p-6 hover:shadow-lg transition-all cursor-pointer group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-slate-500/20 flex items-center justify-center group-hover:bg-slate-500/30 transition-colors">
+                      <span className="material-symbols-outlined text-slate-500">history</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Audit Log</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Cronologia azioni finanziarie
                       </p>
                     </div>
                   </div>

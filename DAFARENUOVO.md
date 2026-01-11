@@ -12,38 +12,40 @@
 ## 🔴 PRIORITÀ CRITICA - DA IMPLEMENTARE SUBITO
 
 ### 1. **Sistema Approvazione Manuale Rilascio Fondi** 🆕
-- [ ] API lista pending releases (`GET /api/admin/pending-releases`)
-- [ ] API inizia approvazione (`POST /api/admin/pending-releases/[id]/initiate-approval`)
-- [ ] API conferma approvazione (`POST /api/admin/pending-releases/[id]/confirm-approval`)
-- [ ] API rifiuta rilascio (`POST /api/admin/pending-releases/[id]/reject`)
-- [ ] API notifiche admin (`GET /api/admin/notifications`)
-- [ ] API audit log (`GET /api/admin/audit-log`)
-- [ ] Worker: crea pending_release quando ordine pronto (NO auto-release!)
-- [ ] Worker: notifica admin per pending in attesa >24h
-- [ ] UI Dashboard Admin/Moderator pending releases
-- [ ] UI Modal doppia conferma "Sì, sono sicuro!"
-- [ ] UI Audit log consultabile
-- [ ] UI Badge notifiche non lette
+- [x] API lista pending releases (`GET /api/admin/pending-releases`)
+- [x] API inizia approvazione (`POST /api/admin/pending-releases/[id]/initiate-approval`)
+- [x] API conferma approvazione (`POST /api/admin/pending-releases/[id]/confirm-approval`)
+- [x] API rifiuta rilascio (`POST /api/admin/pending-releases/[id]/reject`)
+- [x] API notifiche admin (`GET /api/admin/notifications`)
+- [x] API audit log (`GET /api/admin/audit-log`)
+- [x] Worker: crea pending_release quando ordine pronto (NO auto-release!) (`POST /api/admin/cron/create-pending-releases`)
+- [x] Worker: notifica admin per pending in attesa >24h (`POST /api/admin/cron/notify-pending-timeout`)
+- [x] UI Dashboard Admin/Moderator pending releases (`/admin/pending-releases`)
+- [x] UI Modal doppia conferma "Sì, sono sicuro!"
+- [x] UI Audit log consultabile (`/admin/audit-log`)
+- [x] UI Badge notifiche admin nel header (`AdminNotificationBell` component)
 
-### 2. **UI Hub Provider Base**
-- [ ] UI registrazione hub (`/hub/register`)
-- [ ] UI dashboard hub (`/hub/dashboard`)
-- [ ] UI gestione pacchi (`/hub/packages`)
-- [ ] UI lista hub (`/hub/list`)
-- [ ] UI dettagli hub (`/hub/[id]`)
-- [ ] Integrazione selezione hub nelle transazioni
+### 2. **Hub Escrow (Gestione Admin-Only)** ✅ SEMPLIFICATO
+> ⚠️ Per ora solo l'admin può fare da Hub. Niente registrazione pubblica.
+- [x] API hub admin (`GET/PATCH /api/admin/hub`) - crea automaticamente hub per admin
+- [x] API gestione pacchi admin (`GET /api/admin/hub/packages`)
+- [x] API azioni pacchi admin (`PATCH /api/admin/hub/packages/[id]`) - receive/verify/ship/deliver
+- [x] UI dashboard hub integrata in Admin (`/admin/hub`)
+- [x] UI gestione pacchi con foto verifica e tracking
+- [~] Integrazione selezione hub nelle transazioni (solo hub admin disponibile)
 
 ### 3. **Sistema Disputes** ✅ Schema già creato
-- [ ] API apertura dispute (`POST /api/transactions/[id]/dispute`)
-- [ ] API gestione dispute (`GET/PATCH /api/disputes/[id]`)
-- [ ] API messaggi dispute (`POST/GET /api/disputes/[id]/messages`)
-- [ ] Workflow 3-fasi (Apertura → Mediazione → Risoluzione)
-- [ ] Sistema timer automatici (deadline risposte 48h)
-- [ ] Upload foto/documenti per dispute
-- [ ] Collegamento dispute → pending_release (rimborso richiede approvazione!)
-- [ ] UI apertura dispute (buyer/seller/hub)
-- [ ] UI dashboard disputes (admin/hub/buyer/seller)
-- [ ] UI timeline dispute con foto/documenti
+- [x] API apertura dispute (`POST /api/transactions/[id]/dispute`)
+- [x] API gestione dispute (`GET/PATCH /api/disputes/[id]`)
+- [x] API messaggi dispute (`POST/GET /api/disputes/[id]/messages`)
+- [x] API lista dispute (`GET /api/disputes`)
+- [x] Workflow 3-fasi (Apertura → Mediazione → Risoluzione) - implementato in PATCH
+- [x] Deadline risposte 48h per seller (calcolato automaticamente)
+- [x] Upload foto/documenti per dispute (supportato in API)
+- [x] Collegamento dispute → pending_release (rimborso crea PendingRelease!)
+- [x] UI dashboard disputes admin (`/admin/disputes`)
+- [x] UI dettagli disputa con chat (`/disputes/[id]`)
+- [x] UI risoluzione dispute (modal con opzioni)
 
 ---
 
@@ -136,6 +138,14 @@
 - [x] API gestione pacchi (`POST /api/transactions/[id]/package/*`)
 - [x] API reviews hub (`POST/GET /api/hub/[id]/review`)
 
+### Hub Admin-Only (Semplificato)
+- [x] API hub admin auto-create (`GET/PATCH /api/admin/hub`)
+- [x] API lista pacchi admin (`GET /api/admin/hub/packages`)
+- [x] API azioni pacchi admin (`PATCH /api/admin/hub/packages/[id]`)
+- [x] UI Dashboard Hub in Admin (`/admin/hub`)
+- [x] Modal verifica con upload foto
+- [x] Modal spedizione con tracking
+
 ### Documentazione
 - [x] Specifica tecnica escrow (`TECNICO/ESCROW_RULES_SPECIFICATION.md`)
 - [x] Regole rilascio manuale con doppia conferma
@@ -150,11 +160,11 @@
 3. Worker per creare pending_release
 4. Audit log completo
 
-### Fase 2: UI Hub Base
-5. UI registrazione hub
-6. UI dashboard hub
-7. UI gestione pacchi
-8. UI lista hub
+### Fase 2: Hub Admin-Only ✅ COMPLETATO
+5. ~~UI registrazione hub~~ → Hub creato automaticamente per admin
+6. UI dashboard hub integrata in admin (`/admin/hub`)
+7. UI gestione pacchi con azioni (ricevi/verifica/spedisci/consegna)
+8. ~~UI lista hub~~ → Solo hub admin attivo
 
 ### Fase 3: Sistema Disputes
 9. API disputes complete
@@ -171,4 +181,4 @@
 ---
 
 **Ultimo aggiornamento**: 2026-01-11
-**Focus attuale**: Sistema Approvazione Manuale Rilascio Fondi
+**Focus attuale**: Fase 3 Disputes COMPLETATA ✅ - Prossimo: Fase 4 Assicurazione
