@@ -93,12 +93,18 @@ export default function AdminDisputesPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  const fetchDisputesRef = useRef(false)
+  // Ref per tracciare se il fetch iniziale è stato fatto (persiste tra re-render)
+  const hasFetchedRef = useRef(false)
+  const isFetchingRef = useRef(false)
 
-  const fetchDisputes = useCallback(async () => {
+  const fetchDisputes = useCallback(async (isInitial = false) => {
     // Prevenire chiamate multiple simultanee
-    if (fetchDisputesRef.current) return
-    fetchDisputesRef.current = true
+    if (isFetchingRef.current) return
+    
+    // Se è il fetch iniziale e l'abbiamo già fatto, skip
+    if (isInitial && hasFetchedRef.current) return
+    
+    isFetchingRef.current = true
 
     try {
       setLoading(true)
@@ -124,6 +130,11 @@ export default function AdminDisputesPage() {
         setDisputes(data.disputes || [])
         setStats(data.stats || null)
         setTotalPages(data.pagination?.pages || 1)
+        
+        // Marca che il fetch iniziale è stato completato
+        if (isInitial) {
+          hasFetchedRef.current = true
+        }
       }
     } catch (error) {
       console.error('Error fetching disputes:', error)
@@ -134,21 +145,30 @@ export default function AdminDisputesPage() {
       })
     } finally {
       setLoading(false)
-      fetchDisputesRef.current = false
+      isFetchingRef.current = false
     }
   }, [statusFilter, page, router, toast])
 
+  // Effect per il fetch iniziale - usa user?.id per evitare re-trigger su ogni cambio di referenza user
   useEffect(() => {
     if (!user && !userLoading) {
       router.push('/login')
       return
     }
     
-    if (user && !userLoading && !fetchDisputesRef.current) {
-      fetchDisputes()
+    if (user && !userLoading) {
+      fetchDisputes(true) // true = fetch iniziale
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, userLoading])
+  }, [user?.id, userLoading])
+  
+  // Effect separato per cambio filtri/pagina (NON iniziale)
+  useEffect(() => {
+    if (hasFetchedRef.current && user) {
+      fetchDisputes(false) // false = non iniziale, forza il refetch
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, page])
 
   const getDeadlineInfo = (dispute: Dispute) => {
     if (!dispute.sellerResponseDeadline) return null
