@@ -52,6 +52,9 @@ export async function GET(request: NextRequest) {
       where.type = type
     }
 
+    // Build where for stats (same as main query)
+    const statsWhere = isAdmin ? {} : where
+
     const [disputes, total, stats] = await Promise.all([
       prisma.dispute.findMany({
         where,
@@ -92,7 +95,7 @@ export async function GET(request: NextRequest) {
       // Stats per status
       prisma.dispute.groupBy({
         by: ['status'],
-        where: isAdmin ? {} : where,
+        where: statsWhere,
         _count: { id: true },
       }),
     ])
@@ -125,7 +128,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching disputes:', error)
     return NextResponse.json(
-      { error: 'Errore nel recupero delle dispute' },
+      { 
+        error: 'Errore nel recupero delle dispute',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      },
       { status: 500 }
     )
   }
