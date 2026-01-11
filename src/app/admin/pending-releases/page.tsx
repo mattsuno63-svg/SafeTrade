@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
@@ -109,19 +109,17 @@ export default function AdminPendingReleasesPage() {
   const [rejectReason, setRejectReason] = useState('')
   const [processing, setProcessing] = useState(false)
 
-  useEffect(() => {
-    if (!currentUser && !userLoading) {
-      router.push('/login')
-      return
-    }
-    
-    if (currentUser) {
-      fetchPendingReleases()
-    }
-  }, [currentUser, userLoading, statusFilter, typeFilter, page])
+  // Ref per tracciare se il fetch iniziale è stato fatto
+  const hasFetchedRef = useRef(false)
+  const isFetchingRef = useRef(false)
 
-  const fetchPendingReleases = async () => {
+  const fetchPendingReleases = useCallback(async (isInitial = false) => {
+    if (isFetchingRef.current) return
+    if (isInitial && hasFetchedRef.current) return
+    
+    isFetchingRef.current = true
     setLoading(true)
+    
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -145,6 +143,7 @@ export default function AdminPendingReleasesPage() {
         setPendingReleases(data.items)
         setStats(data.stats)
         setPagination(data.pagination)
+        if (isInitial) hasFetchedRef.current = true
       }
     } catch (error) {
       console.error('Error fetching pending releases:', error)
@@ -155,8 +154,30 @@ export default function AdminPendingReleasesPage() {
       })
     } finally {
       setLoading(false)
+      isFetchingRef.current = false
     }
-  }
+  }, [page, statusFilter, typeFilter, router, toast])
+
+  // Effect per il fetch iniziale
+  useEffect(() => {
+    if (!currentUser && !userLoading) {
+      router.push('/login')
+      return
+    }
+    
+    if (currentUser && !userLoading) {
+      fetchPendingReleases(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, userLoading])
+
+  // Effect per cambio filtri/pagina
+  useEffect(() => {
+    if (hasFetchedRef.current && currentUser) {
+      fetchPendingReleases(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, typeFilter, page])
 
   // STEP 1: Inizia approvazione (genera token)
   const handleInitiateApproval = async (release: PendingRelease) => {

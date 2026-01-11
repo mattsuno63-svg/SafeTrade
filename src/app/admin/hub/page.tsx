@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -91,7 +91,16 @@ export default function AdminHubPage() {
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
 
-  const fetchData = useCallback(async () => {
+  // Ref per tracciare se il fetch iniziale è stato fatto
+  const hasFetchedRef = useRef(false)
+  const isFetchingRef = useRef(false)
+
+  const fetchData = useCallback(async (isInitial = false) => {
+    if (isFetchingRef.current) return
+    if (isInitial && hasFetchedRef.current) return
+    
+    isFetchingRef.current = true
+
     try {
       setLoading(true)
       
@@ -120,6 +129,7 @@ export default function AdminHubPage() {
         const packagesData = await packagesRes.json()
         setPackages(packagesData.packages || [])
         setStats(packagesData.stats || null)
+        if (isInitial) hasFetchedRef.current = true
       }
     } catch (error) {
       console.error('Error fetching hub data:', error)
@@ -130,19 +140,30 @@ export default function AdminHubPage() {
       })
     } finally {
       setLoading(false)
+      isFetchingRef.current = false
     }
   }, [statusFilter, router, toast])
 
+  // Effect per il fetch iniziale
   useEffect(() => {
     if (!user && !userLoading) {
       router.push('/login')
       return
     }
     
-    if (user) {
-      fetchData()
+    if (user && !userLoading) {
+      fetchData(true)
     }
-  }, [user, userLoading, router, fetchData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, userLoading])
+
+  // Effect per cambio filtri
+  useEffect(() => {
+    if (hasFetchedRef.current && user) {
+      fetchData(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter])
 
   const handleAction = async (packageId: string, action: string, extraData?: Record<string, unknown>) => {
     try {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
@@ -25,19 +25,13 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!user && !userLoading) {
-      router.push('/login')
-      return
-    }
-    
-    if (user) {
-      // Check if user is admin
-      checkAdminAccess()
-    }
-  }, [user, userLoading, router])
+  const hasFetchedRef = useRef(false)
+  const isFetchingRef = useRef(false)
 
-  const checkAdminAccess = async () => {
+  const checkAdminAccess = useCallback(async () => {
+    if (isFetchingRef.current || hasFetchedRef.current) return
+    isFetchingRef.current = true
+
     try {
       const res = await fetch('/api/admin/stats')
       if (res.status === 403) {
@@ -53,13 +47,27 @@ export default function AdminDashboardPage() {
       if (res.ok) {
         const data = await res.json()
         setStats(data)
+        hasFetchedRef.current = true
       }
     } catch (error) {
       console.error('Error fetching admin stats:', error)
     } finally {
       setLoading(false)
+      isFetchingRef.current = false
     }
-  }
+  }, [router, toast])
+
+  useEffect(() => {
+    if (!user && !userLoading) {
+      router.push('/login')
+      return
+    }
+    
+    if (user && !userLoading) {
+      checkAdminAccess()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, userLoading])
 
   if (userLoading || loading) {
     return (

@@ -35,7 +35,11 @@ export async function GET(
           select: { id: true, name: true, email: true, avatar: true },
         },
         transaction: {
-          include: {
+          select: {
+            id: true,
+            status: true,
+            userAId: true,
+            userBId: true,
             userA: { select: { id: true, name: true, email: true, avatar: true } },
             userB: { select: { id: true, name: true, email: true, avatar: true } },
             proposal: {
@@ -152,7 +156,11 @@ export async function PATCH(
       where: { id },
       include: {
         transaction: {
-          include: {
+          select: {
+            id: true,
+            status: true,
+            userAId: true,
+            userBId: true,
             userA: { select: { id: true, name: true, email: true } },
             userB: { select: { id: true, name: true, email: true } },
             escrowPayment: true,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/button'
@@ -41,18 +41,14 @@ export default function AdminListingsPage() {
   const [approvalNotes, setApprovalNotes] = useState('')
   const [processing, setProcessing] = useState(false)
 
-  useEffect(() => {
-    if (!user && !userLoading) {
-      router.push('/login')
-      return
-    }
-    
-    if (user) {
-      fetchListings()
-    }
-  }, [user, userLoading, router, filter])
+  const hasFetchedRef = useRef(false)
+  const isFetchingRef = useRef(false)
 
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async (isInitial = false) => {
+    if (isFetchingRef.current) return
+    if (isInitial && hasFetchedRef.current) return
+    isFetchingRef.current = true
+
     try {
       const res = await fetch(`/api/admin/listings?filter=${filter}`)
       if (res.status === 403) {
@@ -62,13 +58,34 @@ export default function AdminListingsPage() {
       if (res.ok) {
         const data = await res.json()
         setListings(data)
+        if (isInitial) hasFetchedRef.current = true
       }
     } catch (error) {
       console.error('Error fetching listings:', error)
     } finally {
       setLoading(false)
+      isFetchingRef.current = false
     }
-  }
+  }, [filter, router])
+
+  useEffect(() => {
+    if (!user && !userLoading) {
+      router.push('/login')
+      return
+    }
+    
+    if (user && !userLoading) {
+      fetchListings(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, userLoading])
+
+  useEffect(() => {
+    if (hasFetchedRef.current && user) {
+      fetchListings(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter])
 
   const handleApproval = async (listingId: string, approved: boolean) => {
     setProcessing(true)

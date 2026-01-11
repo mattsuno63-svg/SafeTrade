@@ -127,9 +127,16 @@ export default function DisputeDetailPage() {
   const [showResolveModal, setShowResolveModal] = useState(false)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const hasFetchedRef = useRef(false)
+  const isFetchingRef = useRef(false)
   const disputeId = params.id as string
 
-  const fetchDispute = useCallback(async () => {
+  const fetchDispute = useCallback(async (isInitial = false) => {
+    if (isFetchingRef.current) return
+    if (isInitial && hasFetchedRef.current) return
+    
+    isFetchingRef.current = true
+
     try {
       setLoading(true)
       const res = await fetch(`/api/disputes/${disputeId}`)
@@ -150,12 +157,14 @@ export default function DisputeDetailPage() {
         const data = await res.json()
         setDispute(data.dispute)
         setMeta(data.meta)
+        if (isInitial) hasFetchedRef.current = true
       }
     } catch (error) {
       console.error('Error fetching dispute:', error)
       toast({ title: 'Errore nel caricamento', variant: 'destructive' })
     } finally {
       setLoading(false)
+      isFetchingRef.current = false
     }
   }, [disputeId, router, toast])
 
@@ -164,10 +173,11 @@ export default function DisputeDetailPage() {
       router.push('/login')
       return
     }
-    if (user && disputeId) {
-      fetchDispute()
+    if (user && !userLoading && disputeId) {
+      fetchDispute(true)
     }
-  }, [user, userLoading, disputeId, router, fetchDispute])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, userLoading, disputeId])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

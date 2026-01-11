@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/button'
@@ -40,18 +40,13 @@ export default function AdminApplicationsPage() {
   const [reviewNotes, setReviewNotes] = useState('')
   const [processing, setProcessing] = useState(false)
 
-  useEffect(() => {
-    if (!user && !userLoading) {
-      router.push('/login')
-      return
-    }
-    
-    if (user) {
-      fetchApplications()
-    }
-  }, [user, userLoading, router])
+  const hasFetchedRef = useRef(false)
+  const isFetchingRef = useRef(false)
 
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
+    if (isFetchingRef.current || hasFetchedRef.current) return
+    isFetchingRef.current = true
+
     try {
       const res = await fetch('/api/admin/applications')
       if (res.status === 403) {
@@ -61,13 +56,27 @@ export default function AdminApplicationsPage() {
       if (res.ok) {
         const data = await res.json()
         setApplications(data)
+        hasFetchedRef.current = true
       }
     } catch (error) {
       console.error('Error fetching applications:', error)
     } finally {
       setLoading(false)
+      isFetchingRef.current = false
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    if (!user && !userLoading) {
+      router.push('/login')
+      return
+    }
+    
+    if (user && !userLoading) {
+      fetchApplications()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, userLoading])
 
   const handleReview = async (applicationId: string, status: 'APPROVED' | 'REJECTED') => {
     setProcessing(true)
