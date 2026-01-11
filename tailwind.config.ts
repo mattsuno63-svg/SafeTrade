@@ -21,17 +21,19 @@ const config = {
       colors: {
         // Design System da Stitch
         primary: {
-          DEFAULT: "#ff6933",
+          DEFAULT: "#FF6B35",
           light: "#fa6c38",
           dark: "#e55a2b",
           50: "#fff5f2",
           100: "#ffe5dc",
-          500: "#ff6933",
+          500: "#FF6B35",
           600: "#e55a2b",
           700: "#cc4d24",
         },
-        "background-light": "#f8f6f5",
-        "background-dark": "#23140f",
+        "background-light": "#FDFDFE",
+        "background-dark": "#0A0A0B",
+        "glass-light": "rgba(255, 255, 255, 0.55)",
+        "glass-dark": "rgba(20, 20, 22, 0.45)",
         "text-primary": "#1d110c",
         // Shadcn colors (mantenuti per compatibilità)
         border: "hsl(var(--border))",
@@ -65,19 +67,28 @@ const config = {
         },
       },
       borderRadius: {
-        DEFAULT: "0.5rem",
+        DEFAULT: "12px",
         lg: "1rem",
         xl: "1.5rem",
-        "2xl": "2rem",
-        "3xl": "2.5rem",
+        "2xl": "16px",
+        "3xl": "24px",
+        "4xl": "40px",
         full: "9999px",
         // Shadcn
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        display: ["Inter", "sans-serif"],
+        display: ["Plus Jakarta Sans", "sans-serif"],
         sans: ["Inter", "sans-serif"],
+      },
+      boxShadow: {
+        'liquid': '0 20px 50px rgba(255, 107, 53, 0.12)',
+        'liquid-hover': '0 40px 80px rgba(255, 107, 53, 0.18)',
+        'holo-cyan': '0 20px 40px rgba(34, 211, 238, 0.2)',
+        'holo-purple': '0 20px 40px rgba(168, 85, 247, 0.2)',
+        'holo-gold': '0 20px 40px rgba(251, 191, 36, 0.2)',
+        'glow-orange': '0 0 60px rgba(255, 107, 53, 0.3)',
       },
       keyframes: {
         "accordion-down": {

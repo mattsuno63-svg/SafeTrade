@@ -13,57 +13,64 @@ interface CategoryCardProps {
   color?: 'primary' | 'blue' | 'red'
 }
 
-export function CategoryCard({ title, subtitle, count, image, icon, href, color = 'primary' }: CategoryCardProps) {
-  const glowColor = {
-    primary: 'group-hover:shadow-[0_0_40px_rgba(250,108,56,0.4)]',
-    blue: 'group-hover:shadow-[0_0_40px_rgba(59,130,246,0.4)]',
-    red: 'group-hover:shadow-[0_0_40px_rgba(239,68,68,0.4)]',
-  }[color]
+export function CategoryCard({ title, subtitle, image, icon, href }: CategoryCardProps) {
+  // Define background colors for each category
+  const bgColors: Record<string, string> = {
+    'Pokemon': 'bg-[#f8fbff]',
+    'One Piece': 'bg-sky-50',
+    'Magic': 'bg-[#f4f7f6]',
+    'Yu-Gi-Oh!': 'bg-slate-950',
+  }
 
-  const borderGlow = {
-    primary: 'group-hover:border-primary/60',
-    blue: 'group-hover:border-blue-500/60',
-    red: 'group-hover:border-red-500/60',
-  }[color]
+  const bgColor = bgColors[title] || 'bg-[#f8fbff]'
+  const isDark = title === 'Yu-Gi-Oh!'
 
   return (
-    <Link
-      href={href}
-      className={`group relative h-80 overflow-hidden rounded-3xl border-2 border-white/20 bg-white/10 shadow-xl backdrop-blur-xl transition-all duration-500 hover:scale-[1.02] ${glowColor} ${borderGlow} dark:border-white/10 dark:bg-black/20`}
-    >
-      {/* Shine effect overlay */}
-      <div className="absolute inset-0 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
-      </div>
-      
-      {/* Light sweep animation */}
-      <div className="absolute inset-0 z-20 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 -left-[100%] w-[50%] h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-[-20deg] group-hover:left-[150%] transition-all duration-700 ease-out opacity-0 group-hover:opacity-100"></div>
-      </div>
-
-      {/* Image */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src={image}
-          alt={title}
-          fill
-          className="object-cover transition-all duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100 group-hover:brightness-110"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 transition-all duration-500 group-hover:from-black/80 group-hover:via-black/20"></div>
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 flex h-full flex-col justify-end p-8">
-        <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 transition-all duration-300 group-hover:bg-white/30 group-hover:scale-110">
-          <span className="material-symbols-outlined">{icon}</span>
+    <Link href={href}>
+      <div className={`group relative h-[450px] rounded-4xl overflow-hidden cursor-pointer shadow-xl border border-white/50 ${bgColor}`}>
+        {/* Center Icon/Decoration */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <div className="relative w-44 h-44 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
+            {title === 'Pokemon' ? (
+              <>
+                <div className="absolute inset-0 bg-white/40 rounded-full border border-white/80 backdrop-blur-3xl shadow-inner"></div>
+                <div className="relative z-10 w-32 h-32 rounded-full border-4 border-red-500/30 overflow-hidden flex flex-col shadow-2xl">
+                  <div className="h-1/2 bg-red-500/30 backdrop-blur-sm border-b-4 border-slate-400/30"></div>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white border-4 border-slate-400/40 shadow-glow"></div>
+                </div>
+                <div className="absolute inset-0 etched-texture opacity-40"></div>
+              </>
+            ) : title === 'One Piece' ? (
+              <>
+                <div className="absolute inset-0 bg-white/60 rounded-full border border-white/80 backdrop-blur-3xl shadow-inner"></div>
+                <div className="relative z-10 flex flex-col items-center">
+                  <span className="material-symbols-outlined text-[100px] text-amber-500/60 font-extralight">skull</span>
+                </div>
+                <div className="absolute inset-0 etched-texture opacity-40"></div>
+              </>
+            ) : title === 'Magic' ? (
+              <>
+                <div className="absolute inset-0 bg-white/40 rounded-full border border-white/80 backdrop-blur-3xl shadow-inner"></div>
+                <div className="relative z-10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[110px] text-emerald-600/50 font-extralight">filter_vintage</span>
+                </div>
+                <div className="absolute inset-0 etched-texture opacity-40"></div>
+              </>
+            ) : (
+              <>
+                <div className="absolute inset-0 bg-primary/10 rounded-3xl rotate-45 border border-primary/20 backdrop-blur-2xl"></div>
+                <span className="material-symbols-outlined text-[100px] text-primary/60 font-thin relative z-10">change_history</span>
+              </>
+            )}
+          </div>
         </div>
-        <h3 className="text-3xl font-bold text-white mb-1 transition-transform duration-300 group-hover:translate-x-1">{title}</h3>
-        <p className="text-sm font-medium text-gray-300 mb-4">{subtitle}</p>
-        <div className="flex items-center text-sm font-bold text-white opacity-0 transform translate-y-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
-          Browse {count} <span className="material-symbols-outlined text-sm ml-1 transition-transform group-hover:translate-x-1">arrow_forward</span>
+
+        {/* Bottom Content */}
+        <div className="absolute bottom-10 left-10 right-10 z-10">
+          <h3 className={`text-3xl font-display font-black mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</h3>
+          <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{subtitle}</p>
         </div>
       </div>
     </Link>
   )
 }
-
