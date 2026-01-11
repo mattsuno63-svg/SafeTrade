@@ -42,7 +42,14 @@ export async function POST(
       )
     }
 
-    // Verify that the user is the shop owner or admin
+    // Verify that the user is the shop owner or admin (only for shop-based transactions)
+    if (!transaction.shop) {
+      return NextResponse.json(
+        { error: 'This transaction is not shop-based' },
+        { status: 400 }
+      )
+    }
+
     const isShopOwner = transaction.shop.merchantId === user.id
     const isAdmin = user.role === 'ADMIN'
     

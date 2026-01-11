@@ -32,12 +32,14 @@ export async function POST(
     }
 
     // Only merchant or admin can refund
+    // For shop-based escrow, merchant can refund
+    // For hub-based escrow, only admin can refund (or hub provider in future)
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
       select: { role: true },
     })
 
-    const isMerchant = payment.transaction.shop.merchantId === user.id
+    const isMerchant = payment.transaction.shop?.merchantId === user.id
     const isAdmin = dbUser?.role === 'ADMIN'
 
     if (!isMerchant && !isAdmin) {

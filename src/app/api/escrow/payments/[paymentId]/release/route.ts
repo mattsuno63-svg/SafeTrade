@@ -30,6 +30,14 @@ export async function POST(
     }
 
     // Only merchant can release funds (after verification)
+    // For shop-based escrow
+    if (!payment.transaction.shop) {
+      return NextResponse.json(
+        { error: 'This transaction is not shop-based' },
+        { status: 400 }
+      )
+    }
+
     if (payment.transaction.shop.merchantId !== user.id) {
       return NextResponse.json(
         { error: 'Only the merchant can release funds' },

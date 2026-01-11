@@ -171,3 +171,4 @@ PENDING → IN_TRANSIT → RECEIVED → VERIFIED → SHIPPED → DELIVERED
 **Versione**: 1.0  
 **Status**: In sviluppo
 
+

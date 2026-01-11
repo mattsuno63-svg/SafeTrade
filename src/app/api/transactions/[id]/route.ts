@@ -137,10 +137,10 @@ export async function PATCH(
     }
 
     // Verify permissions (merchant or admin)
-    if (
-      existingTransaction.shop.merchantId !== user.id &&
-      user.role !== 'ADMIN'
-    ) {
+    const isMerchant = existingTransaction.shop?.merchantId === user.id
+    const isAdmin = user.role === 'ADMIN'
+    
+    if (!isMerchant && !isAdmin) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }

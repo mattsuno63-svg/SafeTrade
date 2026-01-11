@@ -30,11 +30,10 @@ export async function GET(request: NextRequest) {
 
       // Verify user has access
       const transaction = payment.transaction
-      if (
-        transaction.userAId !== user.id &&
-        transaction.userBId !== user.id &&
-        transaction.shop.merchantId !== user.id
-      ) {
+      const isParticipant = transaction.userAId === user.id || transaction.userBId === user.id
+      const isMerchant = transaction.shop?.merchantId === user.id
+      
+      if (!isParticipant && !isMerchant) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
@@ -168,24 +167,30 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Notify seller and merchant
+    // Notify seller and merchant (if shop-based)
+    const notifications = [
+      {
+        userId: transaction.userBId,
+        type: 'ESCROW_PAYMENT_INITIATED',
+        title: 'Payment Initiated',
+        message: `Buyer has initiated payment of €${amount.toFixed(2)} for your transaction.`,
+        link: `/escrow/sessions/${session?.id || transactionId}`,
+      },
+    ]
+
+    // Only notify merchant if shop-based escrow
+    if (transaction.shop) {
+      notifications.push({
+        userId: transaction.shop.merchantId,
+        type: 'ESCROW_PAYMENT_INITIATED',
+        title: 'Payment Initiated',
+        message: `Payment of €${amount.toFixed(2)} initiated for SafeTrade transaction.`,
+        link: `/escrow/sessions/${session?.id || transactionId}`,
+      } as any)
+    }
+
     await prisma.notification.createMany({
-      data: [
-        {
-          userId: transaction.userBId,
-          type: 'ESCROW_PAYMENT_INITIATED',
-          title: 'Payment Initiated',
-          message: `Buyer has initiated payment of €${amount.toFixed(2)} for your transaction.`,
-          link: `/escrow/sessions/${session?.id || transactionId}`,
-        },
-        {
-          userId: transaction.shop.merchantId,
-          type: 'ESCROW_PAYMENT_INITIATED',
-          title: 'Payment Initiated',
-          message: `Payment of €${amount.toFixed(2)} initiated for SafeTrade transaction.`,
-          link: `/escrow/sessions/${session?.id || transactionId}`,
-        },
-      ],
+      data: notifications,
     })
 
     return NextResponse.json(payment, { status: 201 })
@@ -215,8 +220,8 @@ function calculateRiskScore(transaction: any, user: any): number {
   // No previous transactions = +10 points
   // (Would need to check transaction history - simplified for now)
 
-  // Merchant verification = -10 points (more trusted)
-  if (transaction.shop.isApproved) score -= 10
+  // Merchant verification = -10 points (more trusted) - only for shop-based
+  if (transaction.shop?.isApproved) score -= 10
 
   return Math.max(0, Math.min(100, score))
 }

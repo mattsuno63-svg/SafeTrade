@@ -2,10 +2,10 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '*.supabase.co',
-      },
+      // Rimuoviamo temporaneamente il pattern problematico *.supabase.co
+      // Le immagini Supabase useranno tag <img> normali invece di next/image
+      // Se necessario, possiamo aggiungere domini specifici come:
+      // { protocol: 'https', hostname: 'your-project-id.supabase.co' }
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
@@ -23,6 +23,8 @@ const nextConfig = {
         hostname: 'res.cloudinary.com',
       },
     ],
+    // Disabilita ottimizzazione immagini per domini non specificati
+    unoptimized: false,
   },
   experimental: {
     serverActions: {
@@ -40,12 +42,16 @@ const nextConfig = {
       }
     }
     
-    // Escludi Sharp dalla risoluzione durante il build
-    config.externals = config.externals || []
+    // Escludi Sharp completamente dalla risoluzione durante il build
+    // Questo previene problemi con micromatch durante build trace collection
     if (isServer) {
-      config.externals.push({
-        'sharp': 'commonjs sharp',
-      })
+      config.externals = config.externals || []
+      // Usa array invece di object per externals
+      if (Array.isArray(config.externals)) {
+        config.externals.push('sharp')
+      } else {
+        config.externals = [config.externals, 'sharp']
+      }
     }
     
     return config

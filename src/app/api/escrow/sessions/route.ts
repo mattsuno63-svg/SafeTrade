@@ -127,13 +127,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user is part of this transaction
-    if (
-      transaction.userAId !== user.id &&
-      transaction.userBId !== user.id &&
-      transaction.shop.merchantId !== user.id
-    ) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+      const isParticipant = transaction.userAId === user.id || transaction.userBId === user.id
+      const isMerchant = transaction.shop?.merchantId === user.id
+      
+      if (!isParticipant && !isMerchant) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
 
     // Check if session already exists
     const existingSession = await prisma.escrowSession.findUnique({
@@ -142,6 +141,15 @@ export async function POST(request: NextRequest) {
 
     if (existingSession) {
       return NextResponse.json(existingSession)
+    }
+
+    // For now, EscrowSession is only for shop-based transactions
+    // Hub-based transactions use different flow
+    if (!transaction.shop) {
+      return NextResponse.json(
+        { error: 'Escrow sessions are currently only available for shop-based transactions' },
+        { status: 400 }
+      )
     }
 
     // Create session
