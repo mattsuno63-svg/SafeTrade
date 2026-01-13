@@ -777,7 +777,9 @@ export function MetaballBackground() {
 
       if (renderer) {
         renderer.dispose()
-        if (containerRef.current && canvas.parentNode) {
+        // Save ref value for cleanup
+        const containerElement = containerRef.current
+        if (containerElement && canvas.parentNode) {
           canvas.parentNode.removeChild(canvas)
         }
       }

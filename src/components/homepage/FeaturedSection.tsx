@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { formatPriceNumber } from '@/lib/utils'
 
 // Featured card - Charizard in vetrina
@@ -72,10 +73,12 @@ export function FeaturedSection() {
             <div data-featured-card className="premium-archive-container group cursor-pointer hover:scale-[1.02] transition-transform">
               {/* Image Container */}
               <div className="relative rounded-3xl overflow-hidden mb-6 aspect-[3/4] bg-slate-100 border border-black/5">
-                <img
+                <Image
                   alt={listing.title}
                   src={listing.images[0]}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-1000"
+                  unoptimized
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
                 

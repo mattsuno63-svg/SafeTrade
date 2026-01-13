@@ -3,7 +3,6 @@
  */
 
 import { prisma } from '@/lib/db'
-import type { User } from '@prisma/client'
 
 export type VaultAuditAction =
   | 'DEPOSIT_CREATED'
@@ -37,7 +36,7 @@ export type VaultAuditAction =
 
 interface CreateAuditLogParams {
   actionType: VaultAuditAction
-  performedBy: User
+  performedBy: { id: string } // Solo id necessario
   depositId?: string
   itemId?: string
   orderId?: string
