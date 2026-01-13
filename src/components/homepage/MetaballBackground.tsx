@@ -764,7 +764,9 @@ export function MetaballBackground() {
 
     window.addEventListener('resize', onWindowResize, { passive: true })
 
-    // Cleanup
+    // Cleanup - save ref value for cleanup
+    const containerElement = containerRef.current
+    
     return () => {
       window.removeEventListener('mousemove', onPointerMove)
       window.removeEventListener('touchmove', onPointerMove)
@@ -777,8 +779,6 @@ export function MetaballBackground() {
 
       if (renderer) {
         renderer.dispose()
-        // Save ref value for cleanup
-        const containerElement = containerRef.current
         if (containerElement && canvas.parentNode) {
           canvas.parentNode.removeChild(canvas)
         }

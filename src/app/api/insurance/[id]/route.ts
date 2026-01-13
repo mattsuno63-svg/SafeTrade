@@ -24,12 +24,16 @@ export async function GET(
           select: {
             id: true,
             status: true,
-            proposedPrice: true,
             userAId: true,
             userBId: true,
             userA: { select: { id: true, name: true, email: true } },
             userB: { select: { id: true, name: true, email: true } },
             packageStatus: true,
+            proposal: {
+              select: {
+                offerPrice: true,
+              },
+            },
             packageReceivedAt: true,
             packageVerifiedAt: true,
             packageShippedAt: true,

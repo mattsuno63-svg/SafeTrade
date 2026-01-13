@@ -116,9 +116,13 @@ export async function GET(
           select: {
             id: true,
             status: true,
-            proposedPrice: true,
             userA: { select: { id: true, name: true } },
             userB: { select: { id: true, name: true } },
+            proposal: {
+              select: {
+                offerPrice: true,
+              },
+            },
           },
         },
       },
@@ -129,7 +133,7 @@ export async function GET(
         hasInsurance: false, 
         transaction: {
           id: transaction.id,
-          value: transaction.proposedPrice,
+          value: transaction.proposal?.offerPrice || 0,
         }
       })
     }
@@ -213,7 +217,7 @@ export async function POST(
       )
     }
 
-    const insuredValue = transaction.proposedPrice || 0
+    const insuredValue = transaction.proposal?.offerPrice || 0
 
     if (insuredValue <= 0) {
       return NextResponse.json(

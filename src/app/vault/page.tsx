@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useUser } from '@/hooks/use-user'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
