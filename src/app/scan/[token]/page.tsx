@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
@@ -31,13 +32,7 @@ export default function PublicScanPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
 
-  useEffect(() => {
-    if (params.token) {
-      fetchSlotInfo()
-    }
-  }, [params.token])
-
-  const fetchSlotInfo = async () => {
+  const fetchSlotInfo = useCallback(async () => {
     try {
       setLoading(true)
       setError('')
@@ -56,7 +51,13 @@ export default function PublicScanPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.token])
+
+  useEffect(() => {
+    if (params.token) {
+      fetchSlotInfo()
+    }
+  }, [params.token, fetchSlotInfo])
 
   if (loading) {
     return (
@@ -164,10 +165,12 @@ export default function PublicScanPage() {
                 <div className="w-full md:w-2/5 aspect-[3/4] rounded-2xl overflow-hidden relative group orange-glow">
                   <div className="absolute inset-0 bg-gradient-to-t from-background-dark/80 to-transparent z-10"></div>
                   {slotInfo.item.photos && slotInfo.item.photos.length > 0 ? (
-                    <img
+                    <Image
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       src={slotInfo.item.photos[0]}
                       alt={slotInfo.item.name}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 40vw"
                     />
                   ) : (
                     <div className="w-full h-full bg-zinc-800 flex items-center justify-center">

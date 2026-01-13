@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -51,13 +52,7 @@ export default function MerchantVerifyQRPage({ params }: { params: { qrCode: str
   const [showPriceInput, setShowPriceInput] = useState(false)
   const [reason, setReason] = useState<string>('')
 
-  useEffect(() => {
-    if (user) {
-      fetchSession()
-    }
-  }, [user, qrCode])
-
-  const fetchSession = async () => {
+  const fetchSession = useCallback(async () => {
     try {
       const res = await fetch(`/api/merchant/verify/${qrCode}`)
       if (res.ok) {
@@ -80,7 +75,13 @@ export default function MerchantVerifyQRPage({ params }: { params: { qrCode: str
     } finally {
       setLoading(false)
     }
-  }
+  }, [qrCode, toast])
+
+  useEffect(() => {
+    if (user) {
+      fetchSession()
+    }
+  }, [user, fetchSession])
 
   const handleVerifyTransaction = async () => {
     if (!session) return
@@ -390,11 +391,15 @@ export default function MerchantVerifyQRPage({ params }: { params: { qrCode: str
                 {session.transaction.proposal?.listing && (
                   <div className="flex items-center gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                     {session.transaction.proposal.listing.images[0] && (
-                      <img
-                        src={session.transaction.proposal.listing.images[0]}
-                        alt={session.transaction.proposal.listing.title}
-                        className="w-24 h-24 object-cover rounded-lg"
-                      />
+                      <div className="relative w-24 h-24 rounded-lg overflow-hidden">
+                        <Image
+                          src={session.transaction.proposal.listing.images[0]}
+                          alt={session.transaction.proposal.listing.title}
+                          fill
+                          sizes="96px"
+                          className="object-cover"
+                        />
+                      </div>
                     )}
                     <div>
                       <h3 className="font-bold text-lg">{session.transaction.proposal.listing.title}</h3>

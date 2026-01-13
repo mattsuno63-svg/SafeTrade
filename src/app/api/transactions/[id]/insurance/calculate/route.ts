@@ -49,15 +49,13 @@ async function calculateRiskFactor(
   factors['storia_seller'] = sellerFactor
   riskFactor += sellerFactor
 
-  // Fattore 4: Dispute passate del seller
+  // Fattore 4: Dispute passate del seller (risolte)
   const sellerDisputes = await prisma.dispute.count({
     where: {
       transaction: {
         userBId: sellerId,
       },
-      status: {
-        in: ['RESOLVED_BUYER_WIN', 'RESOLVED_PARTIAL'],
-      },
+      status: 'RESOLVED',
     },
   })
   let disputeFactor = 0

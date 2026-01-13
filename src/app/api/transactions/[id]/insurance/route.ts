@@ -45,9 +45,7 @@ async function calculateRiskFactor(
       transaction: {
         userBId: sellerId,
       },
-      status: {
-        in: ['RESOLVED_BUYER_WIN', 'RESOLVED_PARTIAL'],
-      },
+      status: 'RESOLVED',
     },
   })
   if (sellerDisputes >= 3) riskFactor += 0.3
