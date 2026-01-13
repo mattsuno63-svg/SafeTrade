@@ -6,13 +6,24 @@ import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useUser } from '@/hooks/use-user'
 import { useLocale } from '@/contexts/LocaleContext'
+import { useToast } from '@/hooks/use-toast'
+import { Loader2, Package, CheckCircle2, Clock } from 'lucide-react'
 
 export default function MerchantShopPage() {
   const router = useRouter()
   const { user, loading: userLoading } = useUser()
   const { t } = useLocale()
+  const { toast } = useToast()
   const [shop, setShop] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string | null>(null)
@@ -23,6 +34,9 @@ export default function MerchantShopPage() {
     transactions: 0,
     orders: 0,
   })
+  const [showVaultRequestDialog, setShowVaultRequestDialog] = useState(false)
+  const [vaultRequestLoading, setVaultRequestLoading] = useState(false)
+  const [vaultCaseStatus, setVaultCaseStatus] = useState<'none' | 'pending' | 'approved' | 'active'>('none')
 
   // Fetch user role from database
   useEffect(() => {
@@ -55,6 +69,80 @@ export default function MerchantShopPage() {
     }
   }, [user, userLoading])
 
+  const checkVaultCaseStatus = useCallback(async (shopId: string) => {
+    try {
+      const res = await fetch(`/api/vault/cases?shopId=${shopId}`)
+      if (res.ok) {
+        const data = await res.json()
+        const cases = data.data || []
+        const authorizedCase = cases.find((c: any) => c.authorizedShopId === shopId)
+        
+        if (authorizedCase) {
+          setVaultCaseStatus('active')
+        } else {
+          // Check if there's a pending request
+          const requestRes = await fetch(`/api/vault/requests?shopId=${shopId}`)
+          if (requestRes.ok) {
+            const requestData = await requestRes.json()
+            const requests = requestData.data || []
+            const pendingRequest = requests.find((r: any) => r.status === 'PENDING')
+            if (pendingRequest) {
+              setVaultCaseStatus('pending')
+            } else {
+              setVaultCaseStatus('none')
+            }
+          } else {
+            setVaultCaseStatus('none')
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking vault case status:', error)
+      setVaultCaseStatus('none')
+    }
+  }, [])
+
+  const handleRequestVaultCase = async () => {
+    if (!shop?.id) return
+
+    try {
+      setVaultRequestLoading(true)
+      const res = await fetch('/api/vault/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shopId: shop.id,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Errore nell\'invio della richiesta')
+      }
+
+      toast({
+        title: 'Richiesta inviata',
+        description: 'La tua richiesta per la teca Vault è stata inviata. Riceverai una notifica quando sarà processata.',
+      })
+      
+      setVaultCaseStatus('pending')
+      setShowVaultRequestDialog(false)
+      
+      // Refresh shop data
+      await checkVaultCaseStatus(shop.id)
+    } catch (error: any) {
+      console.error('Error requesting vault case:', error)
+      toast({
+        title: 'Errore',
+        description: error.message || 'Errore nell\'invio della richiesta. Riprova più tardi.',
+        variant: 'destructive',
+      })
+    } finally {
+      setVaultRequestLoading(false)
+    }
+  }
+
   const fetchShop = useCallback(async () => {
     try {
       console.log('🔄 Fetching shop...')
@@ -66,6 +154,10 @@ export default function MerchantShopPage() {
         setShop(data)
         // Fetch stats
         await fetchStats(data.id)
+        // Check vault case status
+        if (data.id) {
+          await checkVaultCaseStatus(data.id)
+        }
         setLoading(false)
       } else if (res.status === 404) {
         // Shop doesn't exist - redirect to setup
@@ -208,16 +300,45 @@ export default function MerchantShopPage() {
                   Gestisci tutti gli aspetti del tuo negozio SafeTrade
                 </p>
               </div>
-              {shop?.slug && (
-                <Link
-                  href={`/shops/${shop.slug}`}
-                  target="_blank"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-orange-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all font-semibold text-sm shadow-md"
+              <div className="flex items-center gap-3 flex-wrap">
+                {shop?.slug && (
+                  <Link
+                    href={`/shops/${shop.slug}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-orange-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all font-semibold text-sm shadow-md"
+                  >
+                    <span className="material-symbols-outlined text-base">open_in_new</span>
+                    Visita il mio sito
+                  </Link>
+                )}
+                <Button
+                  onClick={() => setShowVaultRequestDialog(true)}
+                  variant={vaultCaseStatus === 'active' ? 'outline' : 'default'}
+                  className={`inline-flex items-center gap-2 ${
+                    vaultCaseStatus === 'active'
+                      ? 'border-green-500 text-green-600 dark:text-green-400'
+                      : 'bg-primary hover:bg-primary-dark text-white'
+                  }`}
+                  disabled={vaultCaseStatus === 'pending'}
                 >
-                  <span className="material-symbols-outlined text-base">open_in_new</span>
-                  Visita il mio sito
-                </Link>
-              )}
+                  {vaultCaseStatus === 'active' ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Teca Attiva
+                    </>
+                  ) : vaultCaseStatus === 'pending' ? (
+                    <>
+                      <Clock className="h-4 w-4" />
+                      Richiesta in Attesa
+                    </>
+                  ) : (
+                    <>
+                      <Package className="h-4 w-4" />
+                      Richiedi Teca Vault
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -511,6 +632,76 @@ export default function MerchantShopPage() {
           )}
         </div>
       </main>
+
+      {/* Vault Case Request Dialog */}
+      <Dialog open={showVaultRequestDialog} onOpenChange={setShowVaultRequestDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              Richiedi Teca SafeTrade Vault
+            </DialogTitle>
+            <DialogDescription>
+              Richiedi la tua teca brandizzata SafeTrade Vault per esporre carte in conto vendita.
+              La teca include 30 slot con QR codes univoci per la gestione automatica dell'inventario.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+              <h4 className="font-semibold mb-2 text-sm">Cosa include la teca:</h4>
+              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
+                <li>Teca fisica brandizzata SafeTrade (30 slot)</li>
+                <li>QR codes univoci per ogni slot</li>
+                <li>Accesso al sistema di gestione Vault</li>
+                <li>Dashboard merchant dedicata</li>
+                <li>Supporto per vendite online e fisiche</li>
+              </ul>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                💰 Costo: Da definire
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                Il pagamento verrà gestito tramite Stripe. Riceverai un'email con i dettagli di pagamento dopo l'approvazione della richiesta.
+              </p>
+            </div>
+
+            {vaultCaseStatus === 'pending' && (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  ⏳ Hai già una richiesta in attesa di approvazione. Riceverai una notifica quando sarà processata.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowVaultRequestDialog(false)}
+              disabled={vaultRequestLoading}
+            >
+              Annulla
+            </Button>
+            <Button
+              onClick={handleRequestVaultCase}
+              disabled={vaultRequestLoading || vaultCaseStatus === 'pending'}
+              className="bg-primary hover:bg-primary-dark"
+            >
+              {vaultRequestLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Invio in corso...
+                </>
+              ) : (
+                'Invia Richiesta'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

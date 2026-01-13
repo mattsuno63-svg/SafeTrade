@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="it"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dettaglio Teca Merchant - SafeTrade Vault</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1b8d98",
+                        "accent-orange": "#f97316",
+                        "background-light": "#fafafa",
+                        "background-dark": "#1a2023",
+                        "glass-dark": "rgba(26, 32, 35, 0.7)",
+                        "glass-border": "rgba(255, 255, 255, 0.1)",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: radial-gradient(circle at 50% 50%, #243135 0%, #1a2023 100%);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-tile {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-tile:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: #1b8d98;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(27, 141, 152, 0.3);
+        }
+        .glass-tile.active {
+            background: rgba(27, 141, 152, 0.1);
+            border-color: #1b8d98;
+            box-shadow: inset 0 0 15px rgba(27, 141, 152, 0.2);
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-white min-h-screen overflow-hidden selection:bg-primary/30">
+<!-- Header -->
+<header class="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-8 h-20 flex items-center justify-between">
+<div class="flex items-center gap-12">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white">shield_with_heart</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight">SafeTrade <span class="text-primary">Vault</span></h1>
+<p class="text-[10px] uppercase tracking-[0.2em] text-white/40 font-medium leading-none">High-Security Terminal</p>
+</div>
+</div>
+<nav class="flex items-center gap-6">
+<div class="flex items-center gap-2 text-white/50 hover:text-white transition-colors cursor-pointer text-sm font-medium">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+                    Dashboard
+                </div>
+<div class="flex items-center gap-2 text-primary font-bold text-sm">
+<span class="material-symbols-outlined text-[18px]">inventory_2</span>
+                    Vault Cases
+                </div>
+<div class="flex items-center gap-2 text-white/50 hover:text-white transition-colors cursor-pointer text-sm font-medium">
+<span class="material-symbols-outlined text-[18px]">history</span>
+                    Ledger
+                </div>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex flex-col items-end">
+<span class="text-xs font-bold text-white">Merchant Pro: Kanto Collectibles</span>
+<span class="text-[10px] text-primary">Status: Operational • v26.1</span>
+</div>
+<div class="size-10 rounded-full border-2 border-primary/30 p-0.5">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Merchant profile avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBlA1ZGojFp4epmQuElAz2nAKMf0bHrN6bT7r_rRODCSuAuPEl6yocQ98RriEJWK0MYc6_TXIwGNjPDoymN4BbFMPAAZQQYyB0WZfkSsS3I5Uofgl2hLvxW6VvQFP5vXcy_VLxC9rCUtI9Z46eFMmuixvglYfXuOsb7t5X8oEUBoRnR6e49MPuAS59jRiqhTHBWRX_5CVRbJ2z_V2OBgLP8GXnLkv3JG2kKtZaGsVeICWlvg9P0JJu_oXu2UpJ-mya61Ug28d9h2OXB');"></div>
+</div>
+</div>
+</header>
+<main class="pt-20 h-screen flex">
+<!-- Main Content Area -->
+<div class="flex-1 p-8 overflow-y-auto scrollbar-hide">
+<!-- Breadcrumbs & Heading -->
+<div class="mb-8 flex justify-between items-end">
+<div>
+<div class="flex items-center gap-2 text-white/40 text-xs font-medium uppercase tracking-widest mb-2">
+<span>Merchant</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span>Vault</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-white/80">Teca S01</span>
+</div>
+<h2 class="text-4xl font-black tracking-tighter">TECA S01 <span class="text-primary ml-4 opacity-50 text-2xl font-light">30 SLOTS • 6X5 GRID</span></h2>
+</div>
+<div class="flex gap-4">
+<button class="px-6 h-12 glass-tile rounded-xl flex items-center gap-2 text-sm font-bold border-white/10">
+<span class="material-symbols-outlined text-[20px]">print</span>
+                        Print Labels
+                    </button>
+<button class="px-6 h-12 bg-primary rounded-xl flex items-center gap-2 text-sm font-bold text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+                        Case Settings
+                    </button>
+</div>
+</div>
+<!-- 6x5 Matrix Grid -->
+<div class="grid grid-cols-6 gap-4 pb-20">
+<!-- Row 1 -->
+<div class="aspect-[3/4] glass-tile active rounded-xl p-3 flex flex-col relative group overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-60 transition-opacity" data-alt="Charizard VMAX card illustration" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuANGRahR8PYFr_UqSWz1ZR8gy9tevgQHiP309RmlO1GF2YESsFiFGKsJRZUGScZym77gv0brig5nCe4h--XngN9u_M7BpqZrvdLnF0Ko-IAOTIPtK0aZJx8Vvuubn3R1_NDrY3f_TKh-in_hLjABHYmfgSI0YZXuSeg0aBw2LfMqLynvVxL6LE36zg9PEZuSkrIyWh_QGjYQn6_RyYtkrGCLzjv3gohNSNdAsRbjevjxR2weTncXBycesfGHIT8bN6ep7NYOOg6njYh');"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+<div class="relative z-10 h-full flex flex-col justify-between">
+<span class="text-[10px] font-bold text-primary bg-primary/20 self-start px-2 py-1 rounded">S01</span>
+<div>
+<p class="text-[10px] text-white/60 font-bold uppercase tracking-wider leading-none mb-1">PSA 10 GEM MINT</p>
+<p class="text-xs font-bold line-clamp-1">Charizard VMAX - S01</p>
+<p class="text-[10px] text-primary font-medium">Prop: M. Rossi</p>
+</div>
+</div>
+</div>
+<div class="aspect-[3/4] glass-tile rounded-xl p-3 flex flex-col items-center justify-center opacity-40">
+<span class="text-lg font-light text-white/20 tracking-tighter">S02</span>
+<span class="text-[10px] uppercase tracking-widest text-white/10 mt-2 font-bold">Empty</span>
+</div>
+<div class="aspect-[3/4] glass-tile rounded-xl p-3 flex flex-col relative group overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center opacity-40" data-alt="Lugia GX card illustration" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB6aPwKp00d643IagG1FYtqfVl76-U7aZ2tqvNaVP_7pSi4liTcTABeFdO6HKRRHiz4AYvJuLeDcEB_GwwNyIXssMv3Her7YAAwuz2CduqO4-9YbmDQbg9aP1v10Co4aMZDwLpBrpokMlticTth5rf1J1eU4wUwSKxDgIijaBiCn7EuOvW6lIZMmf-WWs10uYyhTVLgInNz82po6TCqb3lIVWZ6t4SvOW3WX-mSv29mb0VFffKIGGIT_HdLWfbwWuFbNojTz-vG8VkF');"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+<div class="relative z-10 h-full flex flex-col justify-between">
+<span class="text-[10px] font-bold text-white/40 bg-white/5 self-start px-2 py-1 rounded">S03</span>
+<div>
+<p class="text-[10px] text-white/60 font-bold uppercase tracking-wider leading-none mb-1">BGS 9.5</p>
+<p class="text-xs font-bold line-clamp-1">Lugia GX - S03</p>
+<p class="text-[10px] text-primary font-medium">Prop: G. Bianchi</p>
+</div>
+</div>
+</div>
+<div class="aspect-[3/4] glass-tile rounded-xl p-3 flex flex-col items-center justify-center opacity-40">
+<span class="text-lg font-light text-white/20 tracking-tighter">S04</span>
+</div>
+<div class="aspect-[3/4] glass-tile rounded-xl p-3 flex flex-col relative group overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center opacity-40" data-alt="Mewtwo Star card illustration" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD1NXlDcNxBlIGrHop7ZwTKDD-WInt_TqRdNLS5UwavPP4bJ0r4gW9A3LWawQPXeX12dHRj-d-fxNurY1I5F-tgIEsKjlv-F7FlpT7jos6T_SDeC5z1FnZCpqcq-b00OAg7Cn1XNofYOXbPvMVGu0Ja-TcJEoqXRD7O8x9iYvvM6W7Yl83eadzy-k4zqcbRW8PlfxVaxNFjLx9HFV4W9bV23hOlk-n9mwzv54LgEqlxggeAn5RT0qCKmw0W3IFR-GDLP22_SiwJmLlC');"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+<div class="relative z-10 h-full flex flex-col justify-between">
+<span class="text-[10px] font-bold text-white/40 bg-white/5 self-start px-2 py-1 rounded">S05</span>
+<div>
+<p class="text-[10px] text-white/60 font-bold uppercase tracking-wider leading-none mb-1">CGC 10</p>
+<p class="text-xs font-bold line-clamp-1">Mewtwo Star - S05</p>
+<p class="text-[10px] text-primary font-medium">Prop: L. Verdi</p>
+</div>
+</div>
+</div>
+<div class="aspect-[3/4] glass-tile rounded-xl p-3 flex flex-col items-center justify-center opacity-40">
+<span class="text-lg font-light text-white/20 tracking-tighter">S06</span>
+</div>
+<!-- Generated Grid Fillers for visualization (Slots S07 to S30) -->
+<script>
+                    const gridContainer = document.querySelector('.grid');
+                    for (let i = 7; i <= 30; i++) {
+                        const slotId = i < 10 ? `S0${i}` : `S${i}`;
+                        const div = document.createElement('div');
+                        div.className = 'aspect-[3/4] glass-tile rounded-xl p-3 flex flex-col items-center justify-center opacity-40';
+                        div.innerHTML = `<span class="text-lg font-light text-white/20 tracking-tighter">${slotId}</span>`;
+                        gridContainer.appendChild(div);
+                    }
+                </script>
+</div>
+</div>
+<!-- Right Side Panel -->
+<aside class="w-[450px] glass-panel border-l border-white/5 flex flex-col relative">
+<div class="absolute top-6 right-6">
+<button class="size-10 rounded-full glass-tile flex items-center justify-center border-white/10 hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto scrollbar-hide px-8 pt-10 pb-8 flex flex-col gap-8">
+<!-- Item Info (70%) -->
+<section class="flex flex-col gap-6">
+<div class="w-full aspect-[3/4] rounded-2xl glass-tile p-4 relative overflow-hidden group">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="Close-up of Charizard VMAX card" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB0tj6NffLcQh0ALMkMdfBcAUCHaSXNV3SDKIwcWXJvw57lsCz3n85DFS1jGc8_p_f2LZPLrNppsl0mIFMtMmwTT34G2ye4yjA2oZXl_xgdF8_9ewOLGkYaeVC-UteZH1DdDSF9oipcPJK88WzZSnCimDXaNJ2f7O0q8rHvyN34W-oGOp8ZFjROIDzpRm1EoDQVryB7Uh_V21OC2dzselDvzovmFQKpS_VkWvEFwmod82A5Zsn7O36jFUiIaxyqEAzP-XSYZ05zeUqN');"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+<div>
+<span class="text-[10px] font-bold text-primary bg-primary/20 px-2 py-0.5 rounded">ITEM ID: #V-88219</span>
+<h3 class="text-2xl font-bold mt-1">Charizard VMAX</h3>
+<p class="text-sm text-white/60">Destiny Shining • 074/073</p>
+</div>
+<div class="text-right">
+<p class="text-xs text-white/40 font-medium">MARKET VAL</p>
+<p class="text-xl font-bold text-primary">€ 1.250,00</p>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="glass-tile rounded-xl p-4">
+<p class="text-[10px] text-white/40 uppercase font-bold tracking-widest mb-1">Status</p>
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-primary"></span>
+<span class="text-sm font-bold">Verified Vaulted</span>
+</div>
+</div>
+<div class="glass-tile rounded-xl p-4">
+<p class="text-[10px] text-white/40 uppercase font-bold tracking-widest mb-1">Grade</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">workspace_premium</span>
+<span class="text-sm font-bold">PSA 10 Gem Mint</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Split Data (20%) -->
+<section class="flex flex-col gap-4">
+<h4 class="text-xs font-bold uppercase tracking-[0.2em] text-white/40">Ownership Split Data</h4>
+<div class="glass-tile rounded-xl p-5 space-y-4">
+<div class="flex justify-between items-end text-sm">
+<span class="text-white/60 font-medium">Merchant Fee</span>
+<span class="font-bold">10%</span>
+</div>
+<div class="h-2 w-full bg-white/5 rounded-full overflow-hidden flex">
+<div class="h-full bg-primary" style="width: 70%"></div>
+<div class="h-full bg-accent-orange/40" style="width: 20%"></div>
+<div class="h-full bg-white/20" style="width: 10%"></div>
+</div>
+<div class="flex justify-between items-center text-[11px] font-bold uppercase tracking-wider">
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-primary"></span>
+<span class="text-white/40">Holder: 70%</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-accent-orange/40"></span>
+<span class="text-white/40">Vault: 20%</span>
+</div>
+<div class="flex items-center gap-2 text-white">
+<span class="size-2 rounded-full bg-white/20"></span>
+<span class="text-white/40">Pool: 10%</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Action Row (10%) -->
+<section class="mt-auto pt-4 border-t border-white/5 flex flex-col gap-3">
+<button class="w-full h-14 bg-primary text-white rounded-xl flex items-center justify-center gap-3 font-bold text-lg hover:brightness-110 transition-all shadow-xl shadow-primary/20">
+<span class="material-symbols-outlined">shopping_cart</span>
+                        Vendi Fisico
+                    </button>
+<div class="grid grid-cols-2 gap-3">
+<button class="h-12 glass-tile rounded-xl flex items-center justify-center gap-2 font-bold text-xs text-accent-orange border-accent-orange/20 hover:bg-accent-orange/10">
+<span class="material-symbols-outlined text-[18px]">logout</span>
+                            Rimuovi
+                        </button>
+<button class="h-12 glass-tile rounded-xl flex items-center justify-center gap-2 font-bold text-xs hover:bg-white/5">
+<span class="material-symbols-outlined text-[18px]">history</span>
+                            History
+                        </button>
+</div>
+</section>
+</div>
+</aside>
+</main>
+<!-- Bottom Status Bar -->
+<footer class="fixed bottom-0 left-0 right-0 h-8 glass-panel border-t border-white/5 flex items-center px-8 justify-between z-50">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="size-1.5 rounded-full bg-primary"></span>
+<span class="text-[10px] font-medium text-white/40">VAULT NODE #001: ONLINE</span>
+</div>
+<div class="w-[1px] h-3 bg-white/10"></div>
+<span class="text-[10px] font-medium text-white/40 italic">Last physical audit: 12h ago</span>
+</div>
+<div class="text-[10px] font-bold tracking-widest text-white/40">
+            SYSTEM LOG: SLAB_VERIFICATION_COMPLETE [OK]
+        </div>
+</footer>
+</body></html>

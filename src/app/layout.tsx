@@ -33,6 +33,8 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
       <body className={`${inter.variable} font-display`}>
+        {/* Grid Background - Global */}
+        <div className="fixed inset-0 grid-background-fade pointer-events-none z-0"></div>
         <Providers>
           {children}
           <Toaster />

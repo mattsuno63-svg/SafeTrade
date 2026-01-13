@@ -27,7 +27,7 @@ export function CategoryCard({ title, subtitle, image, icon, href }: CategoryCar
 
   return (
     <Link href={href}>
-      <div className={`group relative h-[450px] rounded-4xl overflow-hidden cursor-pointer shadow-xl border border-white/50 ${bgColor}`}>
+      <div data-category-card className={`group relative h-[450px] rounded-4xl overflow-hidden cursor-pointer shadow-xl border border-white/50 ${bgColor}`}>
         {/* Center Icon/Decoration */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <div className="relative w-44 h-44 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">

@@ -38,6 +38,8 @@ interface Shop {
   email: string | null
   logo: string | null
   isApproved: boolean
+  vaultEnabled: boolean
+  vaultCaseAuthorized: boolean
   createdAt: string
   merchant: {
     id: string
@@ -79,6 +81,10 @@ export default function AdminShopsPage() {
   
   // View shop details
   const [viewingShop, setViewingShop] = useState<Shop | null>(null)
+  
+  // Vault case authorization
+  const [authorizingShop, setAuthorizingShop] = useState<Shop | null>(null)
+  const [authorizeVaultCase, setAuthorizeVaultCase] = useState(false)
 
   useEffect(() => {
     if (!currentUser && !userLoading) {
@@ -215,6 +221,41 @@ export default function AdminShopsPage() {
     }
   }
 
+  const handleAuthorizeVaultCase = async () => {
+    if (!authorizingShop) return
+    setProcessing(true)
+    try {
+      const res = await fetch(`/api/admin/shops/${authorizingShop.id}/authorize-vault-case`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          authorize: authorizeVaultCase,
+        }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error)
+      }
+
+      toast({
+        title: authorizeVaultCase ? 'Teca autorizzata' : 'Autorizzazione revocata',
+        description: `${authorizingShop.name} ${authorizeVaultCase ? 'può ora utilizzare la teca Vault' : 'non può più utilizzare la teca Vault'}`,
+      })
+
+      setAuthorizingShop(null)
+      fetchShops()
+    } catch (error: any) {
+      toast({
+        title: 'Errore',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   if (userLoading || (loading && shops.length === 0)) {
     return (
       <div className="min-h-screen bg-background-light dark:bg-background-dark">
@@ -308,6 +349,11 @@ export default function AdminShopsPage() {
                       <Badge className={shop.isApproved ? 'bg-green-500' : 'bg-yellow-500'}>
                         {shop.isApproved ? 'Approvato' : 'In attesa'}
                       </Badge>
+                      {shop.vaultEnabled && (
+                        <Badge className={shop.vaultCaseAuthorized ? 'bg-blue-500' : 'bg-gray-500'}>
+                          {shop.vaultCaseAuthorized ? 'Teca Autorizzata' : 'Vault (no teca)'}
+                        </Badge>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-sm mb-4">
@@ -325,7 +371,7 @@ export default function AdminShopsPage() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {!shop.isApproved && (
                         <Button
                           size="sm"
@@ -334,6 +380,20 @@ export default function AdminShopsPage() {
                           disabled={processing}
                         >
                           Approva
+                        </Button>
+                      )}
+                      {shop.vaultEnabled && (
+                        <Button
+                          size="sm"
+                          variant={shop.vaultCaseAuthorized ? "outline" : "default"}
+                          className={shop.vaultCaseAuthorized ? "border-blue-500 text-blue-500" : "bg-blue-500 hover:bg-blue-600"}
+                          onClick={() => {
+                            setAuthorizingShop(shop)
+                            setAuthorizeVaultCase(!shop.vaultCaseAuthorized)
+                          }}
+                          disabled={processing}
+                        >
+                          {shop.vaultCaseAuthorized ? 'Revoca Teca' : 'Autorizza Teca'}
                         </Button>
                       )}
                       <Button
@@ -443,6 +503,58 @@ export default function AdminShopsPage() {
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={processing}>
               {processing ? 'Eliminando...' : 'Elimina'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Authorize Vault Case Dialog */}
+      <Dialog open={!!authorizingShop} onOpenChange={() => setAuthorizingShop(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {authorizeVaultCase ? 'Autorizza Teca Vault' : 'Revoca Autorizzazione Teca'}
+            </DialogTitle>
+            <DialogDescription>
+              {authorizeVaultCase ? (
+                <>
+                  Autorizzando la teca per <strong>{authorizingShop?.name}</strong>, il negozio potrà:
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Scansionare QR code degli slot</li>
+                    <li>Assegnare carte agli slot della teca</li>
+                    <li>Vendere carte fisicamente dalla teca</li>
+                    <li>Listare carte online dalla teca</li>
+                  </ul>
+                  <p className="mt-2 text-sm text-orange-600">
+                    Verrà creata automaticamente una nuova teca con 30 slot.
+                  </p>
+                </>
+              ) : (
+                <>
+                  Revocando l'autorizzazione per <strong>{authorizingShop?.name}</strong>, il negozio non potrà più:
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Scansionare QR code degli slot</li>
+                    <li>Assegnare nuove carte agli slot</li>
+                    <li>Vendere carte dalla teca</li>
+                  </ul>
+                  <p className="mt-2 text-sm text-gray-600">
+                    Le carte già nella teca rimarranno, ma non potranno essere modificate.
+                  </p>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAuthorizingShop(null)}>
+              Annulla
+            </Button>
+            <Button 
+              onClick={handleAuthorizeVaultCase} 
+              disabled={processing}
+              className={authorizeVaultCase ? 'bg-blue-500 hover:bg-blue-600' : 'bg-red-500 hover:bg-red-600'}
+            >
+              {processing ? 'Elaborazione...' : authorizeVaultCase ? 'Autorizza' : 'Revoca'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -282,6 +282,22 @@ export default function AdminDashboardPage() {
                 </Card>
               </Link>
 
+              <Link href="/admin/insurance">
+                <Card className="glass-panel p-6 hover:shadow-lg transition-all cursor-pointer group border-2 border-emerald-500/30">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
+                      <span className="material-symbols-outlined text-emerald-500">shield</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Assicurazioni</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Gestisci assicurazioni e sinistri
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+
               <Link href="/admin/audit-log">
                 <Card className="glass-panel p-6 hover:shadow-lg transition-all cursor-pointer group">
                   <div className="flex items-center gap-4">

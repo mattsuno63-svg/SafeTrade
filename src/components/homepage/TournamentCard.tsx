@@ -32,7 +32,7 @@ export function TournamentCard({ title, game, date, location, players, status, i
   }
 
   return (
-    <div className="tournament-card-glass group h-[500px]">
+    <div data-tournament-card className="tournament-card-glass group h-[500px]">
       {/* Background Image */}
       <img
         alt={title}

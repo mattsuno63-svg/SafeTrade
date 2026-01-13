@@ -51,14 +51,18 @@
 
 ## 🟡 PRIORITÀ ALTA
 
-### 4. **Assicurazione Pacchi** ✅ Schema già creato
-- [ ] API creazione assicurazione (`POST /api/transactions/[id]/insurance`)
-- [ ] API gestione sinistri (`POST /api/insurance/[id]/claim`)
-- [ ] Calcolo automatico premio (formula: valore × 2% × fattore rischio)
-- [ ] Calcolo fattore rischio (valore, storia buyer/seller)
-- [ ] Sistema rimborsi (crea pending_release per approvazione!)
-- [ ] UI opzione assicurazione (durante creazione transazione)
-- [ ] UI gestione sinistri (dashboard hub/buyer/seller)
+### 4. **Assicurazione Pacchi** ✅ COMPLETATO
+- [x] API creazione assicurazione (`POST /api/transactions/[id]/insurance`)
+- [x] API calcolo preview premio (`GET /api/transactions/[id]/insurance/calculate`)
+- [x] API gestione sinistri (`POST /api/insurance/[id]/claim`)
+- [x] API risoluzione sinistri (`POST /api/insurance/[id]/settle`) - Admin
+- [x] API lista assicurazioni (`GET /api/admin/insurance`) - Admin
+- [x] Calcolo automatico premio (formula: valore × 2% × fattore rischio)
+- [x] Calcolo fattore rischio (valore, storia buyer/seller, dispute)
+- [x] Sistema rimborsi (crea pending_release per approvazione!)
+- [x] UI dashboard assicurazioni admin (`/admin/insurance`)
+- [ ] UI opzione assicurazione (durante creazione transazione) ⏳
+- [ ] UI gestione sinistri per buyer (`/my-transactions`)
 
 ### 5. **Dashboard Analytics Hub**
 - [ ] API metriche hub (`GET /api/hub/my/analytics`)
@@ -181,4 +185,4 @@
 ---
 
 **Ultimo aggiornamento**: 2026-01-11
-**Focus attuale**: Fase 3 Disputes COMPLETATA ✅ - Prossimo: Fase 4 Assicurazione
+**Focus attuale**: Fase 4 Assicurazione Pacchi 🚧 IN CORSO

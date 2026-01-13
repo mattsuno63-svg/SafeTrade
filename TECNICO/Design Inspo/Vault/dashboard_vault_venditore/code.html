@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<html class="light" lang="it"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard Vault Venditore - SafeTrade</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff6a00",
+                        "background-light": "#fafafa",
+                        "background-dark": "#1a1a1e",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .liquid-glass {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .liquid-glass {
+            background: rgba(36, 36, 40, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .grid-pattern {
+            background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .dark .grid-pattern {
+            background-image: radial-gradient(circle, #333 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#1d130c] dark:text-gray-100 min-h-screen">
+<div class="relative w-full h-full grid-pattern">
+<!-- Header -->
+<header class="sticky top-0 z-50 liquid-glass border-b border-white/20 px-6 py-4">
+<div class="max-w-[1440px] mx-auto flex items-center justify-between">
+<div class="flex items-center gap-10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined !text-3xl">shield_with_heart</span>
+</div>
+<h1 class="text-xl font-extrabold tracking-tight">SafeTrade <span class="font-light opacity-70 text-sm align-top">VAULT</span></h1>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-sm font-semibold text-primary border-b-2 border-primary pb-1" href="#">Dashboard</a>
+<a class="text-sm font-medium opacity-60 hover:opacity-100 transition-opacity" href="#">Inventario</a>
+<a class="text-sm font-medium opacity-60 hover:opacity-100 transition-opacity" href="#">Depositi</a>
+<a class="text-sm font-medium opacity-60 hover:opacity-100 transition-opacity" href="#">Vendite</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+<input class="bg-white/50 dark:bg-black/20 border-none rounded-full pl-10 pr-4 py-2 w-64 focus:ring-2 focus:ring-primary/50 text-sm" placeholder="Cerca nel vault..." type="text"/>
+</div>
+<button class="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-xl shadow-primary/30 hover:scale-105 transition-transform active:scale-95">
+<span class="material-symbols-outlined !text-xl">add_circle</span>
+                        Nuovo Deposito
+                    </button>
+<div class="w-10 h-10 rounded-full border-2 border-primary/20 p-0.5 overflow-hidden">
+<img class="w-full h-full rounded-full object-cover" data-alt="Avatar utente collezionista profilo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbsKOQtDyJN2PIA7rO7QdQX5dMRlyAlFgjtgvfXZxUcIltwF-AbvLp52SlIzqIJRGtRvAfD2ubGdl6BxlThpCrUXN4RPvJ3gvvmBI2pUlH5vzef9ptvQ6oAW6CDkZmHnIdTYW4cjZ7FzOGwYrWBx3iCj4e39PytkQoIZ41Tw1BBa-iC0RzklGXNl0nypvAfqtVo0XJ3SF-RaIfSwzlI_QbVUKafsameyB_GKaIQmyJRr3eqDMUGsIpk7SE0XrG5BC_LLVW81xdK3CD"/>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-[1440px] mx-auto p-6 space-y-8">
+<!-- Stats Section -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Stat Card 1 -->
+<div class="liquid-glass p-8 rounded-xl shadow-sm group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined !text-2xl">account_balance_wallet</span>
+</div>
+<span class="text-green-500 text-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined !text-base">trending_up</span> +5.2%
+                        </span>
+</div>
+<h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">Valore nel Vault</h3>
+<p class="text-3xl font-black mt-1">€12.450,00</p>
+</div>
+<!-- Stat Card 2 -->
+<div class="liquid-glass p-8 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-blue-500/10 rounded-lg text-blue-500">
+<span class="material-symbols-outlined !text-2xl">style</span>
+</div>
+<span class="text-blue-500 text-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined !text-base">add</span> 12
+                        </span>
+</div>
+<h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">Carte Depositate</h3>
+<p class="text-3xl font-black mt-1">142</p>
+</div>
+<!-- Stat Card 3 -->
+<div class="liquid-glass p-8 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-emerald-500/10 rounded-lg text-emerald-500">
+<span class="material-symbols-outlined !text-2xl">payments</span>
+</div>
+<span class="text-emerald-500 text-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined !text-base">trending_up</span> +8.4%
+                        </span>
+</div>
+<h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">Vendite Totali</h3>
+<p class="text-3xl font-black mt-1">€4.200,00</p>
+</div>
+</section>
+<!-- Deposits Table Section -->
+<section class="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 overflow-hidden shadow-sm">
+<div class="p-6 border-b border-gray-100 dark:border-zinc-800 flex justify-between items-center">
+<h2 class="text-lg font-bold">I miei Depositi</h2>
+<button class="text-primary text-sm font-bold hover:underline">Vedi tutti</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-gray-50 dark:bg-zinc-800/50">
+<tr>
+<th class="px-6 py-4 text-xs font-bold uppercase text-gray-400">ID Deposito</th>
+<th class="px-6 py-4 text-xs font-bold uppercase text-gray-400">Data</th>
+<th class="px-6 py-4 text-xs font-bold uppercase text-gray-400">Avanzamento</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-100 dark:divide-zinc-800">
+<!-- Row 1 -->
+<tr class="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors">
+<td class="px-6 py-6 font-mono font-bold text-sm text-primary">#STD-9021</td>
+<td class="px-6 py-6 text-sm opacity-70">12 Ott 2023</td>
+<td class="px-6 py-6">
+<div class="flex items-center gap-8">
+<!-- Timeline Component -->
+<div class="flex items-center flex-1 max-w-md relative">
+<div class="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 dark:bg-zinc-700 -translate-y-1/2 z-0"></div>
+<div class="absolute top-1/2 left-0 w-full h-0.5 bg-primary -translate-y-1/2 z-0"></div>
+<div class="relative z-10 flex flex-col items-center flex-1">
+<div class="w-4 h-4 rounded-full bg-primary border-4 border-white dark:border-zinc-900 shadow-sm"></div>
+<span class="text-[10px] mt-2 font-bold uppercase opacity-60">Creato</span>
+</div>
+<div class="relative z-10 flex flex-col items-center flex-1">
+<div class="w-4 h-4 rounded-full bg-primary border-4 border-white dark:border-zinc-900 shadow-sm"></div>
+<span class="text-[10px] mt-2 font-bold uppercase opacity-60">Ricevuto</span>
+</div>
+<div class="relative z-10 flex flex-col items-center flex-1">
+<div class="w-4 h-4 rounded-full bg-primary border-4 border-white dark:border-zinc-900 shadow-sm"></div>
+<span class="text-[10px] mt-2 font-bold uppercase opacity-60">Revisionato</span>
+</div>
+<div class="relative z-10 flex flex-col items-center flex-1">
+<div class="w-4 h-4 rounded-full bg-primary border-4 border-white dark:border-zinc-900 shadow-sm"></div>
+<span class="text-[10px] mt-2 font-bold uppercase text-primary">Assegnato</span>
+</div>
+</div>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors">
+<td class="px-6 py-6 font-mono font-bold text-sm text-primary">#STD-9045</td>
+<td class="px-6 py-6 text-sm opacity-70">15 Ott 2023</td>
+<td class="px-6 py-6">
+<div class="flex items-center gap-8">
+<div class="flex items-center flex-1 max-w-md relative">
+<div class="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 dark:bg-zinc-700 -translate-y-1/2 z-0"></div>
+<div class="absolute top-1/2 left-0 w-[66%] h-0.5 bg-primary -translate-y-1/2 z-0"></div>
+<div class="relative z-10 flex flex-col items-center flex-1">
+<div class="w-4 h-4 rounded-full bg-primary border-4 border-white dark:border-zinc-900 shadow-sm"></div>
+<span class="text-[10px] mt-2 font-bold uppercase opacity-60">Creato</span>
+</div>
+<div class="relative z-10 flex flex-col items-center flex-1">
+<div class="w-4 h-4 rounded-full bg-primary border-4 border-white dark:border-zinc-900 shadow-sm"></div>
+<span class="text-[10px] mt-2 font-bold uppercase opacity-60">Ricevuto</span>
+</div>
+<div class="relative z-10 flex flex-col items-center flex-1">
+<div class="w-4 h-4 rounded-full bg-primary border-4 border-white dark:border-zinc-900 shadow-sm"></div>
+<span class="text-[10px] mt-2 font-bold uppercase text-primary">Revisionato</span>
+</div>
+<div class="relative z-10 flex flex-col items-center flex-1">
+<div class="w-4 h-4 rounded-full bg-gray-200 dark:bg-zinc-700 border-4 border-white dark:border-zinc-900 shadow-sm"></div>
+<span class="text-[10px] mt-2 font-bold uppercase opacity-30">Assegnato</span>
+</div>
+</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Cards Grid Section -->
+<section class="space-y-6">
+<div class="flex justify-between items-center px-2">
+<h2 class="text-xl font-bold flex items-center gap-2">
+                        Le mie Carte 
+                        <span class="text-xs font-normal bg-gray-100 dark:bg-zinc-800 px-3 py-1 rounded-full opacity-60">Recenti</span>
+</h2>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Card 1 -->
+<div class="bg-white dark:bg-zinc-900 rounded-xl border border-gray-100 dark:border-zinc-800 overflow-hidden group hover:shadow-xl transition-all hover:-translate-y-1">
+<div class="aspect-[3/4] bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" data-alt="Carta Pokemon rara Charizard PSA 10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtgTdkIBEicMKaQ7IZIR-ROBXfa3gxGdmIs-Zd12YKIEVsycmvN9b688aNxN3YRD5HsuVI1yCNXNNYmLovZpLJEaYKTxQiwBUK167ueIp79j7VqnFoy99Z2f0l6wB3ceXPTwmGpI6AzEVZhOd9dsxhIdHT6hTb6bWr54lBEmplGNTjd45Jew_IBCs7FQbZ-Lo64nnab5NK80RGzsaEwAeSGegT-ZRVk8olMRq1QIlk2XZ9Gv0rM1lY73ZVxSl7Dml1Zup4kcHfzIwE"/>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-black px-2 py-1 rounded">PSA 10</div>
+</div>
+<div class="p-4 space-y-3">
+<div>
+<h3 class="font-bold text-sm truncate">Charizard VMAX - SV107</h3>
+<p class="text-xs opacity-50">Shining Fates</p>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-zinc-800">
+<div class="flex items-center gap-1.5 opacity-60">
+<span class="material-symbols-outlined !text-sm">location_on</span>
+<span class="text-[10px] font-bold">CASE 04, SLOT B12</span>
+</div>
+<span class="text-[10px] px-2 py-0.5 bg-green-500/10 text-green-500 rounded-full font-bold">In Vault</span>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-white dark:bg-zinc-900 rounded-xl border border-gray-100 dark:border-zinc-800 overflow-hidden group hover:shadow-xl transition-all hover:-translate-y-1">
+<div class="aspect-[3/4] bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" data-alt="Carta Lorcana Elsa PSA 9" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpp4lALGUxlKasfmRzQXZ1tEaEDFS9p96VikiPlnBxhwm0-6xJXqQqQbYIoj_L5pddBUDFRT2ACSPadz135xpow4CskNXYhUblbGUzRKW4H06JALAZ8-tlkftVQcHnMmjtkMQXfolti5u_FmDaf4dm1xIoHRA9eaU8ykgy8cB3zw1nrYTFJuAxx8UqcQ5PyIzwguEHWek_IWTErlzJf_zBh2Eh7CYEqL5DTIGrhYQf5l0VxxbRGjrUaNyTvBvKFUoNFqrd8HJ0wYbJ"/>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-black px-2 py-1 rounded">BGS 9.5</div>
+</div>
+<div class="p-4 space-y-3">
+<div>
+<h3 class="font-bold text-sm truncate">Elsa - Spirit of Winter</h3>
+<p class="text-xs opacity-50">The First Chapter</p>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-zinc-800">
+<div class="flex items-center gap-1.5 opacity-60">
+<span class="material-symbols-outlined !text-sm">location_on</span>
+<span class="text-[10px] font-bold">CASE 04, SLOT B13</span>
+</div>
+<span class="text-[10px] px-2 py-0.5 bg-orange-500/10 text-orange-500 rounded-full font-bold">In Vendita</span>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-white dark:bg-zinc-900 rounded-xl border border-gray-100 dark:border-zinc-800 overflow-hidden group hover:shadow-xl transition-all hover:-translate-y-1">
+<div class="aspect-[3/4] bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" data-alt="Carta Magic The Gathering Black Lotus" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyAKfYqrQ9yMhvZ8-6Zv86D-zgRzv8Dx-t7eHwybmTKxNfF6Hmz-KseDyO07sFOVn0dUiJcwkdJCFkvysQ1nom6nSSvY9i4Ms_8YbeHmj0aUuY00MdC0ZUuwmfqVDiRIwSt1vSD54PzBKS7kvAM45OeOjDcLhSTyeex-HF6kxNwc9rILYOQhPD_DZPS6nQBUORLXr1-CzfdOh5qTliROtTYFI9MVMbtIvCI8DzUQ8AGmHnNRCvmu44uFj1XaVDxZbVtj6X9mI_cYYd"/>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-black px-2 py-1 rounded">PSA 8</div>
+</div>
+<div class="p-4 space-y-3">
+<div>
+<h3 class="font-bold text-sm truncate">Black Lotus - Limited Edition</h3>
+<p class="text-xs opacity-50">Alpha Series</p>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-zinc-800">
+<div class="flex items-center gap-1.5 opacity-60">
+<span class="material-symbols-outlined !text-sm">location_on</span>
+<span class="text-[10px] font-bold">CASE 02, SLOT A01</span>
+</div>
+<span class="text-[10px] px-2 py-0.5 bg-green-500/10 text-green-500 rounded-full font-bold">In Vault</span>
+</div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-white dark:bg-zinc-900 rounded-xl border border-gray-100 dark:border-zinc-800 overflow-hidden group hover:shadow-xl transition-all hover:-translate-y-1">
+<div class="aspect-[3/4] bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" data-alt="Carta One Piece Monkey D. Luffy" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqJ-8sCakluBU18O8w0DBy3Pqv4WE7xODho7Nc_fESeo3Tm_XQyJFmjPXETeLgjKyX6vNBwvMaN1BeanEQW7m3G22jMwaCc2FqtJncgdskgPfo853DmQ8h-TxhwMIk1P7mfIPxXdLsenRDrrX-4FxQmyQmtk6gya4NB2QlVWvkWofpeyOTWzO3PNkWHoMKHUVM73jocr2ZebNr7-L6pcMSRbZG6Nwbpje4ovYYdk3iYcJhln__ROXKrGrQeQw9SAuC0LB4XwXQRXuN"/>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-black px-2 py-1 rounded">RAW</div>
+</div>
+<div class="p-4 space-y-3">
+<div>
+<h3 class="font-bold text-sm truncate">Monkey D. Luffy - OP01-016</h3>
+<p class="text-xs opacity-50">Romance Dawn</p>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-zinc-800">
+<div class="flex items-center gap-1.5 opacity-60">
+<span class="material-symbols-outlined !text-sm">location_on</span>
+<span class="text-[10px] font-bold">CASE 06, SLOT C05</span>
+</div>
+<span class="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-500 rounded-full font-bold">In Transito</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer / Sidebar indicator -->
+<footer class="max-w-[1440px] mx-auto p-12 text-center opacity-30 text-xs uppercase tracking-widest font-bold">
+            SafeTrade Security Systems © 2024 • Liquid Glass UI 26.1
+        </footer>
+</div>
+</body></html>

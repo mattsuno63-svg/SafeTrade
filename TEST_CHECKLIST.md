@@ -75,12 +75,39 @@
   - [ ] Link "Audit Log" visibile e funziona
   - [ ] Tutti i link esistenti ancora funzionano
 
-### 5. Integrazione
+### 5. Assicurazione Pacchi ✅ API Complete
+- [x] **API Assicurazione**
+  - [x] `POST /api/transactions/[id]/insurance` - Crea assicurazione
+  - [x] `GET /api/transactions/[id]/insurance` - Dettagli assicurazione
+  - [x] `GET /api/transactions/[id]/insurance/calculate` - Preview premio
+  - [x] `POST /api/insurance/[id]/claim` - Apri sinistro
+  - [x] `PATCH /api/insurance/[id]/claim` - Aggiorna sinistro
+  - [x] `POST /api/insurance/[id]/settle` - Risolvi sinistro (Admin)
+  - [x] `GET /api/admin/insurance` - Lista assicurazioni (Admin)
+  
+- [x] **Calcoli Assicurazione**
+  - [x] Premio = valore × 2% × fattore_rischio
+  - [x] Fattore rischio calcolato (storia buyer/seller, dispute, valore)
+  - [x] Limite massimo rimborso rispettato
+
+- [ ] **UI Assicurazione**
+  - [x] Dashboard admin assicurazioni (`/admin/insurance`)
+  - [ ] Opzione assicurazione durante creazione transazione
+  - [x] Risoluzione sinistri con decisione (approvato/parziale/rifiutato)
+  - [ ] Upload foto sinistro (struttura pronta)
+
+- [x] **Workflow Sinistro**
+  - [x] Apertura sinistro crea notifica admin
+  - [x] Risoluzione sinistro crea PendingRelease
+  - [x] Rimborso richiede doppia approvazione (via PendingRelease)
+
+### 6. Integrazione
 - [ ] **Workflow End-to-End**
   - [ ] Transazione → Apertura disputa funziona
   - [ ] Disputa → Risoluzione → PendingRelease creato
   - [ ] PendingRelease → Approvazione → Wallet aggiornato
   - [ ] Hub → Verifica pacco → PendingRelease creato
+  - [ ] Assicurazione → Sinistro → Rimborso funziona
   - [ ] Notifiche inviate correttamente
 
 ---

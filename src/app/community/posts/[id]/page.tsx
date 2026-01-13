@@ -80,7 +80,7 @@ export default function PostPage() {
                 </Button>
 
                 {/* Main Post Card */}
-                <Card className="p-6 mb-8 overflow-hidden relative">
+                <Card className="p-6 mb-8 overflow-hidden relative border-[1px] border-primary/60 dark:border-primary/50">
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-6">
                         <div className="flex flex-col items-center">

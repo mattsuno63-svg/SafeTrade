@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="it"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#149cb8",
+                        "accent-orange": "#ff6b00",
+                        "background-light": "#f0f2f4",
+                        "background-dark": "#16181d",
+                        "glass-white": "rgba(255, 255, 255, 0.03)",
+                        "glass-border": "rgba(255, 255, 255, 0.12)",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: #16181d;
+        }
+        .liquid-glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+        .grid-bg {
+            background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+        .shield-glow {
+            filter: drop-shadow(0 0 30px rgba(20, 156, 184, 0.3));
+        }
+        .orange-glow {
+            box-shadow: 0 0 20px rgba(255, 107, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-white selection:bg-primary/30 min-h-screen relative overflow-x-hidden">
+<!-- Dynamic Background Layer -->
+<div class="fixed inset-0 grid-bg pointer-events-none opacity-40"></div>
+<div class="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none"></div>
+<div class="fixed bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-accent-orange/5 rounded-full blur-[100px] pointer-events-none"></div>
+<div class="layout-container flex h-full grow flex-col relative z-10">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between px-6 py-4 lg:px-20 border-b border-white/5 bg-background-dark/50 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-3">
+<div class="size-8 text-primary shield-glow">
+<span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1">shield_with_heart</span>
+</div>
+<h2 class="text-white text-xl font-extrabold leading-tight tracking-tight">SafeTrade <span class="text-primary">Vault</span></h2>
+</div>
+<div class="flex items-center gap-8">
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-white/60 hover:text-white text-sm font-medium transition-colors" href="#">Esplora</a>
+<a class="text-white/60 hover:text-white text-sm font-medium transition-colors" href="#">Collezioni</a>
+<a class="text-white/60 hover:text-white text-sm font-medium transition-colors" href="#">Certificati</a>
+</nav>
+<div class="h-6 w-[1px] bg-white/10 hidden md:block"></div>
+<button class="flex min-w-[100px] cursor-pointer items-center justify-center rounded-full h-10 px-6 bg-primary text-white text-sm font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20">
+<span>Accedi</span>
+</button>
+</div>
+</header>
+<main class="flex-1 flex flex-col items-center justify-center px-4 py-12 lg:py-20">
+<!-- Centralized Content Area -->
+<div class="max-w-[1000px] w-full flex flex-col items-center gap-12">
+<!-- Headline Section -->
+<div class="text-center space-y-4">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-orange/10 border border-accent-orange/20 text-accent-orange text-[10px] uppercase tracking-[0.2em] font-bold">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-orange opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-accent-orange"></span>
+</span>
+                        Scansione Completata
+                    </div>
+<h1 class="text-white tracking-tight text-4xl md:text-6xl font-extrabold leading-[1.1] max-w-3xl">
+                        Hai scansionato lo <span class="text-primary italic">Slot S12</span> della Teca Alpha
+                    </h1>
+</div>
+<!-- Liquid Glass Card -->
+<div class="liquid-glass w-full max-w-[850px] rounded-3xl overflow-hidden p-6 md:p-8 flex flex-col md:flex-row gap-8 items-center border border-white/10 relative">
+<!-- Subtle refractive highlight -->
+<div class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+<!-- Card Preview Image -->
+<div class="w-full md:w-2/5 aspect-[3/4] rounded-2xl overflow-hidden relative group orange-glow">
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/80 to-transparent z-10"></div>
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Holographic TCG card of Charizard VMAX" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBC6b_BG0OBM0k2NuvqCaamwqKMk8M53eNhFmA81u8VL20yX6xoXwgsGyJJ1HQvM-kQv0dKedzt73ZvwDvxRBwwwlHruLy_tEkG_-4KLbKKOEEckE1_jcKlteUQYk4bDBYoo_Q65S84W_xa8olKBNo3srKU5tgkz_-KOInu9_2r-arE6Wf3uusxQM333ywgi8TQ2-sC46o2JVh7ixz5YK3I5SuEuZY8oKj-ezzrWSJDyQCBdBun6VohhOqMStCvTKjAj7I_fGF1Od9Q"/>
+<div class="absolute bottom-4 left-4 z-20">
+<span class="bg-primary px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">Identificato</span>
+</div>
+</div>
+<!-- Card Info & Identity Check -->
+<div class="w-full md:w-3/5 flex flex-col gap-8">
+<div>
+<p class="text-accent-orange font-bold text-sm tracking-widest uppercase mb-1">Asset Protetto</p>
+<h2 class="text-white text-3xl font-bold mb-2">Charizard VMAX - Shiny Vault</h2>
+<div class="flex flex-wrap gap-4 mt-4">
+<div class="bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
+<p class="text-white/40 text-[10px] uppercase font-bold">Grado</p>
+<p class="text-white font-bold">PSA 10</p>
+</div>
+<div class="bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
+<p class="text-white/40 text-[10px] uppercase font-bold">Certificato</p>
+<p class="text-white font-bold">#ST-992834</p>
+</div>
+</div>
+</div>
+<div class="h-[1px] w-full bg-white/5"></div>
+<!-- CTAs -->
+<div class="flex flex-col gap-4">
+<button class="w-full flex items-center justify-center gap-3 rounded-2xl h-16 bg-primary hover:bg-primary/90 text-white text-lg font-bold transition-all shadow-xl shadow-primary/20">
+<span class="material-symbols-outlined">lock_open</span>
+<span>Accedi per gestire questo slot</span>
+</button>
+<button class="w-full flex items-center justify-center h-12 text-white/40 hover:text-white text-base font-semibold transition-colors">
+<span>Continua come ospite</span>
+<span class="material-symbols-outlined ml-2 text-sm">arrow_forward_ios</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Feature Section -->
+<div class="w-full py-12">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="liquid-glass p-6 rounded-2xl border border-white/5 flex flex-col gap-4">
+<div class="size-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">verified_user</span>
+</div>
+<div>
+<h4 class="text-white font-bold text-lg">Custodia Fisica</h4>
+<p class="text-white/50 text-sm mt-1">Asset protetti in caveau sotterranei a temperatura controllata.</p>
+</div>
+</div>
+<div class="liquid-glass p-6 rounded-2xl border border-white/5 flex flex-col gap-4">
+<div class="size-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">link</span>
+</div>
+<div>
+<h4 class="text-white font-bold text-lg">Blockchain Tracking</h4>
+<p class="text-white/50 text-sm mt-1">Tracciamento immutabile on-chain per ogni cambio di possesso.</p>
+</div>
+</div>
+<div class="liquid-glass p-6 rounded-2xl border border-white/5 flex flex-col gap-4">
+<div class="size-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">health_and_safety</span>
+</div>
+<div>
+<h4 class="text-white font-bold text-lg">Assicurazione</h4>
+<p class="text-white/50 text-sm mt-1">Copertura Lloyd's per il 100% del valore di mercato stimato.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="py-10 border-t border-white/5 px-6 lg:px-20 text-center">
+<div class="flex flex-col md:flex-row justify-between items-center gap-6">
+<p class="text-white/30 text-xs">© 2024 SafeTrade Vault. Tutti i diritti riservati.</p>
+<div class="flex gap-8">
+<a class="text-white/30 hover:text-white text-xs transition-colors" href="#">Privacy Policy</a>
+<a class="text-white/30 hover:text-white text-xs transition-colors" href="#">Termini di Servizio</a>
+<a class="text-white/30 hover:text-white text-xs transition-colors" href="#">Contatti</a>
+</div>
+</div>
+</footer>
+</div>
+<!-- Floating 3D Shield Background Element (Simplified for CSS) -->
+<div class="fixed top-1/2 left-10 -translate-y-1/2 opacity-10 hidden xl:block pointer-events-none">
+<span class="material-symbols-outlined text-[300px] text-primary select-none" style="font-variation-settings: 'FILL' 1, 'wght' 100">shield</span>
+</div>
+</body></html>

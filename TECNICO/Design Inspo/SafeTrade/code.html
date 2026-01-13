@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html class="light" lang="it"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sistema SafeTrade | Sicurezza Totale TCG</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff6a00",
+                        "background-light": "#fafafa",
+                        "background-dark": "#1a1d23",
+                        "glass-white": "rgba(255, 255, 255, 0.4)",
+                        "glass-border": "rgba(255, 255, 255, 0.6)",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .liquid-glass {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+        .glass-gradient {
+            background: radial-gradient(circle at 50% 50%, rgba(255, 106, 0, 0.05) 0%, transparent 70%);
+        }
+        .grid-pattern {
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        details summary::-webkit-details-marker {
+            display: none;
+        }
+        details[open] summary .expand-icon {
+            transform: rotate(45deg);
+        }
+        .faq-item:hover {
+            background: rgba(255, 106, 0, 0.03);
+            border-color: rgba(255, 106, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#1d130c] dark:text-gray-100 overflow-x-hidden">
+<div class="fixed inset-0 grid-pattern opacity-40 pointer-events-none -z-10"></div>
+<div class="fixed inset-0 bg-gradient-to-b from-transparent via-background-light/50 to-background-light pointer-events-none -z-10"></div>
+<header class="sticky top-0 z-50 px-6 py-4">
+<nav class="max-w-[1200px] mx-auto liquid-glass rounded-full px-8 py-3 flex items-center justify-between border border-white/40">
+<div class="flex items-center gap-3">
+<div class="bg-primary p-1.5 rounded-lg flex items-center justify-center shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-white text-[20px]">shield_with_heart</span>
+</div>
+<h2 class="text-[#1d130c] dark:text-white text-lg font-bold leading-tight tracking-tight">SafeTrade</h2>
+</div>
+<div class="hidden md:flex items-center gap-10">
+<a class="text-[#1d130c] dark:text-gray-300 text-sm font-semibold hover:text-primary transition-colors" href="#">Sistema</a>
+<a class="text-[#1d130c] dark:text-gray-300 text-sm font-semibold hover:text-primary transition-colors" href="#">Negozi</a>
+<a class="text-[#1d130c] dark:text-gray-300 text-sm font-semibold hover:text-primary transition-colors" href="#">Prezzi</a>
+<a class="text-[#1d130c] dark:text-gray-300 text-sm font-semibold hover:text-primary transition-colors" href="#">Comunità</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="hidden sm:block text-sm font-bold px-4 py-2 rounded-xl text-[#1d130c] dark:text-white hover:bg-white/20 transition-all">Accedi</button>
+<button class="bg-primary text-white text-sm font-bold px-6 py-2.5 rounded-full shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all">
+                Inizia Ora
+            </button>
+</div>
+</nav>
+</header>
+<main class="max-w-[1200px] mx-auto px-6 py-10">
+<section class="relative py-20 text-center overflow-visible">
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[500px] glass-gradient -z-10"></div>
+<div class="mb-12 relative inline-block group">
+<div class="relative w-48 h-48 mx-auto liquid-glass rounded-[40px] flex items-center justify-center transform group-hover:rotate-12 transition-transform duration-700 shadow-2xl">
+<span class="material-symbols-outlined text-primary text-[100px] opacity-90 drop-shadow-xl">shield</span>
+<div class="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent rounded-[40px]"></div>
+</div>
+<div class="absolute -top-4 -right-4 w-12 h-12 liquid-glass rounded-full blur-sm"></div>
+<div class="absolute -bottom-6 -left-8 w-20 h-20 liquid-glass rounded-2xl opacity-60"></div>
+</div>
+<h1 class="text-5xl md:text-7xl font-extrabold tracking-tighter text-[#1d130c] dark:text-white mb-6">
+            Sicurezza Totale nel <br/>
+<span class="bg-clip-text text-transparent bg-gradient-to-r from-primary to-orange-400">Collezionismo</span>
+</h1>
+<p class="max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-400 font-medium mb-10 leading-relaxed">
+            Il primo sistema di verifica fisica per i tuoi scambi di TCG. Transazioni garantite con tecnologia Liquid Glass, sia in negozio che tramite il nostro centro certificato.
+        </p>
+<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+<button class="w-full sm:w-auto px-8 py-4 bg-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/25 hover:shadow-2xl hover:-translate-y-1 transition-all">
+                Scopri il Sistema
+            </button>
+<button class="w-full sm:w-auto px-8 py-4 liquid-glass rounded-2xl font-bold text-lg text-[#1d130c] dark:text-white border border-white/50 hover:bg-white/40 transition-all">
+                Trova Store Partner
+            </button>
+</div>
+</section>
+<section class="py-24">
+<div class="text-center mb-16">
+<h2 class="text-3xl font-bold mb-4">Verifica in Negozio Partner</h2>
+<div class="h-1 w-20 bg-primary mx-auto rounded-full"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+<div class="hidden md:block absolute top-[45px] left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary/20 to-transparent -z-10"></div>
+<div class="flex flex-col items-center text-center group">
+<div class="w-20 h-20 mb-6 liquid-glass rounded-2xl flex items-center justify-center transform group-hover:-translate-y-2 transition-all duration-300">
+<span class="material-symbols-outlined text-primary text-3xl">handshake</span>
+</div>
+<h3 class="font-bold text-lg mb-2">1. Accordo Online</h3>
+<p class="text-gray-500 dark:text-gray-400 text-sm">Accordo sul prezzo e dettagli dello scambio sulla nostra piattaforma.</p>
+</div>
+<div class="flex flex-col items-center text-center group">
+<div class="w-20 h-20 mb-6 liquid-glass rounded-2xl flex items-center justify-center transform group-hover:-translate-y-2 transition-all duration-300">
+<span class="material-symbols-outlined text-primary text-3xl">map</span>
+</div>
+<h3 class="font-bold text-lg mb-2">2. Scelta Punto SafeTrade</h3>
+<p class="text-gray-500 dark:text-gray-400 text-sm">Seleziona un negozio autorizzato tramite la nostra mappa per il drop-off.</p>
+</div>
+<div class="flex flex-col items-center text-center group">
+<div class="w-20 h-20 mb-6 liquid-glass rounded-2xl flex items-center justify-center transform group-hover:-translate-y-2 transition-all duration-300 relative">
+<span class="material-symbols-outlined text-primary text-3xl">magnification_large</span>
+<div class="absolute -right-1 -top-1 w-6 h-6 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[14px] text-green-500">check_circle</span>
+</div>
+</div>
+<h3 class="font-bold text-lg mb-2">3. Verifica in Locale</h3>
+<p class="text-gray-500 dark:text-gray-400 text-sm">Esperti certificati controllano l'autenticità della carta dal vivo.</p>
+</div>
+<div class="flex flex-col items-center text-center group">
+<div class="w-20 h-20 mb-6 liquid-glass rounded-2xl flex items-center justify-center transform group-hover:-translate-y-2 transition-all duration-300">
+<span class="material-symbols-outlined text-primary text-3xl">verified_user</span>
+</div>
+<h3 class="font-bold text-lg mb-2">4. Transazione Garantita</h3>
+<p class="text-gray-500 dark:text-gray-400 text-sm">Scambio sicuro e rilascio immediato dei fondi garantiti.</p>
+</div>
+</div>
+</section>
+<section class="py-24 bg-white/30 dark:bg-white/5 rounded-[40px] px-8 border border-white/20">
+<div class="flex flex-col lg:flex-row gap-16 items-center">
+<div class="lg:w-1/3 text-left">
+<span class="text-primary font-bold tracking-widest text-xs uppercase mb-3 block">Business Network</span>
+<h2 class="text-4xl font-black mb-6 leading-tight">Vantaggi per i Negozi Partner</h2>
+<p class="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+                    Unisciti al network SafeTrade per trasformare il tuo negozio nel punto di riferimento locale per il collezionismo d'alto livello.
+                </p>
+<button class="bg-primary text-white font-bold px-8 py-3 rounded-2xl hover:scale-105 transition-all w-fit shadow-lg shadow-primary/20">
+                    Diventa Partner
+                </button>
+</div>
+<div class="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-6">
+<div class="p-8 liquid-glass rounded-3xl border-white/40 hover:bg-white/50 transition-all">
+<span class="material-symbols-outlined text-primary text-3xl mb-4">trending_up</span>
+<h3 class="text-xl font-bold mb-2">Aumento Traffico</h3>
+<p class="text-gray-500 text-sm leading-relaxed">Porta nuovi collezionisti fisicamente nel tuo punto vendita grazie al nostro sistema.</p>
+</div>
+<div class="p-8 liquid-glass rounded-3xl border-white/40 hover:bg-white/50 transition-all">
+<span class="material-symbols-outlined text-primary text-3xl mb-4">payments</span>
+<h3 class="text-xl font-bold mb-2">Commissioni Extra</h3>
+<p class="text-gray-500 text-sm leading-relaxed">Guadagna commissioni fisse per ogni servizio di verifica effettuato.</p>
+</div>
+<div class="p-8 liquid-glass rounded-3xl border-white/40 hover:bg-white/50 transition-all">
+<span class="material-symbols-outlined text-primary text-3xl mb-4">stars</span>
+<h3 class="text-xl font-bold mb-2">Autorità del Brand</h3>
+<p class="text-gray-500 text-sm leading-relaxed">Diventa un punto di riferimento certificato per la tua community locale.</p>
+</div>
+<div class="p-8 liquid-glass rounded-3xl border-white/40 hover:bg-white/50 transition-all">
+<span class="material-symbols-outlined text-primary text-3xl mb-4">groups</span>
+<h3 class="text-xl font-bold mb-2">Community Fedele</h3>
+<p class="text-gray-500 text-sm leading-relaxed">I clienti che verificano le carte spesso completano acquisti accessori in store.</p>
+</div>
+</div>
+</div>
+</section>
+<section class="py-24">
+<div class="flex flex-wrap justify-center gap-8 md:gap-16">
+<div class="flex flex-col items-center gap-3">
+<div class="w-32 h-32 liquid-glass rounded-full flex flex-col items-center justify-center border-2 border-primary/20 transform hover:scale-110 transition-all cursor-default">
+<span class="material-symbols-outlined text-primary text-4xl mb-1">verified</span>
+<span class="text-[10px] font-black uppercase tracking-widest">Verificato</span>
+</div>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-32 h-32 liquid-glass rounded-full flex flex-col items-center justify-center border-2 border-primary/20 transform hover:scale-110 transition-all cursor-default shadow-[inset_0_0_20px_rgba(255,106,0,0.1)]">
+<span class="material-symbols-outlined text-primary text-4xl mb-1">health_and_safety</span>
+<span class="text-[10px] font-black uppercase tracking-widest">Assicurato</span>
+</div>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-32 h-32 liquid-glass rounded-full flex flex-col items-center justify-center border-2 border-primary/20 transform hover:scale-110 transition-all cursor-default">
+<span class="material-symbols-outlined text-primary text-4xl mb-1">workspace_premium</span>
+<span class="text-[10px] font-black uppercase tracking-widest">Autentico</span>
+</div>
+</div>
+</div>
+</section>
+<section class="py-24 max-w-4xl mx-auto">
+<div class="text-center mb-16">
+<h2 class="text-4xl md:text-5xl font-black tracking-tight mb-4">Domande Frequenti</h2>
+<p class="text-gray-500 dark:text-gray-400">Tutto quello che devi sapere sul sistema SafeTrade.</p>
+</div>
+<div class="space-y-4">
+<details class="group faq-item liquid-glass rounded-3xl transition-all duration-300 overflow-hidden">
+<summary class="flex items-center justify-between p-6 md:p-8 cursor-pointer list-none">
+<h3 class="text-lg md:text-xl font-bold text-[#1d130c] dark:text-white">Come funziona la verifica in negozio?</h3>
+<div class="expand-icon w-10 h-10 liquid-glass rounded-full flex items-center justify-center transition-transform duration-300 border border-primary/20">
+<span class="material-symbols-outlined text-primary">add</span>
+</div>
+</summary>
+<div class="px-6 pb-8 md:px-8 md:pb-10 text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Una volta concordato l'appuntamento tramite la nostra piattaforma, buyer e seller si incontrano presso uno dei nostri centri autorizzati. Un esperto certificato SafeTrade esaminerà la carta sotto luce UV e ingrandimento per confermare autenticità e stato di conservazione.
+                </div>
+</details>
+<details class="group faq-item liquid-glass rounded-3xl transition-all duration-300 overflow-hidden">
+<summary class="flex items-center justify-between p-6 md:p-8 cursor-pointer list-none">
+<h3 class="text-lg md:text-xl font-bold text-[#1d130c] dark:text-white">Quali sono i costi del servizio SafeTrade?</h3>
+<div class="expand-icon w-10 h-10 liquid-glass rounded-full flex items-center justify-center transition-transform duration-300 border border-primary/20">
+<span class="material-symbols-outlined text-primary">add</span>
+</div>
+</summary>
+<div class="px-6 pb-8 md:px-8 md:pb-10 text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Il servizio prevede una commissione fissa per la gestione del deposito a garanzia (escrow) e un costo di verifica fisica variabile in base al valore dichiarato della carta, pagabile direttamente allo store partner o incluso nel servizio Central Escrow.
+                </div>
+</details>
+<details class="group faq-item liquid-glass rounded-3xl transition-all duration-300 overflow-hidden">
+<summary class="flex items-center justify-between p-6 md:p-8 cursor-pointer list-none">
+<h3 class="text-lg md:text-xl font-bold text-[#1d130c] dark:text-white">Cosa succede se la carta non supera la verifica?</h3>
+<div class="expand-icon w-10 h-10 liquid-glass rounded-full flex items-center justify-center transition-transform duration-300 border border-primary/20">
+<span class="material-symbols-outlined text-primary">add</span>
+</div>
+</summary>
+<div class="px-6 pb-8 md:px-8 md:pb-10 text-gray-600 dark:text-gray-400 leading-relaxed">
+                    In caso di esito negativo (carta contraffatta o condizioni non corrispondenti), la transazione viene annullata istantaneamente e i fondi bloccati in escrow vengono immediatamente rimborsati all'acquirente. La carta viene restituita al venditore con un report dettagliato.
+                </div>
+</details>
+<details class="group faq-item liquid-glass rounded-3xl transition-all duration-300 overflow-hidden">
+<summary class="flex items-center justify-between p-6 md:p-8 cursor-pointer list-none">
+<h3 class="text-lg md:text-xl font-bold text-[#1d130c] dark:text-white">Posso scambiare carte oltre che venderle?</h3>
+<div class="expand-icon w-10 h-10 liquid-glass rounded-full flex items-center justify-center transition-transform duration-300 border border-primary/20">
+<span class="material-symbols-outlined text-primary">add</span>
+</div>
+</summary>
+<div class="px-6 pb-8 md:px-8 md:pb-10 text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Assolutamente sì. Il nostro sistema supporta sia la compravendita diretta che lo scambio tra collezionisti. In caso di scambio, entrambe le carte passano attraverso il processo di verifica fisica prima della consegna finale per garantire equità.
+                </div>
+</details>
+<details class="group faq-item liquid-glass rounded-3xl transition-all duration-300 overflow-hidden">
+<summary class="flex items-center justify-between p-6 md:p-8 cursor-pointer list-none">
+<h3 class="text-lg md:text-xl font-bold text-[#1d130c] dark:text-white">Come trovo un negozio autorizzato vicino a me?</h3>
+<div class="expand-icon w-10 h-10 liquid-glass rounded-full flex items-center justify-center transition-transform duration-300 border border-primary/20">
+<span class="material-symbols-outlined text-primary">add</span>
+</div>
+</summary>
+<div class="px-6 pb-8 md:px-8 md:pb-10 text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Utilizza la nostra mappa interattiva disponibile nella sezione "Negozi". Ti basterà inserire la tua posizione o il CAP per visualizzare tutti i Partner certificati SafeTrade nell'area, completi di orari e disponibilità per la verifica.
+                </div>
+</details>
+</div>
+</section>
+<section class="py-20 mb-20 relative overflow-hidden rounded-[40px]">
+<div class="absolute inset-0 bg-primary/5 -z-10"></div>
+<div class="absolute top-0 right-0 w-96 h-96 bg-primary opacity-5 blur-[120px] -z-10"></div>
+<div class="text-center px-6">
+<h2 class="text-4xl md:text-5xl font-black mb-8">Pronto a scambiare senza pensieri?</h2>
+<p class="max-w-xl mx-auto text-gray-500 mb-12 text-lg">
+                Unisciti a migliaia di collezionisti che hanno scelto il sistema più sicuro d'Europa per il mercato secondario TCG.
+            </p>
+<button class="bg-primary text-white text-xl font-bold px-12 py-5 rounded-2xl shadow-2xl shadow-primary/40 hover:scale-105 active:scale-95 transition-all inline-flex items-center gap-4">
+<span>Inizia a Vendere in Sicurezza</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</section>
+</main>
+<footer class="border-t border-gray-200 dark:border-gray-800 py-12 px-6">
+<div class="max-w-[1200px] mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-3 grayscale opacity-70">
+<span class="material-symbols-outlined text-2xl">shield_with_heart</span>
+<span class="font-bold text-lg">SafeTrade</span>
+</div>
+<div class="flex gap-10 text-sm text-gray-400">
+<a class="hover:text-primary" href="#">Termini</a>
+<a class="hover:text-primary" href="#">Privacy</a>
+<a class="hover:text-primary" href="#">Cookies</a>
+<a class="hover:text-primary" href="#">Contatti</a>
+</div>
+<p class="text-gray-400 text-sm">© 2024 SafeTrade System. Liquid Glass UI.</p>
+</div>
+</footer>
+
+</body></html>

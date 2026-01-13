@@ -156,7 +156,7 @@ export default function CommunityPage() {
             ) : (
               filteredPosts?.map(post => (
                 <Link key={post.id} href={`/community/posts/${post.id}`} className="block group">
-                  <Card className="p-0 border border-white/40 dark:border-white/10 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer overflow-hidden rounded-2xl">
+                  <Card className="p-0 border-[1px] border-primary/60 dark:border-primary/50 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer overflow-hidden rounded-2xl">
                     <div className="flex">
                       {/* Vote Column (Static mainly) */}
                       <div className="w-12 bg-white/50 dark:bg-white/5 flex flex-col items-center pt-4 gap-1 border-r border-white/20 dark:border-white/5 backdrop-blur-sm">

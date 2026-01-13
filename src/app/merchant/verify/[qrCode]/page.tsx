@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { useUser } from '@/hooks/use-user'
 import { formatPriceNumber } from '@/lib/utils'
+import { QRScanner } from '@/components/qr/QRScanner'
+import { Scan } from 'lucide-react'
 
 interface EscrowSessionData {
   id: string
@@ -283,7 +285,15 @@ export default function MerchantVerifyQRPage({ params }: { params: { qrCode: str
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               Questo QR code non è valido o la sessione non esiste
             </p>
-            <Button onClick={() => router.push('/merchant/shop')}>Torna alla Dashboard</Button>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => setShowScanner(true)} className="flex items-center gap-2">
+                <Scan className="h-4 w-4" />
+                Scansiona Nuovo QR Code
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/merchant/shop')}>
+                Torna alla Dashboard
+              </Button>
+            </div>
           </Card>
         </main>
       </div>
@@ -295,6 +305,32 @@ export default function MerchantVerifyQRPage({ params }: { params: { qrCode: str
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-primary dark:text-white font-display">
+      {showScanner && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto">
+            <QRScanner
+              onScanSuccess={(decodedText) => {
+                try {
+                  const data = JSON.parse(decodedText)
+                  if (data.qrCode || data.verifyUrl) {
+                    const newQrCode = data.qrCode || data.verifyUrl.split('/merchant/verify/')[1]
+                    router.push(`/merchant/verify/${newQrCode}`)
+                  }
+                } catch {
+                  if (decodedText.includes('/merchant/verify/')) {
+                    const newQrCode = decodedText.split('/merchant/verify/')[1]?.split('?')[0]
+                    if (newQrCode) {
+                      router.push(`/merchant/verify/${newQrCode}`)
+                    }
+                  }
+                }
+                setShowScanner(false)
+              }}
+              onClose={() => setShowScanner(false)}
+            />
+          </div>
+        </div>
+      )}
       <Header />
       <main className="flex-1 py-8">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
@@ -304,9 +340,17 @@ export default function MerchantVerifyQRPage({ params }: { params: { qrCode: str
               <span className="material-symbols-outlined text-5xl text-primary">verified</span>
               <h1 className="text-3xl font-bold">Verifica Transazione</h1>
             </div>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               Controlla i dettagli e completa il pagamento in contanti
             </p>
+            <Button
+              onClick={() => setShowScanner(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Scan className="h-4 w-4" />
+              Scansiona Nuovo QR Code
+            </Button>
           </div>
 
           <div className="space-y-6">

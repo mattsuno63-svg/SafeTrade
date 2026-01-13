@@ -53,7 +53,7 @@ const featuredCards = [
 
 export function FeaturedSection() {
   return (
-    <section className="max-w-7xl mx-auto px-6 py-32 relative">
+    <section data-section="featured" className="max-w-7xl mx-auto px-6 py-32 relative">
       <div className="flex items-end justify-between mb-16 relative z-10">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -69,7 +69,7 @@ export function FeaturedSection() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 relative z-10">
         {featuredCards.map((listing) => (
           <Link key={listing.id} href={`/listings/${listing.id}`}>
-            <div className="premium-archive-container group cursor-pointer hover:scale-[1.02] transition-transform">
+            <div data-featured-card className="premium-archive-container group cursor-pointer hover:scale-[1.02] transition-transform">
               {/* Image Container */}
               <div className="relative rounded-3xl overflow-hidden mb-6 aspect-[3/4] bg-slate-100 border border-black/5">
                 <img

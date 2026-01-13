@@ -338,8 +338,25 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
                 )}
               </div>
 
-              {/* Details */}
-              <div className="space-y-6">
+              {/* Details - Apple Style Container */}
+              <div 
+                className="space-y-6 p-8 rounded-3xl relative overflow-hidden 
+                  bg-white/85 dark:bg-gray-900/85
+                  border border-white/60 dark:border-white/10
+                  shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.9)]
+                  dark:shadow-[0_8px_32px_rgba(0,0,0,0.3),0_2px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1)]"
+                style={{
+                  backdropFilter: 'blur(40px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+                }}
+              >
+                {/* Subtle inner highlight */}
+                <div 
+                  className="absolute top-0 left-0 right-0 h-px pointer-events-none opacity-80 dark:opacity-30"
+                  style={{
+                    background: 'linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8), transparent)',
+                  }}
+                />
                 {/* Header */}
                 <div>
                   <div className="flex items-center gap-2 text-sm font-bold text-primary mb-2">

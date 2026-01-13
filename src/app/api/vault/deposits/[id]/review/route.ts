@@ -1,0 +1,157 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
+import { requireRole } from '@/lib/auth'
+import { createVaultAuditLog } from '@/lib/vault/audit'
+import { canTransitionItemStatus } from '@/lib/vault/state-machine'
+import { notifyDepositReviewed } from '@/lib/vault/notifications'
+import { z } from 'zod'
+
+/**
+ * POST /api/vault/deposits/[id]/review
+ * Review deposit items (accept/reject with pricing) - HUB_STAFF/ADMIN only
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = await requireRole('ADMIN')
+
+    const { id } = params
+    const body = await request.json()
+
+    const schema = z.object({
+      items: z.array(
+        z.object({
+          itemId: z.string(),
+          action: z.enum(['ACCEPT', 'REJECT']),
+          conditionVerified: z.enum(['MINT', 'NEAR_MINT', 'EXCELLENT', 'GOOD', 'PLAYED', 'POOR']).optional(),
+          priceFinal: z.number().positive().optional(),
+        })
+      ),
+    })
+
+    const data = schema.parse(body)
+
+    // Get deposit
+    const deposit = await prisma.vaultDeposit.findUnique({
+      where: { id },
+      include: { items: true },
+    })
+
+    if (!deposit) {
+      return NextResponse.json({ error: 'Deposit not found' }, { status: 404 })
+    }
+
+    if (deposit.status !== 'RECEIVED' && deposit.status !== 'IN_REVIEW') {
+      return NextResponse.json(
+        { error: `Deposit must be RECEIVED or IN_REVIEW, current: ${deposit.status}` },
+        { status: 400 }
+      )
+    }
+
+    // Update items
+    const results = await Promise.all(
+      data.items.map(async ({ itemId, action, conditionVerified, priceFinal }) => {
+        const item = deposit.items.find((i) => i.id === itemId)
+        if (!item) {
+          throw new Error(`Item ${itemId} not found in deposit`)
+        }
+
+        if (item.status !== 'PENDING_REVIEW') {
+          throw new Error(`Item ${itemId} is not in PENDING_REVIEW status`)
+        }
+
+        const newStatus = action === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED'
+
+        // Validate transition
+        const transition = canTransitionItemStatus(item.status, newStatus)
+        if (!transition.valid) {
+          throw new Error(transition.reason)
+        }
+
+        // Update item
+        const updated = await prisma.vaultItem.update({
+          where: { id: itemId },
+          data: {
+            status: newStatus,
+            conditionVerified: conditionVerified || item.conditionDeclared,
+            priceFinal: priceFinal || null,
+          },
+        })
+
+        // Audit log
+        await createVaultAuditLog({
+          actionType: action === 'ACCEPT' ? 'ITEM_ACCEPTED' : 'ITEM_REJECTED',
+          performedBy: user,
+          depositId: id,
+          itemId: itemId,
+          oldValue: { status: item.status },
+          newValue: {
+            status: newStatus,
+            conditionVerified: conditionVerified || item.conditionDeclared,
+            priceFinal: priceFinal || null,
+          },
+        })
+
+        return { itemId, action, updated }
+      })
+    )
+
+    // Update deposit status based on results
+    const acceptedCount = results.filter((r) => r.action === 'ACCEPT').length
+    const rejectedCount = results.filter((r) => r.action === 'REJECT').length
+    const totalItems = deposit.items.length
+
+    let depositStatus: string
+    if (acceptedCount === totalItems) {
+      depositStatus = 'ACCEPTED'
+    } else if (rejectedCount === totalItems) {
+      depositStatus = 'REJECTED'
+    } else {
+      depositStatus = 'PARTIAL'
+    }
+
+    const updatedDeposit = await prisma.vaultDeposit.update({
+      where: { id },
+      data: {
+        status: depositStatus as any,
+        reviewedAt: new Date(),
+      },
+    })
+
+    await createVaultAuditLog({
+      actionType: 'DEPOSIT_REVIEWED',
+      performedBy: user,
+      depositId: id,
+      oldValue: { status: deposit.status },
+      newValue: { status: depositStatus },
+    })
+
+    // Notify depositor
+    await notifyDepositReviewed(id)
+
+    return NextResponse.json(
+      {
+        data: {
+          deposit: updatedDeposit,
+          items: results,
+        },
+      },
+      { status: 200 }
+    )
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.errors },
+        { status: 400 }
+      )
+    }
+    console.error('[POST /api/vault/deposits/[id]/review] Error:', error)
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
