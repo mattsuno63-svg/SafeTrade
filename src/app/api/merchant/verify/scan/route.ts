@@ -182,8 +182,8 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Verifica che il merchant sia autorizzato
-      if (user.role !== 'ADMIN' && user.role !== 'HUB_STAFF') {
+      // Verifica che il merchant sia autorizzato (ADMIN può sempre accedere)
+      if (user.role !== 'ADMIN') {
         if (slot.case.authorizedShopId) {
           const shop = slot.case.authorizedShop
           if (shop?.merchantId !== user.id) {
