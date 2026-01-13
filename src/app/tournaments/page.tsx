@@ -66,7 +66,11 @@ export default function TournamentsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [gameFilter, user])
+
+  useEffect(() => {
+    fetchTournaments()
+  }, [fetchTournaments])
 
   const handleRegister = async (tournamentId: string) => {
     if (!user) {
