@@ -91,15 +91,17 @@ export async function POST(
         })
 
         // Generate QR tokens
-        await Promise.all(
-          targetCase.slots.map(async (slot) => {
-            const qrToken = generateSlotQRToken(targetCase.id, slot.slotCode)
-            await prisma.vaultCaseSlot.update({
-              where: { id: slot.id },
-              data: { qrToken },
+        if (targetCase.slots && targetCase.slots.length > 0) {
+          await Promise.all(
+            targetCase.slots.map(async (slot) => {
+              const qrToken = generateSlotQRToken(targetCase.id, slot.slotCode)
+              await prisma.vaultCaseSlot.update({
+                where: { id: slot.id },
+                data: { qrToken },
+              })
             })
-          })
-        )
+          )
+        }
       }
 
       // TypeScript guard: targetCase cannot be null here
