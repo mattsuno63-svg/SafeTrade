@@ -340,10 +340,12 @@ export default function VaultDashboardPage() {
                   >
                     <div className="aspect-[3/4] bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden">
                       {item.photos && item.photos.length > 0 ? (
-                        <img
+                        <Image
                           src={item.photos[0]}
                           alt={item.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400">
