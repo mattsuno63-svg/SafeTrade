@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireRole } from '@/lib/auth'
 import { createVaultAuditLog } from '@/lib/vault/audit'
 import { z } from 'zod'
+import type { VaultCase } from '@prisma/client'
 
 /**
  * POST /api/admin/shops/[id]/authorize-vault-case
@@ -44,7 +45,7 @@ export async function POST(
 
     if (authorize) {
       // Autorizza teca
-      let targetCase
+      let targetCase: VaultCase & { slots?: Array<{ id: string; slotCode: string }> }
 
       if (caseId) {
         // Usa teca esistente
