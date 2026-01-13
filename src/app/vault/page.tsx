@@ -65,9 +65,9 @@ export default function VaultDashboardPage() {
     if (user) {
       fetchData()
     }
-  }, [user, userLoading, router])
+  }, [user, userLoading, router, fetchData])
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true)
       
