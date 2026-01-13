@@ -87,6 +87,11 @@ export async function GET(
       include: {
         userA: { select: { id: true } },
         userB: { select: { id: true } },
+        proposal: {
+          select: {
+            offerPrice: true,
+          },
+        },
       },
     })
 
@@ -174,6 +179,11 @@ export async function POST(
         userA: { select: { id: true, email: true } },
         userB: { select: { id: true, email: true } },
         escrowPayment: true,
+        proposal: {
+          select: {
+            offerPrice: true,
+          },
+        },
       },
     })
 

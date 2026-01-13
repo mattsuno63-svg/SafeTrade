@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
@@ -305,11 +306,13 @@ export default function MerchantVaultStatementPage() {
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
                             {split.item.photos && split.item.photos.length > 0 && (
-                              <div className="size-10 rounded-lg bg-slate-200 overflow-hidden">
-                                <img
+                              <div className="relative size-10 rounded-lg bg-slate-200 overflow-hidden">
+                                <Image
                                   alt="Card preview"
-                                  className="w-full h-full object-cover"
+                                  className="object-cover"
                                   src={split.item.photos[0]}
+                                  fill
+                                  sizes="40px"
                                 />
                               </div>
                             )}
