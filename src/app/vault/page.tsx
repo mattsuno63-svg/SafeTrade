@@ -100,7 +100,7 @@ export default function VaultDashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
   const getStatusProgress = (deposit: Deposit) => {
     const statuses = ['CREATED', 'RECEIVED', 'IN_REVIEW', 'ACCEPTED', 'DISTRIBUTED']
