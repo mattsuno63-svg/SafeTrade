@@ -9,10 +9,7 @@ import { prisma } from '@/lib/db'
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAuth(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = await requireAuth()
 
     // Verifica che l'utente sia un merchant o admin
     if (user.role !== 'MERCHANT' && user.role !== 'ADMIN') {
