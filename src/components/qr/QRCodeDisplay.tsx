@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Download, Copy, Check } from 'lucide-react'
@@ -87,7 +88,7 @@ export function QRCodeDisplay({
                 dangerouslySetInnerHTML={{ __html: qrData.replace('data:image/svg+xml;charset=utf-8,', '') }}
               />
             ) : (
-              <img src={qrData} alt="QR Code" className="w-64 h-64" />
+              <Image src={qrData} alt="QR Code" width={256} height={256} className="w-64 h-64" unoptimized />
             )}
           </div>
 

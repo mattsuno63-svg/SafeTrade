@@ -44,10 +44,14 @@ export async function GET(request: NextRequest) {
             select: {
               id: true,
               status: true,
-              proposedPrice: true,
               packageStatus: true,
               userA: { select: { id: true, name: true, email: true } },
               userB: { select: { id: true, name: true, email: true } },
+              proposal: {
+                select: {
+                  offerPrice: true,
+                },
+              },
             },
           },
         },

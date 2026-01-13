@@ -616,6 +616,9 @@ export function OnboardingMetaballBackground({ hideInWelcome = false }: Onboardi
     }
     updateOpacity()
 
+    // Save ref value for cleanup
+    const containerElement = containerRef.current
+
     return () => {
       window.removeEventListener('mousemove', onPointerMove)
       window.removeEventListener('touchmove', onPointerMove)
@@ -627,7 +630,7 @@ export function OnboardingMetaballBackground({ hideInWelcome = false }: Onboardi
 
       if (renderer) {
         renderer.dispose()
-        if (containerRef.current && canvas.parentNode) {
+        if (containerElement && canvas.parentNode) {
           canvas.parentNode.removeChild(canvas)
         }
       }
