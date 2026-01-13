@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: { id: string; slotId: string } }
 ) {
   try {
-    const user = await requireAuth(request)
+    const user = await requireAuth()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
