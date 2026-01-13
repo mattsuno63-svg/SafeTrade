@@ -45,7 +45,7 @@ export async function POST(
 
     if (authorize) {
       // Autorizza teca
-      let targetCase: VaultCase & { slots?: Array<{ id: string; slotCode: string }> }
+      let targetCase: (VaultCase & { slots?: Array<{ id: string; slotCode: string }> }) | null = null
 
       if (caseId) {
         // Usa teca esistente
@@ -100,6 +100,11 @@ export async function POST(
             })
           })
         )
+      }
+
+      // TypeScript guard: targetCase cannot be null here
+      if (!targetCase) {
+        return NextResponse.json({ error: 'Failed to create or find case' }, { status: 500 })
       }
 
       // Update case - set authorized shop and shopId

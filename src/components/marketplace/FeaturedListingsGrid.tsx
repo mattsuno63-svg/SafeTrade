@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatPriceNumber } from '@/lib/utils'
@@ -74,10 +75,13 @@ export function FeaturedListingsGrid() {
             {/* Image */}
             <div className="relative h-80 bg-gradient-to-br from-primary/20 to-orange-500/20">
               {listing.images?.[0] ? (
-                <img
+                <Image
                   src={listing.images[0]}
                   alt={listing.title}
+                  width={800}
+                  height={320}
                   className="w-full h-full object-contain p-8 group-hover:scale-110 transition-transform duration-500"
+                  unoptimized
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
