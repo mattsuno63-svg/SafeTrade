@@ -51,11 +51,7 @@ export default function TournamentsPage() {
   const [gameFilter, setGameFilter] = useState('ALL')
   const [registering, setRegistering] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchTournaments()
-  }, [gameFilter, user])
-
-  const fetchTournaments = async () => {
+  const fetchTournaments = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (gameFilter !== 'ALL') params.append('game', gameFilter)

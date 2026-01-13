@@ -109,7 +109,7 @@ export async function POST(
           orderId: insurance.transactionId,
           status: 'PENDING',
           triggeredBy: dbUser.id,
-          notes: `Rimborso assicurativo ${decision === 'PARTIAL' ? 'parziale' : 'totale'}: €${settledAmount.toFixed(2)}. ${notes || ''}`,
+          reason: `Rimborso assicurativo ${decision === 'PARTIAL' ? 'parziale' : 'totale'}: €${settledAmount.toFixed(2)}. ${notes || ''}`,
         },
       })
 
