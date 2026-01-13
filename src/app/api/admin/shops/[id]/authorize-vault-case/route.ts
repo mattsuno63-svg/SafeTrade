@@ -92,9 +92,10 @@ export async function POST(
 
         // Generate QR tokens
         if (targetCase.slots && targetCase.slots.length > 0) {
+          const caseId = targetCase.id // Save to local variable for TypeScript
           await Promise.all(
             targetCase.slots.map(async (slot) => {
-              const qrToken = generateSlotQRToken(targetCase.id, slot.slotCode)
+              const qrToken = generateSlotQRToken(caseId, slot.slotCode)
               await prisma.vaultCaseSlot.update({
                 where: { id: slot.id },
                 data: { qrToken },

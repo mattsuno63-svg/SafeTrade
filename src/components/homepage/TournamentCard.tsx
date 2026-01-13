@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 
 interface TournamentCardProps {
@@ -34,10 +35,12 @@ export function TournamentCard({ title, game, date, location, players, status, i
   return (
     <div data-tournament-card className="tournament-card-glass group h-[500px]">
       {/* Background Image */}
-      <img
+      <Image
         alt={title}
         src={image}
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        fill
+        className="object-cover transition-transform duration-700 group-hover:scale-105"
+        unoptimized
       />
       
       {/* Overlay */}

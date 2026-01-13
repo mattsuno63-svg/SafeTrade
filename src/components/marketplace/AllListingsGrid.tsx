@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -90,10 +91,13 @@ export function AllListingsGrid() {
               {/* Image */}
               <div className="relative h-64 bg-gray-100 dark:bg-gray-800">
                 {listing.images?.[0] ? (
-                  <img
+                  <Image
                     src={listing.images[0]}
                     alt={listing.title}
+                    width={400}
+                    height={256}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    unoptimized
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
@@ -140,10 +144,13 @@ export function AllListingsGrid() {
                 <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {listing.user.avatar ? (
-                      <img
+                      <Image
                         src={listing.user.avatar}
                         alt={listing.user.name || 'User'}
+                        width={24}
+                        height={24}
                         className="w-6 h-6 rounded-full"
+                        unoptimized
                       />
                     ) : (
                       <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
