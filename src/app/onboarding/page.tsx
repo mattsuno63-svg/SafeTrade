@@ -231,9 +231,9 @@ export default function OnboardingPage() {
                       onClick={handleNext}
                       className="px-14 py-7 bg-primary text-white font-black rounded-2xl shadow-liquid hover:shadow-liquid-hover hover:-translate-y-1.5 transition-all text-lg"
                     >
-                      {currentStepData.ctaPrimary}
+                      {'ctaPrimary' in currentStepData ? currentStepData.ctaPrimary : currentStepData.cta || 'Continua'}
                     </Button>
-                    {currentStepData.ctaSecondary && (
+                    {'ctaSecondary' in currentStepData && currentStepData.ctaSecondary && (
                       <Button
                         variant="outline"
                         onClick={() => setCurrentStep(2)}
@@ -257,7 +257,7 @@ export default function OnboardingPage() {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                    {currentStepData.options?.map((option) => (
+                    {'options' in currentStepData && currentStepData.options?.map((option) => (
                       <button
                         key={option.id}
                         onClick={() => setSelectedGoal(option.id)}
@@ -277,7 +277,7 @@ export default function OnboardingPage() {
                     ))}
                   </div>
                   
-                  {currentStepData.helper && (
+                  {'helper' in currentStepData && currentStepData.helper && (
                     <p className="text-sm text-slate-500">{currentStepData.helper}</p>
                   )}
                 </div>
@@ -304,7 +304,7 @@ export default function OnboardingPage() {
                   </div>
                   
                   <div className="max-w-3xl mx-auto space-y-6">
-                    {currentStepData.points?.map((point, idx) => (
+                    {'points' in currentStepData && currentStepData.points?.map((point, idx) => (
                       <div key={idx} className="flex items-start gap-5 text-left liquid-glass p-6 rounded-2xl border border-white/80 backdrop-blur-3xl bg-white/60">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                           <span className="material-symbols-outlined text-primary text-xl">
@@ -316,7 +316,7 @@ export default function OnboardingPage() {
                     ))}
                   </div>
                   
-                  {currentStepData.note && (
+                  {'note' in currentStepData && currentStepData.note && (
                     <div className="liquid-glass p-6 rounded-2xl border border-primary/20 bg-primary/5 max-w-2xl mx-auto">
                       <p className="text-base text-slate-600 italic">{currentStepData.note}</p>
                     </div>
@@ -341,7 +341,7 @@ export default function OnboardingPage() {
                         Giochi preferiti
                       </label>
                       <div className="flex flex-wrap gap-3">
-                        {currentStepData.fields?.games.map((game) => (
+                        {'fields' in currentStepData && currentStepData.fields?.games.map((game) => (
                           <button
                             key={game}
                             onClick={() => {
@@ -370,7 +370,7 @@ export default function OnboardingPage() {
                         Distanza massima dai negozi partner
                       </label>
                       <div className="flex flex-wrap gap-3">
-                        {currentStepData.fields?.distance.map((dist) => (
+                        {'fields' in currentStepData && currentStepData.fields?.distance.map((dist) => (
                           <button
                             key={dist}
                             onClick={() => setSettings(prev => ({ ...prev, distance: dist }))}
@@ -392,7 +392,7 @@ export default function OnboardingPage() {
                         Notifiche
                       </label>
                       <div className="flex flex-wrap gap-3">
-                        {currentStepData.fields?.notifications.map((notif) => (
+                        {'fields' in currentStepData && currentStepData.fields?.notifications.map((notif) => (
                           <button
                             key={notif}
                             onClick={() => {
@@ -436,9 +436,9 @@ export default function OnboardingPage() {
                   </div>
                   <div className="space-y-4">
                     <h2 className="text-6xl md:text-7xl font-display font-black tracking-tighter">
-                      {selectedGoal === 'buy' ? currentStepData.titleAlt : currentStepData.title}
+                      {'titleAlt' in currentStepData && selectedGoal === 'buy' ? currentStepData.titleAlt : currentStepData.title}
                     </h2>
-                    {currentStepData.suggestion && (
+                    {'suggestion' in currentStepData && currentStepData.suggestion && (
                       <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
                         {currentStepData.suggestion}
                       </p>
@@ -458,7 +458,7 @@ export default function OnboardingPage() {
                   </div>
                   
                   <div className="max-w-3xl mx-auto space-y-6">
-                    {currentStepData.points?.map((point, idx) => (
+                    {'points' in currentStepData && currentStepData.points?.map((point, idx) => (
                       <div key={idx} className="flex items-start gap-5 text-left liquid-glass p-6 rounded-2xl border border-white/80 backdrop-blur-3xl bg-white/60">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                           <span className="material-symbols-outlined text-primary text-xl">
@@ -492,9 +492,9 @@ export default function OnboardingPage() {
               >
                 {currentStep === steps.length - 1 
                   ? (currentStepData.type === 'action' 
-                      ? (selectedGoal === 'buy' ? currentStepData.ctaPrimaryAlt : currentStepData.ctaPrimary)
-                      : currentStepData.cta || 'Inizia')
-                  : currentStepData.cta || 'Avanti'}
+                      ? ('ctaPrimaryAlt' in currentStepData && selectedGoal === 'buy' ? currentStepData.ctaPrimaryAlt : ('ctaPrimary' in currentStepData ? currentStepData.ctaPrimary : 'Inizia'))
+                      : ('cta' in currentStepData ? currentStepData.cta : 'Inizia'))
+                  : ('cta' in currentStepData ? currentStepData.cta : 'Avanti')}
                 <span className="material-symbols-outlined font-bold">
                   {currentStep === steps.length - 1 ? 'check' : 'arrow_forward'}
                 </span>

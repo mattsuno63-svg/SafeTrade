@@ -223,7 +223,7 @@ export async function notifyPayoutPaid(batchId: string) {
         'VAULT_PAYOUT_PAID',
         '💳 Payout Eseguito',
         `Il tuo payout SafeTrade Vault è stato eseguito: €${amount.toFixed(2)} (${count} ${count === 1 ? 'transazione' : 'transazioni'}).`,
-        batch.type === 'OWNER' ? '/vault/payouts' : '/merchant/vault/statement'
+        batch.type === 'USER' ? '/vault/payouts' : '/merchant/vault/statement'
       )
     }
   }

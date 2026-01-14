@@ -55,7 +55,7 @@ export function useSectionScroll() {
 
       if (!gsapLoaded || !window.gsap || !window.ScrollTrigger) return
 
-      const { gsap, ScrollTrigger } = window
+      const { gsap } = window
 
       // Get all sections
       const heroSection = document.querySelector('header[class*="relative"]')
@@ -96,7 +96,7 @@ export function useSectionScroll() {
         }
 
         // Snap to section on scroll
-        ScrollTrigger.create({
+        window.ScrollTrigger.create({
           trigger: section,
           start: 'top top',
           end: 'bottom top',
@@ -111,7 +111,7 @@ export function useSectionScroll() {
 
       // Refresh on resize
       const handleResize = () => {
-        ScrollTrigger.refresh()
+        window.ScrollTrigger.refresh()
       }
       window.addEventListener('resize', handleResize)
 
@@ -127,7 +127,7 @@ export function useSectionScroll() {
     return () => {
       clearTimeout(timeoutId)
       if (window.ScrollTrigger) {
-        ScrollTrigger.getAll().forEach((trigger: any) => {
+        window.ScrollTrigger.getAll().forEach((trigger: any) => {
           if (trigger.vars?.snap) {
             trigger.kill()
           }

@@ -55,7 +55,7 @@ export function useScrollAnimations() {
 
       if (!gsapLoaded || !window.gsap || !window.ScrollTrigger) return
 
-      const { gsap, ScrollTrigger } = window
+      const { gsap } = window
 
       // Featured Section - Fade in from bottom
       const featuredSection = document.querySelector('[data-section="featured"]')
@@ -135,7 +135,7 @@ export function useScrollAnimations() {
             tournamentCards,
             {
               opacity: 0,
-              x: (index) => (index % 2 === 0 ? -50 : 50),
+              x: (index: number) => (index % 2 === 0 ? -50 : 50),
             },
             {
               opacity: 1,
@@ -155,7 +155,7 @@ export function useScrollAnimations() {
 
       // Refresh on resize
       const handleResize = () => {
-        ScrollTrigger.refresh()
+        window.ScrollTrigger.refresh()
       }
       window.addEventListener('resize', handleResize)
 
@@ -172,7 +172,7 @@ export function useScrollAnimations() {
     return () => {
       clearTimeout(timeoutId)
       if (window.ScrollTrigger) {
-        ScrollTrigger.getAll().forEach((trigger: any) => {
+        window.ScrollTrigger.getAll().forEach((trigger: any) => {
           if (trigger.trigger?.hasAttribute?.('data-section') || trigger.trigger?.querySelector?.('[data-category-card]')) {
             trigger.kill()
           }

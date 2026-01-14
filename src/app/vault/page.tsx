@@ -56,17 +56,6 @@ export default function VaultDashboardPage() {
   })
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!userLoading && !user) {
-      router.push('/login')
-      return
-    }
-
-    if (user) {
-      fetchData()
-    }
-  }, [user, userLoading, router, fetchData])
-
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
@@ -101,6 +90,17 @@ export default function VaultDashboardPage() {
       setLoading(false)
     }
   }, [user?.id])
+
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push('/login')
+      return
+    }
+
+    if (user) {
+      fetchData()
+    }
+  }, [user, userLoading, router, fetchData])
 
   const getStatusProgress = (deposit: Deposit) => {
     const statuses = ['CREATED', 'RECEIVED', 'IN_REVIEW', 'ACCEPTED', 'DISTRIBUTED']
