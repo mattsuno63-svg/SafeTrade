@@ -42,71 +42,121 @@ export function CategoryCard({ title, subtitle, image, icon, href }: CategoryCar
               </>
             ) : title === 'One Piece' ? (
               <>
-                <div className="absolute inset-0 bg-white/60 rounded-full border border-white/80 backdrop-blur-3xl shadow-inner"></div>
-                <div className="relative z-10 flex flex-col items-center">
-                  <span className="material-symbols-outlined text-[100px] text-amber-500/60 font-extralight">skull</span>
+                <div className="absolute inset-0 bg-white/40 rounded-full border border-white/80 backdrop-blur-3xl shadow-inner"></div>
+                <div className="relative z-10 w-32 h-32 rounded-full border-4 border-amber-500/30 overflow-hidden flex items-center justify-center shadow-2xl bg-gradient-to-br from-amber-50 to-orange-50">
+                  {/* Jolly Roger - One Piece Skull */}
+                  <svg viewBox="0 0 100 100" className="w-24 h-24">
+                    {/* Skull shape */}
+                    <path
+                      d="M50 20 Q35 20 30 35 Q30 45 35 50 Q30 60 30 70 Q30 80 40 85 Q45 90 50 90 Q55 90 60 85 Q70 80 70 70 Q70 60 65 50 Q70 45 70 35 Q65 20 50 20 Z"
+                      fill="currentColor"
+                      className="text-amber-600/70"
+                    />
+                    {/* Eye sockets */}
+                    <circle cx="40" cy="45" r="6" fill="currentColor" className="text-slate-800/80" />
+                    <circle cx="60" cy="45" r="6" fill="currentColor" className="text-slate-800/80" />
+                    {/* Crossbones */}
+                    <line x1="25" y1="25" x2="40" y2="40" stroke="currentColor" strokeWidth="4" strokeLinecap="round" className="text-amber-600/70" />
+                    <line x1="60" y1="40" x2="75" y2="25" stroke="currentColor" strokeWidth="4" strokeLinecap="round" className="text-amber-600/70" />
+                    <line x1="25" y1="75" x2="40" y2="60" stroke="currentColor" strokeWidth="4" strokeLinecap="round" className="text-amber-600/70" />
+                    <line x1="60" y1="60" x2="75" y2="75" stroke="currentColor" strokeWidth="4" strokeLinecap="round" className="text-amber-600/70" />
+                  </svg>
                 </div>
                 <div className="absolute inset-0 etched-texture opacity-40"></div>
               </>
             ) : title === 'Magic' ? (
               <>
                 <div className="absolute inset-0 bg-white/40 rounded-full border border-white/80 backdrop-blur-3xl shadow-inner"></div>
-                <div className="relative z-10 w-32 h-32 rounded-full border-4 border-emerald-500/30 overflow-hidden flex items-center justify-center shadow-2xl bg-gradient-to-br from-emerald-50 to-teal-50">
-                  {/* Mana Symbol - Stylized */}
-                  <div className="relative w-20 h-20">
-                    <div className="absolute inset-0 rounded-full border-3 border-emerald-600/40 bg-emerald-100/50"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-12 h-12 rounded-full bg-emerald-500/20 border-2 border-emerald-600/30 flex items-center justify-center">
-                        <div className="w-6 h-6 rounded-full bg-emerald-600/40"></div>
-                      </div>
-                    </div>
-                    {/* Decorative lines */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-emerald-600/30"></div>
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-emerald-600/30"></div>
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-0.5 bg-emerald-600/30"></div>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-0.5 bg-emerald-600/30"></div>
-                  </div>
+                <div className="relative z-10 w-32 h-32 rounded-full border-4 border-red-500/30 overflow-hidden flex items-center justify-center shadow-2xl bg-gradient-to-br from-red-50 to-orange-50">
+                  {/* Magic: The Gathering Official Logo Symbol - Red Flame/Crown */}
+                  <svg viewBox="0 0 100 100" className="w-24 h-24">
+                    {/* Base curve */}
+                    <path
+                      d="M20 70 Q30 75 40 70 Q50 75 60 70 Q70 75 80 70"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      fill="none"
+                      className="text-red-600/40"
+                    />
+                    {/* Central tall spike */}
+                    <path
+                      d="M50 70 L50 25 L48 30 L50 25 L52 30 Z"
+                      fill="currentColor"
+                      className="text-red-600"
+                    />
+                    {/* Left spikes */}
+                    <path
+                      d="M35 70 L35 40 L33 45 L35 40 L37 45 Z"
+                      fill="currentColor"
+                      className="text-red-600"
+                    />
+                    <path
+                      d="M25 70 L25 50 L23 55 L25 50 L27 55 Z"
+                      fill="currentColor"
+                      className="text-red-600"
+                    />
+                    {/* Right spikes */}
+                    <path
+                      d="M65 70 L65 40 L63 45 L65 40 L67 45 Z"
+                      fill="currentColor"
+                      className="text-red-600"
+                    />
+                    <path
+                      d="M75 70 L75 50 L73 55 L75 50 L77 55 Z"
+                      fill="currentColor"
+                      className="text-red-600"
+                    />
+                    {/* Additional smaller spikes for detail */}
+                    <path
+                      d="M42 70 L42 55 L41 58 L42 55 L43 58 Z"
+                      fill="currentColor"
+                      className="text-red-500"
+                    />
+                    <path
+                      d="M58 70 L58 55 L57 58 L58 55 L59 58 Z"
+                      fill="currentColor"
+                      className="text-red-500"
+                    />
+                  </svg>
                 </div>
                 <div className="absolute inset-0 etched-texture opacity-40"></div>
               </>
             ) : (
               <>
                 <div className="absolute inset-0 bg-white/40 rounded-full border border-white/80 backdrop-blur-3xl shadow-inner"></div>
-                <div className="relative z-10 w-32 h-32 flex items-center justify-center">
-                  {/* Millennium Puzzle Triangle */}
-                  <div className="relative w-28 h-28">
-                    <svg viewBox="0 0 100 100" className="w-full h-full">
-                      {/* Outer triangle */}
-                      <path
-                        d="M50 10 L90 80 L10 80 Z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        className="text-amber-600/50"
-                      />
-                      {/* Inner triangle */}
-                      <path
-                        d="M50 25 L75 70 L25 70 Z"
-                        fill="currentColor"
-                        className="text-amber-500/30"
-                      />
-                      {/* Eye symbol */}
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="8"
-                        fill="currentColor"
-                        className="text-amber-600/60"
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="4"
-                        fill="currentColor"
-                        className="text-amber-700/80"
-                      />
-                    </svg>
-                  </div>
+                <div className="relative z-10 w-32 h-32 rounded-full border-4 border-amber-500/30 overflow-hidden flex items-center justify-center shadow-2xl bg-gradient-to-br from-amber-50 to-yellow-50">
+                  {/* Millennium Puzzle Triangle - Same size as Pokéball */}
+                  <svg viewBox="0 0 100 100" className="w-24 h-24">
+                    {/* Outer triangle */}
+                    <path
+                      d="M50 10 L90 80 L10 80 Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      className="text-amber-600/60"
+                    />
+                    {/* Inner triangle */}
+                    <path
+                      d="M50 25 L75 70 L25 70 Z"
+                      fill="currentColor"
+                      className="text-amber-500/40"
+                    />
+                    {/* Eye symbol */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="8"
+                      fill="currentColor"
+                      className="text-amber-600/70"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="4"
+                      fill="currentColor"
+                      className="text-amber-700/90"
+                    />
+                  </svg>
                 </div>
                 <div className="absolute inset-0 etched-texture opacity-40"></div>
               </>
