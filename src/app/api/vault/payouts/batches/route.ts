@@ -61,11 +61,14 @@ export async function POST(request: NextRequest) {
       payeeMap.set(payeeId, existing)
     }
 
+    // Map type to VaultPayoutPayeeType enum values
+    const batchType = data.type === 'OWNER' ? 'USER' : data.type === 'MERCHANT' ? 'SHOP' : 'PLATFORM'
+
     // Create batch and lines
     const batch = await prisma.$transaction(async (tx) => {
       const batch = await tx.vaultPayoutBatch.create({
         data: {
-          type: data.type,
+          type: batchType,
           status: 'CREATED',
           periodStart: data.periodStart ? new Date(data.periodStart) : null,
           periodEnd: data.periodEnd ? new Date(data.periodEnd) : null,
