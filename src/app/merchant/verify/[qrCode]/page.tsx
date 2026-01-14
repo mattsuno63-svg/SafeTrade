@@ -51,6 +51,7 @@ export default function MerchantVerifyQRPage({ params }: { params: { qrCode: str
   const [finalPrice, setFinalPrice] = useState<string>('')
   const [showPriceInput, setShowPriceInput] = useState(false)
   const [reason, setReason] = useState<string>('')
+  const [showScanner, setShowScanner] = useState(false)
 
   const fetchSession = useCallback(async () => {
     try {
