@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         data: {
           itemId: data.itemId,
           buyerUserId: user.id,
-          shopIdFulfillment: item.shopIdCurrent,
+          shopIdFulfillment: item.shopIdCurrent!, // Non-null assertion: checked above
           status: 'PENDING_PAYMENT',
           shippingAddress: data.shippingAddress as any,
           totals: data.totals as any,
