@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { formatPriceNumber } from '@/lib/utils'
 import { FeaturedListingsGrid } from '@/components/marketplace/FeaturedListingsGrid'
+import { AnimatedOrbs } from '@/components/marketplace/AnimatedOrbs'
 
 interface Listing {
   id: string
@@ -188,11 +189,12 @@ export default function ListingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background-light text-text-primary dark:bg-background-dark dark:text-white font-display">
-      {/* Ambient Background */}
+    <div className="min-h-screen bg-background-light text-text-primary dark:bg-background-dark dark:text-white font-display relative">
+      {/* Ambient Background with Animated Orbs */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-[20%] -right-[10%] h-[800px] w-[800px] rounded-full bg-primary/10 blur-[100px]"></div>
         <div className="absolute bottom-[-10%] left-[-10%] h-[600px] w-[600px] rounded-full bg-blue-500/5 blur-[100px]"></div>
+        <AnimatedOrbs count={6} />
       </div>
 
       <div className="relative z-10 flex min-h-screen flex-col">
@@ -205,80 +207,95 @@ export default function ListingsPage() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-3xl font-bold">Esplora Categorie</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {/* Pokemon */}
-                <button
-                  onClick={() => setGame('POKEMON')}
-                  className={`group relative overflow-hidden rounded-2xl h-48 transition-all hover:scale-105 hover:shadow-2xl ${
-                    game === 'POKEMON' ? 'ring-4 ring-primary' : ''
-                  }`}
-                >
-                  <img
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_Wym8QnkannN3miSmw0TY8vPwanNYswBL0IF-OrWjLu8b-CVso0bddwe7adcS9aWjR6UekdqqsWKAZ83DAkTles8yO0UZU6HQFuJ0QHh2vvovIWkFDE33UM0-6kMX7zoO96mZbYjcYGCqzr30GWVeX8Yv0RmaNgYPF3wXpV5i-3UMVP002rzu6VOzuGjrp6dCJjIdlciJR_yZ1YNURVVp9dJu4uD5AbDSXPVIH2ofz6lLP3zKaM6897urEtG8GikanKu6q6RUc7LC"
-                    alt="Pokemon"
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                  <div className="absolute bottom-0 left-0 p-6 text-white">
-                    <span className="material-symbols-outlined text-4xl mb-2">catching_pokemon</span>
-                    <h3 className="text-2xl font-bold">Pokemon</h3>
-                    <p className="text-sm opacity-90">TCG & Collectibles</p>
-                  </div>
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* Pokemon - Escludi se game === 'POKEMON' */}
+                {game !== 'POKEMON' && (
+                  <button
+                    onClick={() => setGame('POKEMON')}
+                    className={`group relative overflow-hidden rounded-2xl h-48 transition-all hover:scale-105 hover:shadow-2xl border-2 ${
+                      game === 'POKEMON' ? 'ring-4 ring-primary border-primary shadow-lg shadow-primary/30' : 'border-transparent hover:border-primary/30'
+                    }`}
+                  >
+                    <img
+                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_Wym8QnkannN3miSmw0TY8vPwanNYswBL0IF-OrWjLu8b-CVso0bddwe7adcS9aWjR6UekdqqsWKAZ83DAkTles8yO0UZU6HQFuJ0QHh2vvovIWkFDE33UM0-6kMX7zoO96mZbYjcYGCqzr30GWVeX8Yv0RmaNgYPF3wXpV5i-3UMVP002rzu6VOzuGjrp6dCJjIdlciJR_yZ1YNURVVp9dJu4uD5AbDSXPVIH2ofz6lLP3zKaM6897urEtG8GikanKu6q6RUc7LC"
+                      alt="Pokemon"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 p-6 text-white">
+                      <span className="material-symbols-outlined text-4xl mb-2">catching_pokemon</span>
+                      <h3 className="text-2xl font-bold">Pokemon</h3>
+                      <p className="text-sm opacity-90">TCG & Collectibles</p>
+                    </div>
+                  </button>
+                )}
 
-                {/* Magic */}
-                <button
-                  onClick={() => setGame('MAGIC')}
-                  className={`group relative overflow-hidden rounded-2xl h-48 transition-all hover:scale-105 hover:shadow-2xl ${
-                    game === 'MAGIC' ? 'ring-4 ring-blue-500' : ''
-                  }`}
-                >
-                  <img
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBAqCIWggDLuQm6KhfZmibzVeDrX0gxc2GbX2j6LS6MlhRgP5MLh-A_sTD7oum1UJ_4MBL7lVNEoOMlGFZkb7F-Zj8DjBNCZidtMZRCWbp9jA170PJIMeuF5tBLgP8KW9utuu95YHLhf4pPnlW4-omUHrR7tkrHWnOoOoNUYkxYrs7YVYiU0OxwI__JQoXwZdli8AmPOaySnQ8PLIfLYSU-HC9aWjljeFI3EBuh-FqTW4dM6LnbMrahJ4qmgYxy-VlOwMz0beln59x"
-                    alt="Magic"
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                  <div className="absolute bottom-0 left-0 p-6 text-white">
-                    <span className="material-symbols-outlined text-4xl mb-2">auto_fix_high</span>
-                    <h3 className="text-2xl font-bold">Magic</h3>
-                    <p className="text-sm opacity-90">The Gathering</p>
-                  </div>
-                </button>
+                {/* One Piece - Escludi se game === 'ONEPIECE' */}
+                {game !== 'ONEPIECE' && (
+                  <button
+                    onClick={() => setGame('ONEPIECE')}
+                    className={`group relative overflow-hidden rounded-2xl h-48 transition-all hover:scale-105 hover:shadow-2xl border-2 ${
+                      game === 'ONEPIECE' ? 'ring-4 ring-primary border-primary shadow-lg shadow-primary/30' : 'border-transparent hover:border-primary/30'
+                    }`}
+                  >
+                    <img
+                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3swlRftSVm_TS-s6jVm6iM8GA6IL22iG1H2AOsaFycpsfogYVa5oc0shHa9jZpRjOzop2MYsOAuCxrmZi7shaGvnittuUBlJPLE_A5AyCO4Tr3i2XwXGhSjZhL2_2K_y1UljdwzfeBdux4sS-hZqZZfj3il4CXksRNgF2TRC25i4KrO0Q_ytyvVaIAAla1yNZLSLLK6NugrNj4g6rSAA1XerGUc4jbfBq5cHdHMFkHJUqWavKKnemjWKjemuIc-jMcW5lbQwi5_mO"
+                      alt="One Piece"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 p-6 text-white">
+                      <span className="material-symbols-outlined text-4xl mb-2">sailing</span>
+                      <h3 className="text-2xl font-bold">One Piece</h3>
+                      <p className="text-sm opacity-90">New World</p>
+                    </div>
+                  </button>
+                )}
 
-                {/* Yu-Gi-Oh */}
-                <button
-                  onClick={() => setGame('YUGIOH')}
-                  className={`group relative overflow-hidden rounded-2xl h-48 transition-all hover:scale-105 hover:shadow-2xl ${
-                    game === 'YUGIOH' ? 'ring-4 ring-red-500' : ''
-                  }`}
-                >
-                  <img
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfDIEQWBUG9QnhZpgMy7Z54oQalo6D0PionMFCWYa37nso-Xe5bCJk4YM2-CcgqIq_VrPl9ihSeRzWyxDFr3NOY6UkD4TqM8Wyb8Pc6ASpvzgBUiVnuuuTRyMyStYD4LxlzUjgQRlJUNzE0czt5O9_Wqvtr-RdAfoqOV_1FAYlLJ4l08wMb3DlZr7lGsgWShgl1_xLOhIKkw2GfwKdMh4cSDskMyhCuZ4b_D124g3wDHRZDjwV3iwe199w0wV4VuYbklhP723eixE-"
-                    alt="Yu-Gi-Oh"
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                  <div className="absolute bottom-0 left-0 p-6 text-white">
-                    <span className="material-symbols-outlined text-4xl mb-2">style</span>
-                    <h3 className="text-2xl font-bold">Yu-Gi-Oh!</h3>
-                    <p className="text-sm opacity-90">Duel Monsters</p>
-                  </div>
-                </button>
+                {/* Magic - Escludi se game === 'MAGIC' */}
+                {game !== 'MAGIC' && (
+                  <button
+                    onClick={() => setGame('MAGIC')}
+                    className={`group relative overflow-hidden rounded-2xl h-48 transition-all hover:scale-105 hover:shadow-2xl border-2 ${
+                      game === 'MAGIC' ? 'ring-4 ring-blue-500 border-blue-500 shadow-lg shadow-blue-500/30' : 'border-transparent hover:border-primary/30'
+                    }`}
+                  >
+                    <img
+                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBAqCIWggDLuQm6KhfZmibzVeDrX0gxc2GbX2j6LS6MlhRgP5MLh-A_sTD7oum1UJ_4MBL7lVNEoOMlGFZkb7F-Zj8DjBNCZidtMZRCWbp9jA170PJIMeuF5tBLgP8KW9utuu95YHLhf4pPnlW4-omUHrR7tkrHWnOoOoNUYkxYrs7YVYiU0OxwI__JQoXwZdli8AmPOaySnQ8PLIfLYSU-HC9aWjljeFI3EBuh-FqTW4dM6LnbMrahJ4qmgYxy-VlOwMz0beln59x"
+                      alt="Magic"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 p-6 text-white">
+                      <span className="material-symbols-outlined text-4xl mb-2">auto_fix_high</span>
+                      <h3 className="text-2xl font-bold">Magic</h3>
+                      <p className="text-sm opacity-90">The Gathering</p>
+                    </div>
+                  </button>
+                )}
+
+                {/* Yu-Gi-Oh - Escludi se game === 'YUGIOH' */}
+                {game !== 'YUGIOH' && (
+                  <button
+                    onClick={() => setGame('YUGIOH')}
+                    className={`group relative overflow-hidden rounded-2xl h-48 transition-all hover:scale-105 hover:shadow-2xl border-2 ${
+                      game === 'YUGIOH' ? 'ring-4 ring-red-500 border-red-500 shadow-lg shadow-red-500/30' : 'border-transparent hover:border-primary/30'
+                    }`}
+                  >
+                    <img
+                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfDIEQWBUG9QnhZpgMy7Z54oQalo6D0PionMFCWYa37nso-Xe5bCJk4YM2-CcgqIq_VrPl9ihSeRzWyxDFr3NOY6UkD4TqM8Wyb8Pc6ASpvzgBUiVnuuuTRyMyStYD4LxlzUjgQRlJUNzE0czt5O9_Wqvtr-RdAfoqOV_1FAYlLJ4l08wMb3DlZr7lGsgWShgl1_xLOhIKkw2GfwKdMh4cSDskMyhCuZ4b_D124g3wDHRZDjwV3iwe199w0wV4VuYbklhP723eixE-"
+                      alt="Yu-Gi-Oh"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 p-6 text-white">
+                      <span className="material-symbols-outlined text-4xl mb-2">style</span>
+                      <h3 className="text-2xl font-bold">Yu-Gi-Oh!</h3>
+                      <p className="text-sm opacity-90">Duel Monsters</p>
+                    </div>
+                  </button>
+                )}
               </div>
-            </section>
-
-            {/* Featured Listings Section - 3 in vetrina */}
-            <section className="mb-12">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-3xl font-bold mb-2">⭐ In Vetrina</h2>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Carte premium selezionate per te
-                  </p>
-                </div>
-              </div>
-              <FeaturedListingsGrid />
             </section>
 
             {/* Header */}
@@ -513,9 +530,15 @@ export default function ListingsPage() {
                   /* Listings Grid */
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {listings.map((listing) => (
+                      {listings.map((listing, index) => (
                         <Link key={listing.id} href={`/listings/${listing.id}`}>
-                          <Card className="glass-panel overflow-hidden group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1">
+                          <Card 
+                            className="glass-panel overflow-hidden group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 opacity-0 animate-fade-in"
+                            style={{ 
+                              animationDelay: `${index * 0.1}s`,
+                              animationFillMode: 'forwards'
+                            }}
+                          >
                             {/* Image */}
                             <div className="relative aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden">
                               {listing.images[0] ? (
@@ -655,6 +678,19 @@ export default function ListingsPage() {
                 )}
               </div>
             </div>
+
+            {/* Featured Listings Section - In Vetrina (dopo Tutte le Carte) */}
+            <section className="mb-12 mt-16">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">⭐ In Vetrina</h2>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Carte premium selezionate per te
+                  </p>
+                </div>
+              </div>
+              <FeaturedListingsGrid />
+            </section>
           </div>
         </main>
       </div>

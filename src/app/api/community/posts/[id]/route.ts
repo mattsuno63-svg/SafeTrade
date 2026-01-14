@@ -3,57 +3,70 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
-    const post = await prisma.post.findUnique({
-        where: { id: params.id },
-        include: {
-            author: {
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    avatar: true,
-                    role: true,
-                    badges: {
-                        include: {
-                            badge: true
-                        }
-                    }
-                }
-            },
-            topic: true,
-            comments: {
-                include: {
-                    author: {
-                        select: {
-                            name: true,
-                            email: true,
-                            avatar: true,
-                            role: true,
-                            badges: { include: { badge: true } }
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    try {
+        const { id } = await params
+        
+        const post = await prisma.post.findUnique({
+            where: { id },
+            include: {
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                        role: true,
+                        badges: {
+                            include: {
+                                badge: true
+                            }
                         }
                     }
                 },
-                orderBy: { createdAt: 'asc' }
+                topic: true,
+                comments: {
+                    include: {
+                        author: {
+                            select: {
+                                name: true,
+                                email: true,
+                                avatar: true,
+                                role: true,
+                                badges: { include: { badge: true } }
+                            }
+                        }
+                    },
+                    orderBy: { createdAt: 'asc' }
+                }
             }
-        }
-    })
+        })
 
-    // Increment views async (fire and forget)
-    if (post) {
+        if (!post) {
+            return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+        }
+
+        // Increment views async (fire and forget)
         prisma.post.update({
             where: { id: post.id },
             data: { views: { increment: 1 } }
         }).catch(console.error)
-    }
 
-    return NextResponse.json(post)
+        return NextResponse.json(post)
+    } catch (error: any) {
+        console.error('Error fetching post:', error)
+        return NextResponse.json(
+            { error: error.message || 'Internal server error' },
+            { status: 500 }
+        )
+    }
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
     // POST creates a comment on this post
     try {
         const user = await requireAuth()
+        const { id } = await params
         const body = await req.json()
         const { content } = body
 
@@ -61,10 +74,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             return NextResponse.json({ error: 'Missing content' }, { status: 400 })
         }
 
+        // Verify post exists
+        const post = await prisma.post.findUnique({
+            where: { id },
+            select: { id: true }
+        })
+
+        if (!post) {
+            return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+        }
+
         const comment = await prisma.comment.create({
             data: {
                 content,
-                postId: params.id,
+                postId: id,
                 authorId: user.id
             },
             include: {
@@ -79,7 +102,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         })
 
         return NextResponse.json(comment)
-    } catch (error) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    } catch (error: any) {
+        console.error('Error creating comment:', error)
+        if (error.message?.includes('Unauthorized') || error.message?.includes('authentication')) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+        return NextResponse.json(
+            { error: error.message || 'Internal server error' },
+            { status: 500 }
+        )
     }
 }

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { CategoryCard } from '@/components/homepage/CategoryCard'
-import { TournamentCard } from '@/components/homepage/TournamentCard'
+import { TournamentsSection } from '@/components/homepage/TournamentsSection'
 import { FeaturedSection } from '@/components/homepage/FeaturedSection'
 import { HeroSection } from '@/components/homepage/HeroSection'
 
@@ -72,40 +72,7 @@ export default function HomePage() {
           </section>
 
           {/* Tournaments Section */}
-          <section data-section="tournaments" className="max-w-7xl mx-auto px-6 py-32 relative">
-            <div className="flex items-end justify-between mb-16">
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-primary font-bold">trophy</span>
-                  <h2 className="text-4xl font-display font-black tracking-tighter">Tornei d'Elite</h2>
-                </div>
-                <p className="text-slate-500 font-medium ml-9">Competi ai massimi livelli nei circuiti ufficiali.</p>
-              </div>
-              <Link href="/tournaments" className="text-primary font-black text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
-                Calendario Completo
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                      <TournamentCard
-                        title="Grand Open: Legacy Masters"
-                        game="PRO CIRCUIT • MAGIC"
-                        date="12 Giu"
-                        location="Milano, Italia"
-                        players="256 Partecipanti"
-                        status="open"
-                        image="https://lh3.googleusercontent.com/aida-public/AB6AXuC0uet5EKpdQwwk1xg24NFMEdpB_7VgD6_wjL99iP3b6Thl8KkFSmxqUZ_GI119LIB3wzOK18e2O9y6cPat15rs03ruIjaBKcw_Ziebgh0FECbYhDQ4olQq9GS5Yo9M6qKtXyQuejDR__pr1uMFo5lmdJYkGoIzSOgusj0AujMhWbXc57M3O-277UubzX6RN1Ba0jE2-X8zUjshL5VfOkAsLjoWgV_-0si8QMjYGJql0kzR83jIoYUUwgzDYBMJjzyxgGvUJRi1nlzX"
-                      />
-                      <TournamentCard
-                        title="Elite Invitational Series"
-                        game="CHAMPIONSHIP • POKEMON"
-                        date="28 Lug"
-                        location="Roma, Italia"
-                        players="€5.000 Montepremi"
-                        status="open"
-                        image="https://lh3.googleusercontent.com/aida-public/AB6AXuA3PdU7cx6XnZMsiV942Vum5vj3iNZ9noVzkZs5HHcFx5JvLlPfHFIMHPN5HlgYlS6MnLgmwu-B-_87NJvIgXr8cFFuuwaj19TwtlUEvo0lSUWwOZmG62hCOFDLefunQxzhvDWusnz_4znGvdYrWCGxU5XVvlydI2zU8l72ynj61xDuBslYap5TWkswR8p3ftD-7Mudfu6U_1JCeIWkgZweDzIM-FNMZULPNacLnAk3bZGAX5VtYLKGnS6sGHOcGaNPGnkdP5IjW-NI"
-                      />
-            </div>
-          </section>
+          <TournamentsSection />
         </main>
         
         <Footer />

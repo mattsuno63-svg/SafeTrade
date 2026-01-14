@@ -15,61 +15,67 @@ import Link from 'next/link'
 export const revalidate = 60
 
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 // Use React.cache to deduplicate queries between generateMetadata and component
 const getShopData = cache(async (slug: string) => {
-  const shop = await prisma.shop.findUnique({
-    where: { slug },
-    include: {
-      merchant: {
-        select: {
-          name: true,
-          email: true,
-          avatar: true,
-        }
-      },
-      promotions: {
-        where: {
-          isActive: true,
-          endDate: { gte: new Date() }
+  try {
+    const shop = await prisma.shop.findUnique({
+      where: { slug },
+      include: {
+        merchant: {
+          select: {
+            name: true,
+            email: true,
+            avatar: true,
+          }
         },
-        orderBy: { startDate: 'desc' },
-        take: 1
-      },
-      tournaments: {
-        where: {
-          date: { gte: new Date() },
-          status: { in: ['PUBLISHED', 'REGISTRATION_CLOSED'] }
+        promotions: {
+          where: {
+            isActive: true,
+            endDate: { gte: new Date() }
+          },
+          orderBy: { startDate: 'desc' },
+          take: 1
         },
-        orderBy: { date: 'asc' },
-        take: 3
+        tournaments: {
+          where: {
+            date: { gte: new Date() },
+            status: { in: ['PUBLISHED', 'REGISTRATION_CLOSED'] }
+          },
+          orderBy: { date: 'asc' },
+          take: 3
+        },
+      }
+    })
+
+    if (!shop) return null
+
+    // Fetch listings separately
+    const listings = await prisma.listingP2P.findMany({
+      where: {
+        userId: shop.merchantId,
+        isActive: true,
+        isApproved: true,
+        isSold: false
       },
-    }
-  })
+      orderBy: { createdAt: 'desc' },
+      take: 6
+    })
 
-  if (!shop) return null
-
-  // Fetch listings separately
-  const listings = await prisma.listingP2P.findMany({
-    where: {
-      userId: shop.merchantId,
-      isActive: true,
-      isApproved: true,
-      isSold: false
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 6
-  })
-
-  return { shop, listings }
+    return { shop, listings }
+  } catch (error) {
+    console.error('Error fetching shop data:', error)
+    return null
+  }
 })
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const data = await getShopData(params.slug)
+  const { slug } = await params
+  const data = await getShopData(slug)
   if (!data) return { title: 'Negozio non trovato' }
 
   return {
@@ -79,7 +85,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ShopPage({ params }: PageProps) {
-  const data = await getShopData(params.slug)
+  const { slug } = await params
+  const data = await getShopData(slug)
 
   if (!data) {
     notFound()

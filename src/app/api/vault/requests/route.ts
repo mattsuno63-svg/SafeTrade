@@ -82,10 +82,32 @@ export async function POST(request: NextRequest) {
             name: true,
           },
         },
+        requestedByUser: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
       },
     })
 
-    // TODO: Invia notifica agli admin per review
+    // Invia notifica agli admin per review
+    try {
+      await prisma.adminNotification.create({
+        data: {
+          type: 'VAULT_CASE_REQUEST',
+          referenceType: 'VAULT_CASE_REQUEST',
+          referenceId: vaultRequest.id,
+          title: 'Nuova Richiesta Teca Vault',
+          message: `${vaultRequest.requestedByUser?.name || 'Un merchant'} ha richiesto una teca Vault per il negozio "${shop.name}".`,
+          priority: 'NORMAL',
+          targetRoles: ['ADMIN', 'HUB_STAFF'],
+        },
+      })
+    } catch (notifError) {
+      console.error('Error creating admin notification for vault case request:', notifError)
+      // Non fallire la richiesta se la notifica fallisce
+    }
 
     return NextResponse.json(
       {

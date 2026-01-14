@@ -1334,6 +1334,7 @@ enum AdminNotificationType {
   HUB_VERIFICATION // Hub ha verificato pacco
   URGENT_ACTION // Azione urgente richiesta
   INSURANCE_CLAIM // Nuovo sinistro assicurativo
+  VAULT_CASE_REQUEST // Richiesta teca Vault da merchant
 }
 
 enum NotificationPriority {

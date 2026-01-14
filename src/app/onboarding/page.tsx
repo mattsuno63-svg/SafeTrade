@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useUser } from '@/hooks/use-user'
 import Image from 'next/image'
 import { OnboardingMetaballBackground } from '@/components/onboarding/OnboardingMetaballBackground'
+import { ITALIAN_PROVINCES, searchProvinces } from '@/lib/data/italian-provinces'
 
 // Charizard image
 const charizardImage = 'https://lh3.googleusercontent.com/aida-public/AB6AXuA3PdU7cx6XnZMsiV942Vum5vj3iNZ9noVzkZs5HHcFx5JvLlPfHFIMHPN5HlgYlS6MnLgmwu-B-_87NJvIgXr8cFFuuwaj19TwtlUEvo0lSUWwOZmG62hCOFDLefunQxzhvDWusnz_4znGvdYrWCGxU5XVvlydI2zU8l72ynj61xDuBslYap5TWkswR8p3ftD-7Mudfu6U_1JCeIWkgZweDzIM-FNMZULPNacLnAk3bZGAX5VtYLKGnS6sGHOcGaNPGnkdP5IjW-NI'
@@ -103,8 +105,12 @@ export default function OnboardingPage() {
   const [settings, setSettings] = useState({
     games: [] as string[],
     distance: '50 km',
-    notifications: [] as string[]
+    notifications: [] as string[],
+    city: '',
+    province: ''
   })
+  const [provinceSearch, setProvinceSearch] = useState('')
+  const [showProvinceDropdown, setShowProvinceDropdown] = useState(false)
 
   const handleNext = () => {
     const step = steps[currentStep]
@@ -130,13 +136,32 @@ export default function OnboardingPage() {
     handleComplete()
   }
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     localStorage.setItem('onboarding_completed', 'true')
     if (selectedGoal) {
       localStorage.setItem('user_goal', selectedGoal)
     }
     if (settings.games.length > 0) {
       localStorage.setItem('preferred_games', JSON.stringify(settings.games))
+    }
+    if (settings.distance) {
+      localStorage.setItem('preferred_distance', settings.distance)
+    }
+    
+    // Salva city e province nel profilo utente
+    if (user && (settings.city || settings.province)) {
+      try {
+        await fetch('/api/user/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            city: settings.city || null,
+            province: settings.province || null,
+          }),
+        })
+      } catch (error) {
+        console.error('Error saving location:', error)
+      }
     }
     
     const step = steps[currentStep]
@@ -364,10 +389,58 @@ export default function OnboardingPage() {
                       </div>
                     </div>
 
+                    {/* Location */}
+                    <div>
+                      <label className="block text-sm font-black text-slate-900 mb-5 uppercase tracking-wider">
+                        La tua posizione
+                      </label>
+                      <div className="space-y-4">
+                        <div>
+                          <Input
+                            type="text"
+                            placeholder="Città"
+                            value={settings.city}
+                            onChange={(e) => setSettings(prev => ({ ...prev, city: e.target.value }))}
+                            className="w-full px-4 py-3 rounded-xl border border-white/80 bg-white/60 backdrop-blur-3xl"
+                          />
+                        </div>
+                        <div className="relative">
+                          <Input
+                            type="text"
+                            placeholder="Provincia (es. Ragusa)"
+                            value={provinceSearch}
+                            onChange={(e) => {
+                              setProvinceSearch(e.target.value)
+                              setShowProvinceDropdown(true)
+                            }}
+                            onFocus={() => setShowProvinceDropdown(true)}
+                            className="w-full px-4 py-3 rounded-xl border border-white/80 bg-white/60 backdrop-blur-3xl"
+                          />
+                          {showProvinceDropdown && (
+                            <div className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto bg-white/95 backdrop-blur-3xl border border-white/80 rounded-xl shadow-lg">
+                              {searchProvinces(provinceSearch).slice(0, 10).map((province) => (
+                                <button
+                                  key={province.code}
+                                  onClick={() => {
+                                    setSettings(prev => ({ ...prev, province: province.name }))
+                                    setProvinceSearch(province.name)
+                                    setShowProvinceDropdown(false)
+                                  }}
+                                  className="w-full text-left px-4 py-3 hover:bg-primary/10 transition-colors"
+                                >
+                                  {province.name} ({province.code})
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Distance */}
                     <div>
                       <label className="block text-sm font-black text-slate-900 mb-5 uppercase tracking-wider">
-                        Distanza massima dai negozi partner
+                        Distanza massima dai tornei
                       </label>
                       <div className="flex flex-wrap gap-3">
                         {'fields' in currentStepData && currentStepData.fields?.distance.map((dist) => (
