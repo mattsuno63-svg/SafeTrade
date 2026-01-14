@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/vault/merchant/available-items
  * Lista carte disponibili per assegnazione a slot (ASSIGNED_TO_SHOP, non ancora in teca)

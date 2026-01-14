@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/listings/featured
  * Ottiene le listings featured/premium per la vetrina homepage

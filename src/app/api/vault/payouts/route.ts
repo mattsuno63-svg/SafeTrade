@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth, requireRole } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/vault/payouts
  * Get payouts (filtered by role)
