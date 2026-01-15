@@ -293,53 +293,69 @@ export default function ListingsPage() {
                     <div className="absolute bottom-0 left-0 p-6 text-white">
                       {/* Magic Logo Symbol - Red Flame/Crown */}
                       <div className="w-12 h-12 mb-2 flex items-center justify-center">
-                        <svg viewBox="0 0 100 100" className="w-10 h-10">
-                          {/* Base curve */}
+                        <svg viewBox="0 0 100 100" className="w-10 h-10" fill="white">
+                          {/* Base curve (fiamma inferiore) */}
                           <path
-                            d="M20 70 Q30 75 40 70 Q50 75 60 70 Q70 75 80 70"
+                            d="M 15 75 Q 25 80 35 75 Q 45 80 55 75 Q 65 80 75 75 Q 85 80 85 75"
                             stroke="white"
-                            strokeWidth="2"
+                            strokeWidth="2.5"
                             fill="none"
-                            opacity="0.4"
+                            opacity="0.5"
                           />
-                          {/* Central tall spike */}
+                          {/* Fiamma centrale alta (spike principale) */}
                           <path
-                            d="M50 70 L50 25 L48 30 L50 25 L52 30 Z"
+                            d="M 50 75 L 50 20 L 48 28 L 50 20 L 52 28 Z"
                             fill="white"
                             opacity="0.95"
                           />
-                          {/* Left spikes */}
+                          {/* Fiamme laterali sinistre */}
                           <path
-                            d="M35 70 L35 40 L33 45 L35 40 L37 45 Z"
-                            fill="white"
-                            opacity="0.95"
-                          />
-                          <path
-                            d="M25 70 L25 50 L23 55 L25 50 L27 55 Z"
-                            fill="white"
-                            opacity="0.95"
-                          />
-                          {/* Right spikes */}
-                          <path
-                            d="M65 70 L65 40 L63 45 L65 40 L67 45 Z"
+                            d="M 35 75 L 35 40 L 33 48 L 35 40 L 37 48 Z"
                             fill="white"
                             opacity="0.95"
                           />
                           <path
-                            d="M75 70 L75 50 L73 55 L75 50 L77 55 Z"
+                            d="M 25 75 L 25 55 L 23 62 L 25 55 L 27 62 Z"
                             fill="white"
                             opacity="0.95"
                           />
-                          {/* Additional smaller spikes */}
+                          {/* Fiamme laterali destre */}
                           <path
-                            d="M42 70 L42 55 L41 58 L42 55 L43 58 Z"
+                            d="M 65 75 L 65 40 L 63 48 L 65 40 L 67 48 Z"
                             fill="white"
-                            opacity="0.8"
+                            opacity="0.95"
                           />
                           <path
-                            d="M58 70 L58 55 L57 58 L58 55 L59 58 Z"
+                            d="M 75 75 L 75 55 L 73 62 L 75 55 L 77 62 Z"
                             fill="white"
-                            opacity="0.8"
+                            opacity="0.95"
+                          />
+                          {/* Fiamme intermedie più piccole */}
+                          <path
+                            d="M 42 75 L 42 58 L 41 63 L 42 58 L 43 63 Z"
+                            fill="white"
+                            opacity="0.85"
+                          />
+                          <path
+                            d="M 58 75 L 58 58 L 57 63 L 58 58 L 59 63 Z"
+                            fill="white"
+                            opacity="0.85"
+                          />
+                          {/* Dettagli decorativi superiori (corona) */}
+                          <path
+                            d="M 48 22 L 50 18 L 52 22 L 50 25 Z"
+                            fill="white"
+                            opacity="0.9"
+                          />
+                          <path
+                            d="M 45 25 L 47 22 L 49 25 Z"
+                            fill="white"
+                            opacity="0.7"
+                          />
+                          <path
+                            d="M 51 25 L 53 22 L 55 25 Z"
+                            fill="white"
+                            opacity="0.7"
                           />
                         </svg>
                       </div>
@@ -366,28 +382,36 @@ export default function ListingsPage() {
                     <div className="absolute bottom-0 left-0 p-6 text-white">
                       {/* Millennium Puzzle Icon */}
                       <div className="w-12 h-12 mb-2 flex items-center justify-center">
-                        <svg viewBox="0 0 100 100" className="w-10 h-10">
-                          {/* Outer triangle */}
+                        <svg viewBox="0 0 100 100" className="w-10 h-10" fill="white">
+                          {/* Millennium Puzzle - Triangolo stilizzato con occhio */}
+                          {/* Triangolo principale */}
                           <path
-                            d="M50 10 L90 80 L10 80 Z"
-                            fill="none"
+                            d="M 50 15 L 20 75 L 80 75 Z"
+                            fill="white"
+                            opacity="0.95"
                             stroke="white"
-                            strokeWidth="2.5"
+                            strokeWidth="1"
+                          />
+                          {/* Linee interne del puzzle */}
+                          <path
+                            d="M 50 15 L 50 60"
+                            stroke="white"
+                            strokeWidth="2"
                             opacity="0.6"
                           />
-                          {/* Inner triangle */}
                           <path
-                            d="M50 25 L75 70 L25 70 Z"
-                            fill="white"
-                            opacity="0.4"
+                            d="M 35 45 L 65 45"
+                            stroke="white"
+                            strokeWidth="2"
+                            opacity="0.6"
                           />
-                          {/* Eye symbol */}
+                          {/* Occhio di Horus stilizzato al centro */}
                           <circle
                             cx="50"
                             cy="50"
                             r="8"
-                            fill="white"
-                            opacity="0.7"
+                            fill="black"
+                            opacity="0.8"
                           />
                           <circle
                             cx="50"
@@ -395,6 +419,25 @@ export default function ListingsPage() {
                             r="4"
                             fill="white"
                             opacity="0.9"
+                          />
+                          {/* Dettagli decorativi ai lati */}
+                          <path
+                            d="M 30 70 L 35 65 L 40 70 Z"
+                            fill="white"
+                            opacity="0.7"
+                          />
+                          <path
+                            d="M 70 70 L 65 65 L 60 70 Z"
+                            fill="white"
+                            opacity="0.7"
+                          />
+                          {/* Linee decorative superiori */}
+                          <path
+                            d="M 45 25 L 50 20 L 55 25"
+                            stroke="white"
+                            strokeWidth="1.5"
+                            fill="none"
+                            opacity="0.8"
                           />
                         </svg>
                       </div>

@@ -245,7 +245,7 @@ export default function SafeTradePage() {
                   {isItalian ? 'Scopri il Sistema' : 'Discover the System'}
                 </Button>
               </Link>
-              <Link href="/marketplace">
+              <Link href="/stores">
                 <Button variant="outline" className="px-8 py-4 bg-white/40 backdrop-blur-3xl text-slate-900 font-bold rounded-2xl border border-white/80 hover:bg-white/90 transition-all text-lg">
                   {isItalian ? 'Trova Store Partner' : 'Find Partner Store'}
                 </Button>

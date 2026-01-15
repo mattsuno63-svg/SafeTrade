@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Header } from '@/components/layout/Header'
 import { useToast } from '@/hooks/use-toast'
 import { createClient } from '@/lib/supabase/client'
+import { italianProvinces } from '@/lib/data/italian-provinces'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -102,6 +104,8 @@ export default function SignupPage() {
         password: formData.password,
         name: formData.name,
         role: formData.role,
+        city: formData.city || null,
+        province: formData.province || null,
       }
 
       // Add merchant data if role is MERCHANT
@@ -314,6 +318,39 @@ export default function SignupPage() {
                       <div className="font-bold">Merchant</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Sell from your store</div>
                     </button>
+                  </div>
+                </div>
+
+                {/* Location Fields - For all users */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">Città</Label>
+                    <Input
+                      id="city"
+                      type="text"
+                      placeholder="Milano"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="province">Provincia</Label>
+                    <Select
+                      value={formData.province}
+                      onValueChange={(value) => setFormData({ ...formData, province: value })}
+                    >
+                      <SelectTrigger className="h-12">
+                        <SelectValue placeholder="Seleziona provincia" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {italianProvinces.map((p) => (
+                          <SelectItem key={p.sigla} value={p.nome}>
+                            {p.nome} ({p.sigla})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 

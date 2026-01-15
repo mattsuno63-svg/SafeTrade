@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { EscrowAnimation } from '@/components/safetrade/EscrowAnimation'
 import Link from 'next/link'
 
 export default function SafeTradeInfoPage() {
@@ -134,8 +135,38 @@ export default function SafeTradeInfoPage() {
                                     </div>
 
                                     <div className="flex gap-4">
-                                        <div className="bg-green-500/20 p-3 rounded-xl h-fit">
-                                            <span className="material-symbols-outlined text-green-500 text-2xl">storefont</span>
+                                        <div className="bg-green-500/20 p-3 rounded-xl h-fit flex items-center justify-center">
+                                            {/* Network di Negozi Icon - Edifici collegati */}
+                                            <svg viewBox="0 0 100 100" className="w-8 h-8 text-green-500" fill="currentColor">
+                                                {/* Edificio sinistro */}
+                                                <rect x="10" y="40" width="20" height="50" fill="currentColor" opacity="0.9" />
+                                                <rect x="12" y="50" width="6" height="8" fill="white" opacity="0.8" />
+                                                <rect x="22" y="50" width="6" height="8" fill="white" opacity="0.8" />
+                                                <rect x="12" y="65" width="6" height="8" fill="white" opacity="0.8" />
+                                                <rect x="22" y="65" width="6" height="8" fill="white" opacity="0.8" />
+                                                
+                                                {/* Edificio centrale */}
+                                                <rect x="40" y="30" width="20" height="60" fill="currentColor" opacity="0.9" />
+                                                <rect x="42" y="40" width="6" height="8" fill="white" opacity="0.8" />
+                                                <rect x="52" y="40" width="6" height="8" fill="white" opacity="0.8" />
+                                                <rect x="42" y="55" width="6" height="8" fill="white" opacity="0.8" />
+                                                <rect x="52" y="55" width="6" height="8" fill="white" opacity="0.8" />
+                                                
+                                                {/* Edificio destro */}
+                                                <rect x="70" y="45" width="20" height="45" fill="currentColor" opacity="0.9" />
+                                                <rect x="72" y="55" width="6" height="8" fill="white" opacity="0.8" />
+                                                <rect x="82" y="55" width="6" height="8" fill="white" opacity="0.8" />
+                                                
+                                                {/* Linee di connessione (rete) */}
+                                                <line x1="30" y1="65" x2="40" y2="60" stroke="currentColor" strokeWidth="2" opacity="0.6" />
+                                                <line x1="60" y1="60" x2="70" y2="67" stroke="currentColor" strokeWidth="2" opacity="0.6" />
+                                                
+                                                {/* Punti di connessione */}
+                                                <circle cx="30" cy="65" r="2" fill="currentColor" opacity="0.8" />
+                                                <circle cx="40" cy="60" r="2" fill="currentColor" opacity="0.8" />
+                                                <circle cx="60" cy="60" r="2" fill="currentColor" opacity="0.8" />
+                                                <circle cx="70" cy="67" r="2" fill="currentColor" opacity="0.8" />
+                                            </svg>
                                         </div>
                                         <div>
                                             <h3 className="text-xl font-bold mb-1">Network di Negozi</h3>
@@ -164,10 +195,7 @@ export default function SafeTradeInfoPage() {
                                         <div className="h-4 w-full bg-gray-100 dark:bg-gray-800 rounded"></div>
                                         <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-800 rounded"></div>
                                     </div>
-                                    <div className="p-4 bg-primary/10 rounded-xl border border-primary/20 flex items-center gap-3">
-                                        <span className="material-symbols-outlined text-primary">lock</span>
-                                        <span className="font-bold text-primary">Fondi bloccati in Escrow</span>
-                                    </div>
+                                    <EscrowAnimation />
                                 </Card>
                             </div>
                         </div>

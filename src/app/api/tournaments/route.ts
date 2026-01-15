@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
-import { calculateCityDistance, getCityCoordinates } from '@/lib/utils/distance'
+import { calculateCityDistance } from '@/lib/utils/distance'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
 
     // Get user location and distance preference if filtering by distance
     let userCity: string | null = null
+    let userProvince: string | null = null
     let maxDistance: number | null = null
 
     if (filterByDistance) {
@@ -43,9 +44,10 @@ export async function GET(request: NextRequest) {
         if (user) {
           const dbUser = await prisma.user.findUnique({
             where: { id: user.id },
-            select: { city: true },
+            select: { city: true, province: true },
           })
           userCity = dbUser?.city || null
+          userProvince = dbUser?.province || null
 
           // Get distance preference from localStorage (passed via query param or stored in user settings)
           const distancePref = searchParams.get('maxDistance')

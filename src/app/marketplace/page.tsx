@@ -5,6 +5,8 @@ import { Header } from '@/components/layout/Header'
 import { CategoryCard } from '@/components/homepage/CategoryCard'
 import { FeaturedListingsGrid } from '@/components/marketplace/FeaturedListingsGrid'
 import { AllListingsGrid } from '@/components/marketplace/AllListingsGrid'
+import { AnimatedOrbs } from '@/components/marketplace/AnimatedOrbs'
+import { DemoCardsSection } from '@/components/marketplace/DemoCardsSection'
 
 export default function MarketplacePage() {
   const router = useRouter()
@@ -13,6 +15,8 @@ export default function MarketplacePage() {
     <div className="min-h-screen bg-background-light text-text-primary dark:bg-background-dark dark:text-white font-display">
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-[20%] -right-[10%] h-[800px] w-[800px] rounded-full bg-primary/10 blur-[100px]"></div>
+        <div className="absolute bottom-[-10%] left-[-10%] h-[600px] w-[600px] rounded-full bg-blue-500/5 blur-[100px]"></div>
+        <AnimatedOrbs count={6} />
       </div>
 
       <div className="relative z-10 flex min-h-screen flex-col">
@@ -60,6 +64,9 @@ export default function MarketplacePage() {
                 />
               </div>
             </div>
+
+            {/* Demo Cards Section */}
+            <DemoCardsSection />
 
             {/* Featured Listings - 3 in Vetrina */}
             <div className="mb-12">
