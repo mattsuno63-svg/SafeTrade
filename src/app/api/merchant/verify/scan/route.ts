@@ -19,6 +19,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // BUG #8 FIX: Rate limiting for QR scan
+    const rateLimitKey = getRateLimitKey(user.id, 'QR_SCAN')
+    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.QR_SCAN)
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Troppe richieste. Limite di 20 scansioni QR per ora raggiunto.',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000), // seconds
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimit.limit.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString(),
+            'Retry-After': Math.ceil((rateLimit.resetAt - Date.now()) / 1000).toString(),
+          },
+        }
+      )
+    }
+
     const body = await request.json()
     const { qrData } = body
 
@@ -119,6 +141,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'QR Code non valido o sessione non trovata' },
           { status: 404 }
+        )
+      }
+
+      // BUG #6 FIX: Check if QR code has expired
+      if (session.qrCodeExpiresAt && new Date() > session.qrCodeExpiresAt) {
+        return NextResponse.json(
+          { 
+            error: 'QR Code scaduto. Il QR code è valido per 7 giorni dalla creazione della transazione.',
+            expiredAt: session.qrCodeExpiresAt,
+          },
+          { status: 400 }
         )
       }
 

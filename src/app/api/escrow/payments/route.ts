@@ -126,14 +126,46 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(existingPayment)
     }
 
+    // BUG #5 FIX: Validate amount against escrowSession.totalAmount
+    const escrowSession = await prisma.escrowSession.findUnique({
+      where: { transactionId },
+    })
+
+    if (!escrowSession) {
+      return NextResponse.json(
+        { error: 'Escrow session not found for this transaction' },
+        { status: 404 }
+      )
+    }
+
+    // Validate amount matches escrowSession.totalAmount (±5% tolerance for rounding)
+    const expectedAmount = escrowSession.totalAmount
+    const tolerance = expectedAmount * 0.05 // 5% tolerance
+    const minAmount = expectedAmount - tolerance
+    const maxAmount = expectedAmount + tolerance
+
+    if (amount < minAmount || amount > maxAmount) {
+      return NextResponse.json(
+        { 
+          error: `Payment amount (€${amount.toFixed(2)}) does not match expected amount (€${expectedAmount.toFixed(2)}). Allowed range: €${minAmount.toFixed(2)} - €${maxAmount.toFixed(2)}`,
+          expectedAmount: expectedAmount,
+          providedAmount: amount,
+        },
+        { status: 400 }
+      )
+    }
+
+    // Use escrowSession.totalAmount to ensure exact match (ignore client-provided amount)
+    const validatedAmount = escrowSession.totalAmount
+
     // Calculate risk score (simple implementation - can be enhanced)
     const riskScore = calculateRiskScore(transaction, user)
 
-    // Create payment
+    // Create payment (use validatedAmount from escrowSession)
     const payment = await prisma.escrowPayment.create({
       data: {
         transactionId,
-        amount,
+        amount: validatedAmount, // Use validated amount from escrowSession
         paymentMethod,
         status: paymentMethod === 'CASH' ? 'PENDING' : 'PENDING', // For cash, will be HELD when confirmed at store
         riskScore,
@@ -161,7 +193,7 @@ export async function POST(request: NextRequest) {
         data: {
           sessionId: session.id,
           senderId: user.id,
-          content: `Payment of €${amount.toFixed(2)} initiated. Funds will be held in escrow until transaction is verified.`,
+          content: `Payment of €${validatedAmount.toFixed(2)} initiated. Funds will be held in escrow until transaction is verified.`,
           isSystem: true,
         },
       })
@@ -173,7 +205,7 @@ export async function POST(request: NextRequest) {
         userId: transaction.userBId,
         type: 'ESCROW_PAYMENT_INITIATED',
         title: 'Payment Initiated',
-        message: `Buyer has initiated payment of €${amount.toFixed(2)} for your transaction.`,
+        message: `Buyer has initiated payment of €${validatedAmount.toFixed(2)} for your transaction.`,
         link: `/escrow/sessions/${session?.id || transactionId}`,
       },
     ]
@@ -184,7 +216,7 @@ export async function POST(request: NextRequest) {
         userId: transaction.shop.merchantId,
         type: 'ESCROW_PAYMENT_INITIATED',
         title: 'Payment Initiated',
-        message: `Payment of €${amount.toFixed(2)} initiated for SafeTrade transaction.`,
+        message: `Payment of €${validatedAmount.toFixed(2)} initiated for SafeTrade transaction.`,
         link: `/escrow/sessions/${session?.id || transactionId}`,
       } as any)
     }

@@ -83,6 +83,17 @@ export async function GET(
       )
     }
 
+    // BUG #6 FIX: Check if QR code has expired
+    if (session.qrCodeExpiresAt && new Date() > session.qrCodeExpiresAt) {
+      return NextResponse.json(
+        { 
+          error: 'QR Code scaduto. Il QR code è valido per 7 giorni dalla creazione della transazione.',
+          expiredAt: session.qrCodeExpiresAt,
+        },
+        { status: 400 }
+      )
+    }
+
     // Verifica che il merchant sia autorizzato a gestire questa transazione
     // (deve essere il merchant associato a questa sessione o un admin)
     if (user.role !== 'ADMIN' && session.merchantId !== user.id) {

@@ -268,6 +268,10 @@ export async function POST(request: NextRequest) {
     const randomSuffix = crypto.randomBytes(4).toString('hex') // 8 caratteri random
     const qrCode = `ST-${transaction.id}-${Date.now()}-${randomSuffix}`
 
+    // BUG #6 FIX: Set QR code expiration (7 days from creation)
+    const qrCodeExpiresAt = new Date()
+    qrCodeExpiresAt.setDate(qrCodeExpiresAt.getDate() + 7) // 7 days from now
+
     // Create escrow session automatically with fee calculation
     const escrowSession = await prisma.escrowSession.create({
       data: {
@@ -283,6 +287,20 @@ export async function POST(request: NextRequest) {
         finalAmount: feeCalculation.finalAmount,
         paymentMethod: 'CASH', // Solo contanti per ora
         qrCode: qrCode,
+        qrCodeExpiresAt: qrCodeExpiresAt, // BUG #6 FIX: Set expiration
+      },
+    })
+
+    // Create EscrowPayment automatically with PENDING status
+    // For physical escrow (CASH), payment will be updated to HELD when merchant confirms payment
+    const escrowPayment = await prisma.escrowPayment.create({
+      data: {
+        transactionId: transaction.id,
+        amount: feeCalculation.totalAmount, // Total amount buyer needs to pay
+        currency: 'EUR',
+        paymentMethod: 'CASH',
+        status: 'PENDING', // Will be updated to HELD when merchant confirms cash payment
+        paymentInitiatedAt: new Date(),
       },
     })
 
@@ -324,40 +342,65 @@ ${feeDescriptions.merchantMessage}
     }
     const priorityNote = priorityMessages[priorityTier] ? `\n${priorityMessages[priorityTier]}` : ''
 
-    await Promise.all([
-      prisma.notification.create({
-        data: {
-          userId: userAId,
-          type: 'TRANSACTION_CREATED',
-          title: '🎉 Appuntamento Confermato!',
-          message: `Il tuo appuntamento SafeTrade è stato confermato per ${appointmentDate} alle ${scheduledTime}. Riceverai un QR code univoco.${priorityNote}`,
-          link: `/transaction/${transaction.id}/status`,
-        },
-      }),
-      prisma.notification.create({
-        data: {
-          userId: userBId,
-          type: 'TRANSACTION_CREATED',
-          title: '🎉 Appuntamento Confermato!',
-          message: `Il tuo appuntamento SafeTrade è stato confermato per ${appointmentDate} alle ${scheduledTime}. Riceverai un QR code univoco.${priorityNote}`,
-          link: `/transaction/${transaction.id}/status`,
-        },
-      }),
-      prisma.notification.create({
-        data: {
-          userId: shop.merchantId,
-          type: 'ESCROW_SESSION_CREATED',
-          title: priorityTier !== 'STANDARD' ? `🔔 Nuovo Appuntamento SafeTrade ${priorityMessages[priorityTier]}` : '🔔 Nuovo Appuntamento SafeTrade',
-          message: `Un nuovo appuntamento SafeTrade ${priorityTier !== 'STANDARD' ? `(${priorityTier}) ` : ''}è stato programmato per ${appointmentDate} alle ${scheduledTime} presso il tuo negozio.`,
-          link: `/merchant/orders`,
-        },
-      }),
-    ])
+    // BUG #7 FIX: Check for duplicate notifications before creating
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000) // 5 minutes ago
+
+    const notificationData = [
+      {
+        userId: userAId,
+        type: 'TRANSACTION_CREATED',
+        title: '🎉 Appuntamento Confermato!',
+        message: `Il tuo appuntamento SafeTrade è stato confermato per ${appointmentDate} alle ${scheduledTime}. Riceverai un QR code univoco.${priorityNote}`,
+        link: `/transaction/${transaction.id}/status`,
+      },
+      {
+        userId: userBId,
+        type: 'TRANSACTION_CREATED',
+        title: '🎉 Appuntamento Confermato!',
+        message: `Il tuo appuntamento SafeTrade è stato confermato per ${appointmentDate} alle ${scheduledTime}. Riceverai un QR code univoco.${priorityNote}`,
+        link: `/transaction/${transaction.id}/status`,
+      },
+      {
+        userId: shop.merchantId,
+        type: 'ESCROW_SESSION_CREATED',
+        title: priorityTier !== 'STANDARD' ? `🔔 Nuovo Appuntamento SafeTrade ${priorityMessages[priorityTier]}` : '🔔 Nuovo Appuntamento SafeTrade',
+        message: `Un nuovo appuntamento SafeTrade ${priorityTier !== 'STANDARD' ? `(${priorityTier}) ` : ''}è stato programmato per ${appointmentDate} alle ${scheduledTime} presso il tuo negozio.`,
+        link: `/merchant/orders`,
+      },
+    ]
+
+    // Check for duplicates and create only new notifications
+    const notificationsToCreate = await Promise.all(
+      notificationData.map(async (notif) => {
+        const existing = await prisma.notification.findFirst({
+          where: {
+            userId: notif.userId,
+            type: notif.type,
+            title: notif.title,
+            message: notif.message,
+            createdAt: {
+              gte: fiveMinutesAgo, // Created in last 5 minutes
+            },
+          },
+        })
+        return existing ? null : notif
+      })
+    )
+
+    // Filter out nulls (duplicates) and create notifications
+    const newNotifications = notificationsToCreate.filter((n): n is typeof notificationData[0] => n !== null)
+    
+    if (newNotifications.length > 0) {
+      await prisma.notification.createMany({
+        data: newNotifications,
+      })
+    }
 
     return NextResponse.json(
       {
         ...transaction,
         escrowSessionId: escrowSession.id,
+        escrowPaymentId: escrowPayment.id,
       },
       { status: 201 }
     )

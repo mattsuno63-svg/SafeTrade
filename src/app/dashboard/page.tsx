@@ -15,7 +15,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!userLoading && !user) {
-      router.push('/login')
+      router.push(`/login?redirect=${encodeURIComponent('/dashboard')}`)
     }
   }, [user, userLoading, router])
 

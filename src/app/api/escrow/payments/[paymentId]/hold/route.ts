@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 
 // POST - Hold funds in escrow (called when payment is confirmed at store)
 export async function POST(
@@ -42,6 +43,28 @@ export async function POST(
       return NextResponse.json(
         { error: 'Only the merchant can hold funds in escrow' },
         { status: 403 }
+      )
+    }
+
+    // BUG #8 FIX: Rate limiting for payment hold
+    const rateLimitKey = getRateLimitKey(user.id, 'PAYMENT_HOLD')
+    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_HOLD)
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Troppe richieste. Limite di 10 operazioni hold per ora raggiunto.',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimit.limit.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString(),
+            'Retry-After': Math.ceil((rateLimit.resetAt - Date.now()) / 1000).toString(),
+          },
+        }
       )
     }
 

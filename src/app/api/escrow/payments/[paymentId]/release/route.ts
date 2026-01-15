@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 
 // POST - Release funds to seller (called when transaction is verified)
 export async function POST(
@@ -42,6 +43,28 @@ export async function POST(
       return NextResponse.json(
         { error: 'Only the merchant can release funds' },
         { status: 403 }
+      )
+    }
+
+    // BUG #8 FIX: Rate limiting for payment release
+    const rateLimitKey = getRateLimitKey(user.id, 'PAYMENT_RELEASE')
+    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_RELEASE)
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Troppe richieste. Limite di 10 operazioni release per ora raggiunto.',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimit.limit.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString(),
+            'Retry-After': Math.ceil((rateLimit.resetAt - Date.now()) / 1000).toString(),
+          },
+        }
       )
     }
 

@@ -59,7 +59,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (!user && !userLoading) {
-      router.push('/login')
+      router.push(`/login?redirect=${encodeURIComponent('/admin')}`)
       return
     }
     

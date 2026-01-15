@@ -5,6 +5,7 @@ import { createVaultAuditLog } from '@/lib/vault/audit'
 import { canTransitionItemStatus, canSellPhysically } from '@/lib/vault/state-machine'
 import { calculateSplit } from '@/lib/vault/split-calculator'
 import { notifySaleComplete } from '@/lib/vault/notifications'
+import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { z } from 'zod'
 
 /**
@@ -22,6 +23,28 @@ export async function POST(request: NextRequest) {
 
     if (!shop) {
       return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
+    }
+
+    // BUG #8 FIX: Rate limiting for vault sales
+    const rateLimitKey = getRateLimitKey(user.id, 'VAULT_SALES')
+    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.VAULT_SALES)
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Troppe richieste. Limite di 50 vendite per ora raggiunto.',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimit.limit.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString(),
+            'Retry-After': Math.ceil((rateLimit.resetAt - Date.now()) / 1000).toString(),
+          },
+        }
+      )
     }
 
     const body = await request.json()

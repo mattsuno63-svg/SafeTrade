@@ -685,9 +685,10 @@ model EscrowSession {
   paymentMethod EscrowPaymentMethod @default(CASH) // Solo CASH per ora
 
   // QR Code for in-store verification
-  qrCode      String?   @unique // Codice univoco per QR (nullable per record esistenti)
-  qrScannedAt DateTime? // Timestamp quando il QR è stato scannerizzato
-  qrScannedBy String? // ID del merchant che ha scannerizzato
+  qrCode         String?   @unique // Codice univoco per QR (nullable per record esistenti)
+  qrCodeExpiresAt DateTime? // Scadenza QR code (7 giorni dalla creazione)
+  qrScannedAt    DateTime? // Timestamp quando il QR è stato scannerizzato
+  qrScannedBy    String? // ID del merchant che ha scannerizzato
 
   // Session metadata
   lastActivity DateTime @default(now())
