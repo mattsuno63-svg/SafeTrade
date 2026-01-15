@@ -76,6 +76,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
+    
+    // FIX #3: Rate limiting for payment creation
+    const { checkRateLimit, getRateLimitKey, RATE_LIMITS } = await import('@/lib/rate-limit')
+    const rateLimitKey = getRateLimitKey(user.id, 'PAYMENT_CREATE')
+    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_CREATE)
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Troppe richieste. Limite di 10 pagamenti per ora raggiunto.',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000), // seconds
+        },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const { transactionId, amount, paymentMethod = 'CASH' } = body
 

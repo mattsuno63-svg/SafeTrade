@@ -18,6 +18,21 @@ export async function POST(request: NextRequest) {
     const { requireEmailVerified } = await import('@/lib/auth')
     const user = await requireEmailVerified()
 
+    // FIX #3: Rate limiting for proposal creation
+    const { checkRateLimit, getRateLimitKey, RATE_LIMITS } = await import('@/lib/rate-limit')
+    const rateLimitKey = getRateLimitKey(user.id, 'PROPOSAL_CREATE')
+    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.PROPOSAL_CREATE)
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Troppe richieste. Limite di 20 proposte per ora raggiunto.',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000), // seconds
+        },
+        { status: 429 }
+      )
+    }
+
     // Get listing to find receiver
     const listing = await prisma.listingP2P.findUnique({
       where: { id: listingId },

@@ -1,19 +1,194 @@
 # 🧪 TEST UNIFICATO - SafeTrade
 
-**Ultimo Aggiornamento**: 2025-01-XX  
+**Ultimo Aggiornamento**: 2025-01-27  
 **Scopo**: File unificato che raggruppa tutti i test da eseguire per SafeTrade, organizzati per priorità e categoria.
 
 ---
 
 ## 📊 Indice
 
-1. [🔴 Test Critici (Pre-Produzione)](#-test-critici-pre-produzione)
-2. [🛡️ Test Sicurezza](#️-test-sicurezza)
-3. [⚡ Test Performance](#-test-performance)
-4. [🔄 Test Funzionalità](#-test-funzionalità)
-5. [📱 Test Mobile/UI](#-test-mobileui)
-6. [🔗 Test Integrazione](#-test-integrazione)
-7. [📋 Checklist Pre-Deploy](#-checklist-pre-deploy)
+1. [✅ Test Fix Recenti (Completati)](#-test-fix-recenti-completati)
+2. [🔴 Test Critici (Pre-Produzione)](#-test-critici-pre-produzione)
+3. [🛡️ Test Sicurezza](#️-test-sicurezza)
+4. [⚡ Test Performance](#-test-performance)
+5. [🔄 Test Funzionalità](#-test-funzionalità)
+6. [📱 Test Mobile/UI](#-test-mobileui)
+7. [🔗 Test Integrazione](#-test-integrazione)
+8. [📋 Checklist Pre-Deploy](#-checklist-pre-deploy)
+
+---
+
+## ✅ Test Fix Recenti (Completati)
+
+### **TEST FIX #2: Verifica Email Obbligatoria** ✅
+**Priorità**: 🔴 ALTA  
+**Stato**: ✅ Implementato
+
+**Test Banner Email Verification**:
+- [ ] Banner appare nel dashboard se email non verificata
+- [ ] Banner mostra email corretta
+- [ ] Bottone "Reinvia email" funziona
+- [ ] Banner può essere chiuso (se onDismiss presente)
+- [ ] Banner non appare se email già verificata
+
+**Test API Resend Verification**:
+- [ ] `POST /api/auth/resend-verification` richiede autenticazione
+- [ ] Restituisce errore se email già verificata
+- [ ] Invia email di verifica correttamente
+- [ ] Gestisce errori Supabase correttamente
+
+**Test Blocco Funzionalità**:
+- [ ] Creazione listing bloccata se email non verificata (403)
+- [ ] Creazione proposta bloccata se email non verificata (403)
+- [ ] Creazione transazione bloccata se email non verificata (403)
+- [ ] Messaggi di errore chiari e informativi
+- [ ] Utente autenticato ma email non verificata può vedere dashboard
+
+**File da testare**:
+- `src/components/auth/EmailVerificationBanner.tsx`
+- `src/app/api/auth/resend-verification/route.ts`
+- `src/app/api/listings/route.ts` (POST)
+- `src/app/api/proposals/route.ts` (POST)
+- `src/app/api/transactions/route.ts` (POST)
+
+---
+
+### **TEST BUG #9: Shop Landing Page Error 500** ✅
+**Priorità**: 🔴 CRITICA  
+**Stato**: ✅ Fix implementato
+
+**Test Null Safety**:
+- [ ] Pagina carica correttamente anche se shop non ha promotions
+- [ ] Pagina carica correttamente anche se shop non ha images
+- [ ] Pagina carica correttamente anche se shop non ha tournaments
+- [ ] Pagina carica correttamente anche se listings è array vuoto
+- [ ] Pagina carica correttamente anche se item.images è vuoto/null
+- [ ] Pagina carica correttamente anche se shop.merchantId è null
+- [ ] Nessun errore 500 in console
+- [ ] Nessun errore React per proprietà undefined
+
+**Test Edge Cases**:
+- [ ] Shop con solo nome (nessun altro dato)
+- [ ] Shop con merchantId null
+- [ ] Shop con openingHours malformato
+- [ ] Shop con coverImage null
+
+**File da testare**:
+- `src/app/shops/[slug]/page.tsx`
+
+---
+
+### **TEST BUG #10: Tornei Non Visibili** ✅
+**Priorità**: 🔴 ALTA  
+**Stato**: ✅ Fix implementato
+
+**Test Filtro Distanza**:
+- [ ] Tornei PUBLISHED con data futura sono visibili
+- [ ] Tornei con città non riconosciuta vengono mostrati (fallback)
+- [ ] Tornei senza shop.city vengono mostrati (fallback)
+- [ ] Filtro distanza funziona correttamente quando città è riconosciuta
+- [ ] Tornei entro distanza massima vengono mostrati
+- [ ] Tornei fuori distanza vengono esclusi (quando città riconosciuta)
+
+**Test Status Tornei**:
+- [ ] Solo tornei PUBLISHED, REGISTRATION_CLOSED, IN_PROGRESS sono visibili
+- [ ] Tornei DRAFT non sono visibili
+- [ ] Tornei CANCELLED non sono visibili
+- [ ] Tornei COMPLETED non sono visibili
+
+**Test Data Futura**:
+- [ ] Solo tornei con data >= oggi sono visibili (se futureOnly=true)
+- [ ] Tornei passati non sono visibili (se futureOnly=true)
+
+**Test API**:
+- [ ] `GET /api/tournaments?futureOnly=true` restituisce solo tornei futuri
+- [ ] `GET /api/tournaments?filterByDistance=true` filtra correttamente
+- [ ] `GET /api/tournaments` senza filtri mostra tutti i tornei PUBLISHED
+
+**File da testare**:
+- `src/app/api/tournaments/route.ts`
+- `src/components/homepage/TournamentsSection.tsx`
+
+---
+
+### **TEST BUG #11: Auto-Refresh Tornei** ✅
+**Priorità**: 🟡 MEDIA  
+**Stato**: ✅ Già implementato
+
+**Test Auto-Refresh**:
+- [ ] Tornei si aggiornano ogni 30 secondi (polling)
+- [ ] Tornei si aggiornano quando tab diventa visibile
+- [ ] Tornei si aggiornano quando finestra riceve focus
+- [ ] Non ci sono memory leaks (cleanup corretto)
+- [ ] Cache busting funziona (timestamp in query)
+
+**Test Performance**:
+- [ ] Polling non causa lag o freeze
+- [ ] Fetch non blocca UI
+- [ ] Errori di fetch non bloccano il componente
+
+**File da testare**:
+- `src/components/homepage/TournamentsSection.tsx`
+
+---
+
+### **TEST FIX #3: Rate Limiting API** ✅
+**Priorità**: 🔴 ALTA  
+**Stato**: ✅ Implementato
+
+**Test Listing Creation Rate Limit**:
+- [ ] Creazione 10 listing in 1 ora: OK
+- [ ] Creazione 11° listing: 429 Too Many Requests
+- [ ] Messaggio errore chiaro con retryAfter
+- [ ] Rate limit si resetta dopo 1 ora
+
+**Test Proposal Creation Rate Limit**:
+- [ ] Creazione 20 proposte in 1 ora: OK
+- [ ] Creazione 21° proposta: 429 Too Many Requests
+- [ ] Messaggio errore chiaro con retryAfter
+- [ ] Rate limit si resetta dopo 1 ora
+
+**Test Payment Creation Rate Limit**:
+- [ ] Creazione 10 pagamenti in 1 ora: OK
+- [ ] Creazione 11° pagamento: 429 Too Many Requests
+- [ ] Messaggio errore chiaro con retryAfter
+- [ ] Rate limit si resetta dopo 1 ora
+
+**Test QR Scan Rate Limit** (già implementato):
+- [ ] 20 scansioni QR in 1 ora: OK
+- [ ] 21° scansione: 429 Too Many Requests
+
+**Test Payment Operations Rate Limit** (già implementato):
+- [ ] 10 hold/release in 1 ora: OK
+- [ ] 5 refund in 1 ora: OK
+- [ ] Superamento limiti: 429 Too Many Requests
+
+**Test Vault Sales Rate Limit** (già implementato):
+- [ ] 50 vendite Vault in 1 ora: OK
+- [ ] 51° vendita: 429 Too Many Requests
+
+**Test Transaction Verify Rate Limit** (già implementato):
+- [ ] 20 verifiche in 1 ora: OK
+- [ ] 21° verifica: 429 Too Many Requests
+
+**Test Isolamento Rate Limit**:
+- [ ] Rate limit è per utente (non globale)
+- [ ] Utente A può creare 10 listing, Utente B può creare altri 10
+- [ ] Rate limit per endpoint è indipendente
+
+**File da testare**:
+- `src/lib/rate-limit.ts`
+- `src/app/api/listings/route.ts` (POST)
+- `src/app/api/proposals/route.ts` (POST)
+- `src/app/api/escrow/payments/route.ts` (POST)
+- `src/app/api/merchant/verify/scan/route.ts` (POST)
+- `src/app/api/escrow/payments/[paymentId]/hold/route.ts` (POST)
+- `src/app/api/escrow/payments/[paymentId]/release/route.ts` (POST)
+- `src/app/api/escrow/payments/[paymentId]/refund/route.ts` (POST)
+- `src/app/api/vault/merchant/sales/route.ts` (POST)
+- `src/app/api/transactions/[id]/verify/route.ts` (POST)
+
+---
 
 ---
 
