@@ -90,16 +90,28 @@
 
 ---
 
-#### **BUG #4: QR Code Può Essere Scansionato da Merchant Non Autorizzato** 🔴
-**File**: `src/app/api/merchant/verify/scan/route.ts` (linea 125-131)  
-**Problema**: Se qualcuno ottiene il QR code, può scansionarlo anche se non è il merchant autorizzato.
+#### **BUG #4: QR Code Può Essere Scansionato da Merchant Non Autorizzato** ✅
+**File**: `src/app/api/merchant/verify/scan/route.ts` (linea 126)  
+**Stato**: ✅ RISOLTO - Il controllo è già implementato
 
-**Soluzione**:
-- [ ] Verificare che `user.id === session.merchantId` quando si scansiona QR
-- [ ] Aggiungere validazione in `POST /api/merchant/verify/scan`
-- [ ] Ritornare errore 403 se merchant non autorizzato
+**Verifica Implementata**:
+```typescript
+// Linea 126: Verifica che il merchant sia autorizzato
+if (user.role !== 'ADMIN' && session.merchantId !== user.id) {
+  return NextResponse.json(
+    { error: 'Non sei autorizzato a gestire questa transazione' },
+    { status: 403 }
+  )
+}
+```
 
-**Priorità**: 🔴 CRITICA
+**Controlli Aggiuntivi da Verificare**:
+- [x] Controllo merchant autorizzato per escrow ✅
+- [x] Controllo merchant autorizzato per Vault slots ✅ (linea 189)
+- [ ] Verificare che il controllo funzioni anche per endpoint `/merchant/verify/[qrCode]`
+- [ ] Aggiungere logging per tentativi di accesso non autorizzati
+
+**Priorità**: ✅ COMPLETATO (verificare endpoint aggiuntivi)
 
 ---
 
@@ -355,19 +367,19 @@
 
 ---
 
-### Google Maps Integration
+### Mappa Negozi (Custom - No Google API)
 
-#### **FEATURE #8: Google Maps** 🟡
-**Stato**: Non implementato
+#### **FEATURE #8: Mappa Negozi Custom** 🟡
+**Stato**: Non implementato  
+**Nota**: Non usare Google Maps API (a pagamento). Creare mappa custom se necessario.
 
-**Mancante**:
-- [ ] API Key Google Maps configurata
-- [ ] Mappa interattiva nella landing page negozi
-- [ ] Geolocalizzazione utente per negozi vicini
-- [ ] Indicazioni stradali al negozio
-- [ ] Preview mappa statica se API non disponibile
+**Opzioni**:
+- [ ] Usare libreria open-source (es. Leaflet.js con OpenStreetMap - gratuito)
+- [ ] Oppure: Mostrare solo lista negozi con indirizzi (senza mappa)
+- [ ] Filtri per città/provincia (già implementato in `/stores`)
+- [ ] Geolocalizzazione browser (opzionale, senza API esterna)
 
-**Priorità**: 🟡 MEDIA
+**Priorità**: 🟡 MEDIA (bassa priorità - lista negozi già funziona)
 
 ---
 
@@ -798,6 +810,418 @@
 - Features Importanti: ~4-6 settimane
 - Miglioramenti: ~3-4 settimane
 - **TOTALE**: ~8-12 settimane
+
+---
+
+## 🔒 SICUREZZA E ANTI-FRODE - Analisi Completa
+
+### ✅ Controlli di Sicurezza Già Implementati
+
+#### **SECURITY #1: Autorizzazione Merchant per QR Code** ✅
+**Stato**: ✅ IMPLEMENTATO
+
+**File**: 
+- `src/app/api/merchant/verify/scan/route.ts` (linea 126)
+- `src/app/api/merchant/verify/[qrCode]/route.ts` (linea 88)
+
+**Controlli**:
+- ✅ Solo MERCHANT o ADMIN possono scansionare QR
+- ✅ Verifica che `session.merchantId === user.id` per escrow
+- ✅ Verifica che `shop.merchantId === user.id` per Vault slots
+- ✅ Ritorna errore 403 se merchant non autorizzato
+
+**Note**: Il controllo è già robusto. ✅
+
+---
+
+#### **SECURITY #2: Autorizzazione per Operazioni Finanziarie** ✅
+**Stato**: ✅ IMPLEMENTATO
+
+**File**:
+- `src/app/api/escrow/payments/[paymentId]/hold/route.ts` (linea 41)
+- `src/app/api/escrow/payments/[paymentId]/release/route.ts` (linea 41)
+- `src/app/api/escrow/payments/[paymentId]/refund/route.ts` (linea 42)
+- `src/app/api/transactions/[id]/verify/route.ts` (linea 53)
+
+**Controlli**:
+- ✅ Solo merchant del negozio può hold/release/refund
+- ✅ Solo admin può refund in casi speciali
+- ✅ Verifica che `transaction.shop.merchantId === user.id`
+- ✅ Verifica stato payment prima di operazioni
+
+**Note**: I controlli sono già robusti. ✅
+
+---
+
+#### **SECURITY #3: Autorizzazione Vault Operations** ✅
+**Stato**: ✅ IMPLEMENTATO
+
+**File**:
+- `src/app/api/vault/merchant/assign-item-to-slot/route.ts` (linea 57, 94)
+- `src/app/api/vault/merchant/sales/route.ts` (linea 53, 77)
+
+**Controlli**:
+- ✅ Verifica che item sia assegnato al shop del merchant
+- ✅ Verifica che slot appartenga alla teca autorizzata del negozio
+- ✅ Verifica che shop sia autorizzato (`vaultCaseAuthorized`)
+- ✅ Verifica stato item prima di operazioni
+
+**Note**: I controlli sono già robusti. ✅
+
+---
+
+### 🔴 Vulnerabilità da Risolvere
+
+#### **SECURITY #4: Logging Tentativi Accesso Non Autorizzati** 🔴
+**Stato**: Non implementato
+
+**Problema**: Non c'è logging quando qualcuno tenta di accedere a QR code o operazioni non autorizzate.
+
+**Soluzione**:
+- [ ] Creare tabella `SecurityAuditLog` per log tentativi non autorizzati
+- [ ] Loggare ogni tentativo di scansione QR non autorizzato
+- [ ] Loggare ogni tentativo di accesso a payment non autorizzato
+- [ ] Alert admin se > 5 tentativi falliti in 10 minuti (possibile attacco)
+- [ ] Dashboard admin per vedere tentativi sospetti
+
+**File da creare/modificare**:
+- `prisma/schema.prisma` - Aggiungere modello `SecurityAuditLog`
+- `src/lib/security/audit.ts` - Utility per log sicurezza
+- `src/app/api/merchant/verify/scan/route.ts` - Aggiungere log
+- `src/app/api/escrow/payments/[paymentId]/*/route.ts` - Aggiungere log
+
+**Priorità**: 🔴 ALTA
+
+---
+
+#### **SECURITY #5: Validazione Input QR Code** 🔴
+**Stato**: Parzialmente implementato
+
+**Problema**: QR code può essere manipolato o iniettato con dati malevoli.
+
+**Soluzione**:
+- [ ] Validare formato QR code con Zod schema
+- [ ] Verificare che QR code esista nel database prima di processare
+- [ ] Sanitizzare tutti gli input QR code
+- [ ] Limite lunghezza QR code (max 255 caratteri)
+- [ ] Verificare che QR code non contenga script injection
+
+**File da modificare**:
+- `src/app/api/merchant/verify/scan/route.ts` - Aggiungere validazione Zod
+
+**Priorità**: 🔴 ALTA
+
+---
+
+#### **SECURITY #6: Rate Limiting su Endpoint Critici** 🔴
+**Stato**: Non implementato
+
+**Problema**: Nessun rate limiting su endpoint critici (QR scan, payment, etc.)
+
+**Soluzione**:
+- [ ] Implementare rate limiting con Redis o middleware
+- [ ] Limiti per endpoint:
+  - `/api/merchant/verify/scan`: 20/ora per merchant
+  - `/api/escrow/payments/*/hold`: 10/ora per merchant
+  - `/api/escrow/payments/*/release`: 10/ora per merchant
+  - `/api/escrow/payments/*/refund`: 5/ora per merchant
+  - `/api/vault/merchant/sales`: 50/ora per merchant
+  - `/api/transactions/[id]/verify`: 20/ora per merchant
+- [ ] Bloccare IP temporaneamente se supera limiti
+- [ ] Notificare admin se rate limit superato
+
+**File da creare**:
+- `src/lib/rate-limit.ts` - Utility rate limiting
+- `src/middleware.ts` - Aggiungere rate limiting
+
+**Priorità**: 🔴 ALTA
+
+---
+
+#### **SECURITY #7: Validazione Prezzo Vendita Vault** 🔴
+**Stato**: Parzialmente implementato
+
+**Problema**: Merchant potrebbe inserire prezzo sbagliato (troppo basso o troppo alto).
+
+**Soluzione**:
+- [ ] Validare che `soldPrice` sia ragionevole (es. > €0.01, < €100,000)
+- [ ] Verificare che prezzo non sia stato modificato dopo creazione ordine
+- [ ] Alert admin se prezzo vendita è > 200% del prezzo stimato
+- [ ] Richiedere conferma per vendite > €500
+
+**File da modificare**:
+- `src/app/api/vault/merchant/sales/route.ts` - Aggiungere validazione prezzo
+
+**Priorità**: 🔴 ALTA
+
+---
+
+#### **SECURITY #8: Doppia Verifica per Operazioni Critiche** 🔴
+**Stato**: Parzialmente implementato (solo per PendingRelease)
+
+**Problema**: Alcune operazioni critiche non richiedono doppia conferma.
+
+**Soluzione**:
+- [x] PendingRelease già richiede doppia conferma ✅
+- [ ] Aggiungere doppia conferma per vendite Vault > €200
+- [ ] Aggiungere doppia conferma per refund > €100
+- [ ] Richiedere PIN o password per operazioni critiche
+
+**Priorità**: 🔴 ALTA
+
+---
+
+#### **SECURITY #9: Validazione Stato Transazione** 🔴
+**Stato**: Parzialmente implementato
+
+**Problema**: Transazione potrebbe essere modificata dopo essere stata completata.
+
+**Soluzione**:
+- [x] Verifica stato in `/api/transactions/[id]/verify` (linea 136) ✅
+- [ ] Verificare che transazione non sia già `COMPLETED` prima di ogni modifica
+- [ ] Verificare che payment non sia già `RELEASED` prima di release
+- [ ] Aggiungere lock ottimistico (version field) per transazioni
+
+**Priorità**: 🔴 ALTA
+
+---
+
+#### **SECURITY #10: Protezione contro Manipolazione Fee** 🔴
+**Stato**: Parzialmente implementato
+
+**Problema**: Fee potrebbero essere modificate lato client.
+
+**Soluzione**:
+- [x] Fee calcolate server-side ✅
+- [ ] Validare che fee calcolata corrisponda a quella nel database
+- [ ] Non permettere modifica fee dopo creazione transazione
+- [ ] Log tutte le modifiche a fee
+
+**Priorità**: 🔴 ALTA
+
+---
+
+#### **SECURITY #11: Validazione Ownership Item Vault** 🔴
+**Stato**: ✅ IMPLEMENTATO
+
+**File**: `src/app/api/vault/merchant/assign-item-to-slot/route.ts` (linea 57)
+
+**Controlli**:
+- ✅ Verifica che `item.shopIdCurrent === shop.id`
+- ✅ Verifica che item sia in stato corretto
+- ✅ Verifica che slot appartenga alla teca autorizzata
+
+**Note**: I controlli sono già robusti. ✅
+
+---
+
+#### **SECURITY #12: Protezione contro Race Conditions** 🔴
+**Stato**: Parzialmente implementato
+
+**Problema**: Due merchant potrebbero scansionare lo stesso QR simultaneamente.
+
+**Soluzione**:
+- [x] Database transactions per operazioni atomiche ✅
+- [ ] Aggiungere lock su QR code quando viene scansionato
+- [ ] Verificare che QR non sia già stato scansionato prima di processare
+- [ ] Usare `SELECT FOR UPDATE` per lock pessimistico
+
+**File da modificare**:
+- `src/app/api/merchant/verify/scan/route.ts` - Aggiungere lock
+
+**Priorità**: 🔴 ALTA
+
+---
+
+#### **SECURITY #13: Validazione Scadenza QR Code** 🔴
+**Stato**: Non implementato (BUG #6)
+
+**Problema**: QR code non scade mai, può essere usato anche dopo mesi.
+
+**Soluzione**:
+- [ ] Aggiungere campo `qrCodeExpiresAt` a `EscrowSession`
+- [ ] Impostare scadenza a 7 giorni dalla creazione
+- [ ] Validare scadenza quando si scansiona QR
+- [ ] Generare nuovo QR se scaduto (opzionale)
+
+**Priorità**: 🟡 MEDIA
+
+---
+
+#### **SECURITY #14: Protezione contro Replay Attacks** 🔴
+**Stato**: Non implementato
+
+**Problema**: QR code potrebbe essere riutilizzato dopo essere stato già processato.
+
+**Soluzione**:
+- [x] `qrScannedAt` già tracciato ✅
+- [ ] Verificare che QR non sia già stato scansionato prima di processare
+- [ ] Bloccare QR dopo prima scansione (o permettere solo merchant autorizzato)
+- [ ] Aggiungere timestamp e nonce al QR code
+
+**Priorità**: 🔴 ALTA
+
+---
+
+#### **SECURITY #15: Validazione Importi Pagamento** 🔴
+**Stato**: Parzialmente implementato
+
+**Problema**: Importi potrebbero essere modificati o non validati.
+
+**Soluzione**:
+- [x] Validazione amount in `hold/release/refund` ✅
+- [ ] Verificare che amount non sia negativo o zero
+- [ ] Verificare che amount non superi limite ragionevole (es. €100,000)
+- [ ] Verificare che amount corrisponda a quello nella sessione escrow
+- [ ] Arrotondare a 2 decimali sempre
+
+**Priorità**: 🔴 ALTA
+
+---
+
+#### **SECURITY #16: Protezione contro SQL Injection** ✅
+**Stato**: ✅ PROTETTO (Prisma ORM)
+
+**Note**: Prisma ORM protegge automaticamente contro SQL injection. ✅
+
+---
+
+#### **SECURITY #17: Protezione contro XSS** ✅
+**Stato**: ✅ PROTETTO (React/Next.js)
+
+**Note**: React sanitizza automaticamente output. ✅
+
+---
+
+#### **SECURITY #18: Protezione CSRF** ✅
+**Stato**: ✅ PROTETTO (Next.js default)
+
+**Note**: Next.js protegge automaticamente contro CSRF. ✅
+
+---
+
+#### **SECURITY #19: Validazione Ruoli Utente** 🔴
+**Stato**: Parzialmente implementato
+
+**Problema**: Ruoli potrebbero essere modificati o non verificati correttamente.
+
+**Soluzione**:
+- [x] `requireAuth()` e `requireRole()` già implementati ✅
+- [ ] Verificare che ruolo utente non sia stato modificato dopo login
+- [ ] Refresh ruolo utente da database per operazioni critiche
+- [ ] Cache ruolo utente con TTL breve (5 minuti)
+
+**Priorità**: 🟡 MEDIA
+
+---
+
+#### **SECURITY #20: Audit Trail Completo** 🟡
+**Stato**: Parzialmente implementato
+
+**Problema**: Non tutte le operazioni critiche sono loggate.
+
+**Soluzione**:
+- [x] Vault audit log già implementato ✅
+- [ ] Audit log per tutte le operazioni escrow
+- [ ] Audit log per tutte le operazioni payment
+- [ ] Audit log per tentativi accesso non autorizzati
+- [ ] Dashboard admin per vedere audit trail
+
+**Priorità**: 🟡 MEDIA
+
+---
+
+### 🟡 Miglioramenti Sicurezza
+
+#### **SECURITY #21: 2FA per Operazioni Critiche** 🟡
+**Stato**: Non implementato
+
+**Soluzione**:
+- [ ] Richiedere 2FA per merchant quando:
+  - Scansiona QR code per prima volta
+  - Rilascia payment > €500
+  - Rimborsa payment > €200
+- [ ] Usare TOTP (Google Authenticator) o SMS
+
+**Priorità**: 🟡 MEDIA
+
+---
+
+#### **SECURITY #22: IP Whitelisting per Merchant** 🟡
+**Stato**: Non implementato
+
+**Soluzione**:
+- [ ] Permettere merchant di whitelistare IP per operazioni critiche
+- [ ] Alert se operazione critica da IP non whitelistato
+- [ ] Richiedere conferma email se IP nuovo
+
+**Priorità**: 🟢 BASSA
+
+---
+
+#### **SECURITY #23: Geolocalizzazione Operazioni** 🟡
+**Stato**: Non implementato
+
+**Soluzione**:
+- [ ] Tracciare IP e geolocalizzazione per operazioni critiche
+- [ ] Alert se operazione da paese diverso dal solito
+- [ ] Richiedere conferma se geolocalizzazione sospetta
+
+**Priorità**: 🟢 BASSA
+
+---
+
+#### **SECURITY #24: Machine Learning Anti-Frode** 🟢
+**Stato**: Non implementato (Futuro)
+
+**Soluzione**:
+- [ ] Analizzare pattern di comportamento sospetti
+- [ ] Rilevare anomalie (es. troppi QR scansionati in poco tempo)
+- [ ] Flag automatico per review manuale
+
+**Priorità**: 🟢 BASSA (Futuro)
+
+---
+
+### 📋 Checklist Sicurezza QR Code
+
+#### Verifiche da Fare:
+- [x] Solo merchant autorizzato può scansionare QR ✅
+- [x] Verifica che merchant sia quello associato alla transazione ✅
+- [ ] QR code scade dopo X giorni
+- [ ] QR code non può essere riutilizzato dopo scansione
+- [ ] Logging tentativi accesso non autorizzati
+- [ ] Rate limiting su scansioni QR
+- [ ] Validazione formato QR code
+- [ ] Protezione contro replay attacks
+
+---
+
+### 📋 Checklist Sicurezza Payment
+
+#### Verifiche da Fare:
+- [x] Solo merchant autorizzato può hold/release/refund ✅
+- [x] Verifica stato payment prima di operazioni ✅
+- [x] Validazione amount ✅
+- [ ] Doppia conferma per operazioni > €X
+- [ ] Rate limiting su operazioni payment
+- [ ] Audit log completo
+- [ ] Protezione contro race conditions
+- [ ] Validazione che payment non sia già processato
+
+---
+
+### 📋 Checklist Sicurezza Vault
+
+#### Verifiche da Fare:
+- [x] Solo merchant autorizzato può gestire item ✅
+- [x] Verifica che item sia assegnato al shop ✅
+- [x] Verifica che slot appartenga alla teca autorizzata ✅
+- [x] Verifica stato item prima di operazioni ✅
+- [ ] Validazione prezzo vendita
+- [ ] Doppia conferma per vendite > €X
+- [ ] Rate limiting su vendite
+- [ ] Audit log completo
 
 ---
 
