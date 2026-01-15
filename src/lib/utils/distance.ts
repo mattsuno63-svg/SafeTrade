@@ -119,7 +119,6 @@ const CITY_COORDINATES: Record<string, { lat: number; lon: number }> = {
   'Macerata': { lat: 43.3002, lon: 13.4536 },
   'Teramo': { lat: 42.6588, lon: 13.7038 },
   'Chieti': { lat: 42.3512, lon: 14.1674 },
-  'L\'Aquila': { lat: 42.3505, lon: 13.3995 },
   'Campobasso': { lat: 41.5607, lon: 14.6674 },
   'Isernia': { lat: 41.6006, lon: 14.2380 },
   'Avellino': { lat: 40.9150, lon: 14.7898 },

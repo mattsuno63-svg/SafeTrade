@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -45,18 +45,7 @@ export default function VaultCaseDetailPage() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!userLoading && !user) {
-      router.push('/login')
-      return
-    }
-
-    if (params.id) {
-      fetchCase()
-    }
-  }, [params.id, user, userLoading, router])
-
-  const fetchCase = async () => {
+  const fetchCase = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch(`/api/vault/cases/${params.id}`)
@@ -69,7 +58,18 @@ export default function VaultCaseDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push('/login')
+      return
+    }
+
+    if (params.id) {
+      fetchCase()
+    }
+  }, [params.id, user, userLoading, router, fetchCase])
 
   if (userLoading || loading) {
     return (

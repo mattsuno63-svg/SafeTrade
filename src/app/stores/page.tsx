@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { italianProvinces } from '@/lib/data/italian-provinces'
+import { ITALIAN_PROVINCES } from '@/lib/data/italian-provinces'
 import { Loader2 } from 'lucide-react'
 
 interface Shop {
@@ -136,9 +136,9 @@ export default function StoresPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">Tutte le province</SelectItem>
-                    {italianProvinces.map((p) => (
-                      <SelectItem key={p.sigla} value={p.nome}>
-                        {p.nome} ({p.sigla})
+                    {ITALIAN_PROVINCES.map((p) => (
+                      <SelectItem key={p.code} value={p.name}>
+                        {p.name} ({p.code})
                       </SelectItem>
                     ))}
                   </SelectContent>

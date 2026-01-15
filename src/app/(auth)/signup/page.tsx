@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Header } from '@/components/layout/Header'
 import { useToast } from '@/hooks/use-toast'
 import { createClient } from '@/lib/supabase/client'
-import { italianProvinces } from '@/lib/data/italian-provinces'
+import { ITALIAN_PROVINCES } from '@/lib/data/italian-provinces'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -344,9 +344,9 @@ export default function SignupPage() {
                         <SelectValue placeholder="Seleziona provincia" />
                       </SelectTrigger>
                       <SelectContent>
-                        {italianProvinces.map((p) => (
-                          <SelectItem key={p.sigla} value={p.nome}>
-                            {p.nome} ({p.sigla})
+                        {ITALIAN_PROVINCES.map((p) => (
+                          <SelectItem key={p.code} value={p.name}>
+                            {p.name} ({p.code})
                           </SelectItem>
                         ))}
                       </SelectContent>
