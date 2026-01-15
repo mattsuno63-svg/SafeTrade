@@ -17,17 +17,24 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    console.log('[GET /api/disputes/[id]] Starting...')
+    
     const user = await getCurrentUser()
+    console.log('[GET /api/disputes/[id]] User:', user ? { id: user.id, role: user.role } : 'null')
     
     if (!user) {
       return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
     }
 
-    const { id } = await params
+    // Handle both Promise and non-Promise params (Next.js 14 vs 15)
+    const resolvedParams = 'then' in params ? await params : params
+    const { id } = resolvedParams
+    console.log('[GET /api/disputes/[id]] Dispute ID:', id)
 
+    console.log('[GET /api/disputes/[id]] Fetching dispute from database...')
     const dispute = await prisma.dispute.findUnique({
       where: { id },
       include: {
@@ -67,6 +74,8 @@ export async function GET(
       },
     })
 
+    console.log('[GET /api/disputes/[id]] Dispute found:', !!dispute)
+    
     if (!dispute) {
       return NextResponse.json(
         { error: 'Disputa non trovata' },
@@ -75,6 +84,7 @@ export async function GET(
     }
 
     // Verifica autorizzazione
+    console.log('[GET /api/disputes/[id]] Checking authorization...')
     const isInvolved = 
       dispute.openedById === user.id ||
       dispute.transaction.userAId === user.id || 
@@ -111,9 +121,14 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Error fetching dispute:', error)
+    console.error('[GET /api/disputes/[id]] Error:', error)
+    console.error('[GET /api/disputes/[id]] Error stack:', error instanceof Error ? error.stack : 'No stack')
+    console.error('[GET /api/disputes/[id]] Error message:', error instanceof Error ? error.message : String(error))
     return NextResponse.json(
-      { error: 'Errore nel recupero della disputa' },
+      { 
+        error: 'Errore nel recupero della disputa',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     )
   }
@@ -131,7 +146,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await getCurrentUser()
@@ -140,7 +155,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
     }
 
-    const { id } = await params
+    // Handle both Promise and non-Promise params (Next.js 14 vs 15)
+    const resolvedParams = 'then' in params ? await params : params
+    const { id } = resolvedParams
     const body = await request.json()
     const { action, message, resolution, resolutionAmount, photos = [] } = body
 
