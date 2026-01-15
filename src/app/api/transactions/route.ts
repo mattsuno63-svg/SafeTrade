@@ -135,8 +135,8 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Verify authentication
-    const { requireAuth } = await import('@/lib/auth')
-    const user = await requireAuth()
+    const { requireEmailVerified } = await import('@/lib/auth')
+    const user = await requireEmailVerified()
 
     // If proposalId provided, get proposal details
     let userAId: string
@@ -410,6 +410,12 @@ ${feeDescriptions.merchantMessage}
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      )
+    }
+    if (error.message === 'Email not verified') {
+      return NextResponse.json(
+        { error: 'Email non verificata. Verifica la tua email per creare transazioni.' },
+        { status: 403 }
       )
     }
     return NextResponse.json(

@@ -163,8 +163,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Verify authentication
-    const { requireAuth } = await import('@/lib/auth')
-    const user = await requireAuth()
+    const { requireEmailVerified } = await import('@/lib/auth')
+    const user = await requireEmailVerified()
 
     const body = await request.json()
     const {
@@ -274,6 +274,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      )
+    }
+    if (error.message === 'Email not verified') {
+      return NextResponse.json(
+        { error: 'Email non verificata. Verifica la tua email per creare annunci.' },
+        { status: 403 }
       )
     }
     return NextResponse.json(

@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLocale } from '@/contexts/LocaleContext'
 import { useUser } from '@/hooks/use-user'
+import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -36,6 +37,11 @@ export default function DashboardPage() {
 
       <main className="flex-1 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Email verification banner */}
+          {!user.email_confirmed_at && (
+            <EmailVerificationBanner email={user.email || ''} />
+          )}
+          
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2">{t('dashboard.title')}</h1>
             <p className="text-gray-600 dark:text-gray-400">

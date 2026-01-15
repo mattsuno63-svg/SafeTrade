@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
       feePaidBy = 'SELLER', // Default: fee pagata dal venditore
     } = body
 
-    // Verify authentication
-    const { requireAuth } = await import('@/lib/auth')
-    const user = await requireAuth()
+    // Verify authentication and email
+    const { requireEmailVerified } = await import('@/lib/auth')
+    const user = await requireEmailVerified()
 
     // Get listing to find receiver
     const listing = await prisma.listingP2P.findUnique({
@@ -85,6 +85,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      )
+    }
+    if (error.message === 'Email not verified') {
+      return NextResponse.json(
+        { error: 'Email non verificata. Verifica la tua email per inviare proposte.' },
+        { status: 403 }
       )
     }
     return NextResponse.json(

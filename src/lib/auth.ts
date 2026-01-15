@@ -66,6 +66,15 @@ export async function getCurrentUser() {
     })
 
     console.log('[getCurrentUser] Prisma user found:', !!dbUser)
+    
+    // Add email verification status from Supabase
+    if (dbUser) {
+      return {
+        ...dbUser,
+        emailVerified: !!user.email_confirmed_at,
+      }
+    }
+    
     return dbUser
   } catch (error) {
     console.error('[getCurrentUser] Error getting current user:', error)
@@ -91,6 +100,20 @@ export async function requireRole(role: 'USER' | 'MERCHANT' | 'ADMIN') {
   const user = await requireAuth()
   if (user.role !== role && user.role !== 'ADMIN') {
     throw new Error('Forbidden: Insufficient permissions')
+  }
+  return user
+}
+
+/**
+ * Require email verification - throws error if email not verified
+ */
+export async function requireEmailVerified() {
+  const user = await getCurrentUser()
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+  if (!user.emailVerified) {
+    throw new Error('Email not verified')
   }
   return user
 }
