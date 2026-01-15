@@ -35,44 +35,55 @@ export async function GET(
     console.log('[GET /api/disputes/[id]] Dispute ID:', id)
 
     console.log('[GET /api/disputes/[id]] Fetching dispute from database...')
-    const dispute = await prisma.dispute.findUnique({
-      where: { id },
-      include: {
-        openedBy: {
-          select: { id: true, name: true, email: true, avatar: true },
-        },
-        transaction: {
-          select: {
-            id: true,
-            status: true,
-            userAId: true,
-            userBId: true,
-            userA: { select: { id: true, name: true, email: true, avatar: true } },
-            userB: { select: { id: true, name: true, email: true, avatar: true } },
-            proposal: {
-              include: {
-                listing: {
-                  select: { id: true, title: true, price: true, images: true },
+    let dispute
+    try {
+      dispute = await prisma.dispute.findUnique({
+        where: { id },
+        include: {
+          openedBy: {
+            select: { id: true, name: true, email: true, avatar: true },
+          },
+          transaction: {
+            select: {
+              id: true,
+              status: true,
+              userAId: true,
+              userBId: true,
+              userA: { select: { id: true, name: true, email: true, avatar: true } },
+              userB: { select: { id: true, name: true, email: true, avatar: true } },
+              proposal: {
+                include: {
+                  listing: {
+                    select: { id: true, title: true, price: true, images: true },
+                  },
                 },
               },
-            },
-            escrowPayment: true,
-            hub: { select: { id: true, providerId: true, name: true } },
-          },
-        },
-        messages: {
-          orderBy: { createdAt: 'asc' },
-          include: {
-            sender: {
-              select: { id: true, name: true, email: true, avatar: true, role: true },
+              escrowPayment: true,
+              hub: { select: { id: true, providerId: true, name: true } },
             },
           },
+          messages: {
+            orderBy: { createdAt: 'asc' },
+            include: {
+              sender: {
+                select: { id: true, name: true, email: true, avatar: true, role: true },
+              },
+            },
+          },
+          pendingReleases: {
+            orderBy: { createdAt: 'desc' },
+          },
         },
-        pendingReleases: {
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    })
+      })
+    } catch (dbError) {
+      console.error('[GET /api/disputes/[id]] Database error:', dbError)
+      console.error('[GET /api/disputes/[id]] Database error details:', {
+        message: dbError instanceof Error ? dbError.message : String(dbError),
+        stack: dbError instanceof Error ? dbError.stack : undefined,
+        name: dbError instanceof Error ? dbError.name : undefined,
+      })
+      throw dbError // Re-throw to be caught by outer catch
+    }
 
     console.log('[GET /api/disputes/[id]] Dispute found:', !!dispute)
     
