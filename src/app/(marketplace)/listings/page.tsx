@@ -223,7 +223,13 @@ export default function ListingsPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
                     <div className="absolute bottom-0 left-0 p-6 text-white">
-                      <span className="material-symbols-outlined text-4xl mb-2">catching_pokemon</span>
+                      {/* Pokéball Icon */}
+                      <div className="w-12 h-12 mb-2 flex items-center justify-center">
+                        <div className="relative w-10 h-10 rounded-full border-2 border-white/40 overflow-hidden flex flex-col">
+                          <div className="h-1/2 bg-red-500/80 backdrop-blur-sm border-b-2 border-white/30"></div>
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-white/60"></div>
+                        </div>
+                      </div>
                       <h3 className="text-2xl font-bold">Pokemon</h3>
                       <p className="text-sm opacity-90">TCG & Collectibles</p>
                     </div>
@@ -245,7 +251,25 @@ export default function ListingsPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
                     <div className="absolute bottom-0 left-0 p-6 text-white">
-                      <span className="material-symbols-outlined text-4xl mb-2">sailing</span>
+                      {/* Jolly Roger Icon */}
+                      <div className="w-12 h-12 mb-2 flex items-center justify-center">
+                        <svg viewBox="0 0 100 100" className="w-10 h-10">
+                          {/* Skull shape */}
+                          <path
+                            d="M50 20 Q35 20 30 35 Q30 45 35 50 Q30 60 30 70 Q30 80 40 85 Q45 90 50 90 Q55 90 60 85 Q70 80 70 70 Q70 60 65 50 Q70 45 70 35 Q65 20 50 20 Z"
+                            fill="white"
+                            opacity="0.9"
+                          />
+                          {/* Eye sockets */}
+                          <circle cx="40" cy="45" r="6" fill="black" />
+                          <circle cx="60" cy="45" r="6" fill="black" />
+                          {/* Crossbones */}
+                          <line x1="25" y1="25" x2="40" y2="40" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+                          <line x1="60" y1="40" x2="75" y2="25" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+                          <line x1="25" y1="75" x2="40" y2="60" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+                          <line x1="60" y1="60" x2="75" y2="75" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+                        </svg>
+                      </div>
                       <h3 className="text-2xl font-bold">One Piece</h3>
                       <p className="text-sm opacity-90">New World</p>
                     </div>
@@ -267,7 +291,58 @@ export default function ListingsPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
                     <div className="absolute bottom-0 left-0 p-6 text-white">
-                      <span className="material-symbols-outlined text-4xl mb-2">auto_fix_high</span>
+                      {/* Magic Logo Symbol - Red Flame/Crown */}
+                      <div className="w-12 h-12 mb-2 flex items-center justify-center">
+                        <svg viewBox="0 0 100 100" className="w-10 h-10">
+                          {/* Base curve */}
+                          <path
+                            d="M20 70 Q30 75 40 70 Q50 75 60 70 Q70 75 80 70"
+                            stroke="white"
+                            strokeWidth="2"
+                            fill="none"
+                            opacity="0.4"
+                          />
+                          {/* Central tall spike */}
+                          <path
+                            d="M50 70 L50 25 L48 30 L50 25 L52 30 Z"
+                            fill="white"
+                            opacity="0.95"
+                          />
+                          {/* Left spikes */}
+                          <path
+                            d="M35 70 L35 40 L33 45 L35 40 L37 45 Z"
+                            fill="white"
+                            opacity="0.95"
+                          />
+                          <path
+                            d="M25 70 L25 50 L23 55 L25 50 L27 55 Z"
+                            fill="white"
+                            opacity="0.95"
+                          />
+                          {/* Right spikes */}
+                          <path
+                            d="M65 70 L65 40 L63 45 L65 40 L67 45 Z"
+                            fill="white"
+                            opacity="0.95"
+                          />
+                          <path
+                            d="M75 70 L75 50 L73 55 L75 50 L77 55 Z"
+                            fill="white"
+                            opacity="0.95"
+                          />
+                          {/* Additional smaller spikes */}
+                          <path
+                            d="M42 70 L42 55 L41 58 L42 55 L43 58 Z"
+                            fill="white"
+                            opacity="0.8"
+                          />
+                          <path
+                            d="M58 70 L58 55 L57 58 L58 55 L59 58 Z"
+                            fill="white"
+                            opacity="0.8"
+                          />
+                        </svg>
+                      </div>
                       <h3 className="text-2xl font-bold">Magic</h3>
                       <p className="text-sm opacity-90">The Gathering</p>
                     </div>
@@ -289,7 +364,40 @@ export default function ListingsPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
                     <div className="absolute bottom-0 left-0 p-6 text-white">
-                      <span className="material-symbols-outlined text-4xl mb-2">style</span>
+                      {/* Millennium Puzzle Icon */}
+                      <div className="w-12 h-12 mb-2 flex items-center justify-center">
+                        <svg viewBox="0 0 100 100" className="w-10 h-10">
+                          {/* Outer triangle */}
+                          <path
+                            d="M50 10 L90 80 L10 80 Z"
+                            fill="none"
+                            stroke="white"
+                            strokeWidth="2.5"
+                            opacity="0.6"
+                          />
+                          {/* Inner triangle */}
+                          <path
+                            d="M50 25 L75 70 L25 70 Z"
+                            fill="white"
+                            opacity="0.4"
+                          />
+                          {/* Eye symbol */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="8"
+                            fill="white"
+                            opacity="0.7"
+                          />
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="4"
+                            fill="white"
+                            opacity="0.9"
+                          />
+                        </svg>
+                      </div>
                       <h3 className="text-2xl font-bold">Yu-Gi-Oh!</h3>
                       <p className="text-sm opacity-90">Duel Monsters</p>
                     </div>

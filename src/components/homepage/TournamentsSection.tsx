@@ -29,37 +29,66 @@ export function TournamentsSection() {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchTournaments = async () => {
+  const fetchTournaments = async () => {
+    try {
+      // Get user distance preference from localStorage
+      const distancePref = localStorage.getItem('preferred_distance') || '50 km'
+      const match = distancePref.match(/(\d+)/)
+      const maxDistance = match ? match[1] : '50'
+      
+      // Add cache busting timestamp
+      const timestamp = new Date().getTime()
+      const res = await fetch(`/api/tournaments?futureOnly=true&limit=2&filterByDistance=true&maxDistance=${maxDistance} km&_t=${timestamp}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTournaments(data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching tournaments:', error)
+      // Fallback senza filtro distanza
       try {
-        // Get user distance preference from localStorage
-        const distancePref = localStorage.getItem('preferred_distance') || '50 km'
-        const match = distancePref.match(/(\d+)/)
-        const maxDistance = match ? match[1] : '50'
-        
-        const res = await fetch(`/api/tournaments?futureOnly=true&limit=2&filterByDistance=true&maxDistance=${maxDistance} km`)
+        const timestamp = new Date().getTime()
+        const res = await fetch(`/api/tournaments?futureOnly=true&limit=2&_t=${timestamp}`)
         if (res.ok) {
           const data = await res.json()
           setTournaments(data || [])
         }
-      } catch (error) {
-        console.error('Error fetching tournaments:', error)
-        // Fallback senza filtro distanza
-        try {
-          const res = await fetch('/api/tournaments?futureOnly=true&limit=2')
-          if (res.ok) {
-            const data = await res.json()
-            setTournaments(data || [])
-          }
-        } catch (fallbackError) {
-          console.error('Error in fallback fetch:', fallbackError)
-        }
-      } finally {
-        setLoading(false)
+      } catch (fallbackError) {
+        console.error('Error in fallback fetch:', fallbackError)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchTournaments()
+
+    // Refresh when page becomes visible (user switches tabs/windows)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchTournaments()
       }
     }
 
-    fetchTournaments()
+    // Refresh on window focus
+    const handleFocus = () => {
+      fetchTournaments()
+    }
+
+    // Polling every 30 seconds for fresh data
+    const intervalId = setInterval(() => {
+      fetchTournaments()
+    }, 30000) // 30 seconds
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
   const formatDate = (dateString: string) => {
