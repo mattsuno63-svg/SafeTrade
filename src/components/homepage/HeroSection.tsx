@@ -175,7 +175,7 @@ flusso temporale: ${storyData.fps} cicli al secondo`
           </Link>
           <Link href="/sell">
             <Button variant="outline" className="w-full sm:w-auto px-14 py-6 bg-white/40 backdrop-blur-3xl text-slate-900 font-black rounded-2xl border border-white/80 hover:bg-white/90 transition-all">
-              Invia per Gradazione
+              Vendi le tue Carte
             </Button>
           </Link>
         </div>
