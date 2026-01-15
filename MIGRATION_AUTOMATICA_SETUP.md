@@ -139,3 +139,4 @@ Dopo il deploy, verifica che:
 **Ultimo aggiornamento**: 2025-01-27  
 **Configurato da**: AI Assistant
 
+

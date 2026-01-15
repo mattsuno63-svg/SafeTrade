@@ -363,3 +363,4 @@ Se incontri problemi:
 **Ultimo aggiornamento**: 2025-01-27  
 **Versione**: 1.0
 
+
