@@ -54,8 +54,8 @@ const getShopData = cache(async (slug: string) => {
 
     if (!shop) return null
 
-    // Fetch listings separately
-    const listings = await prisma.listingP2P.findMany({
+    // Fetch listings separately (only if merchantId exists)
+    const listings = shop.merchantId ? await prisma.listingP2P.findMany({
       where: {
         userId: shop.merchantId,
         isActive: true,
@@ -64,7 +64,7 @@ const getShopData = cache(async (slug: string) => {
       },
       orderBy: { createdAt: 'desc' },
       take: 6
-    })
+    }) : []
 
     return { shop, listings }
   } catch (error) {
@@ -93,7 +93,7 @@ export default async function ShopPage({ params }: PageProps) {
   }
 
   const { shop, listings } = data
-  const activePromo = shop.promotions[0]
+  const activePromo = shop.promotions && shop.promotions.length > 0 ? shop.promotions[0] : null
 
   // Parse opening hours
   let openingHours = null
@@ -241,7 +241,7 @@ export default async function ShopPage({ params }: PageProps) {
                 <Link href="#" className="text-sm text-primary hover:underline">Vedi Calendario Completo</Link>
               </div>
 
-              {shop.tournaments.length > 0 ? (
+              {shop.tournaments && shop.tournaments.length > 0 ? (
                 <div className="space-y-4">
                   {shop.tournaments.map((tournament) => (
                     <Card key={tournament.id} className="p-4 flex items-center gap-4 hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-purple-500">
@@ -292,17 +292,23 @@ export default async function ShopPage({ params }: PageProps) {
                     <Link key={item.id} href={`/listings/${item.id}`} className="group">
                       <Card className="flex items-start gap-4 p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors h-full">
                         <div className="w-24 h-24 bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0 relative">
-                          {item.images[0] && (
+                          {item.images && item.images.length > 0 && item.images[0] ? (
                             <Image
                               src={item.images[0]}
                               alt={item.title}
                               fill
                               className="object-cover group-hover:scale-105 transition-transform duration-300"
                             />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <span className="material-symbols-outlined">image</span>
+                            </div>
                           )}
-                          <Badge className="absolute top-1 right-1 text-[10px] bg-black/70 px-1 py-0 h-5">
-                            {item.condition}
-                          </Badge>
+                          {item.condition && (
+                            <Badge className="absolute top-1 right-1 text-[10px] bg-black/70 px-1 py-0 h-5">
+                              {item.condition}
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
@@ -339,7 +345,7 @@ export default async function ShopPage({ params }: PageProps) {
           <div className="space-y-6">
 
             {/* Gallery Preview */}
-            {shop.images.length > 0 && (
+            {shop.images && shop.images.length > 0 && (
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="material-symbols-outlined text-orange-500 text-sm">photo_library</span>
