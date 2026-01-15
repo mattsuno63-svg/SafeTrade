@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
-import { calculateProvinceDistance } from '@/lib/utils/distance'
+import { calculateCityDistance, getCityCoordinates } from '@/lib/utils/distance'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user location and distance preference if filtering by distance
-    let userProvince: string | null = null
+    let userCity: string | null = null
     let maxDistance: number | null = null
 
     if (filterByDistance) {
@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
         if (user) {
           const dbUser = await prisma.user.findUnique({
             where: { id: user.id },
-            select: { province: true },
+            select: { city: true },
           })
-          userProvince = dbUser?.province || null
+          userCity = dbUser?.city || null
 
           // Get distance preference from localStorage (passed via query param or stored in user settings)
           const distancePref = searchParams.get('maxDistance')
@@ -88,15 +88,29 @@ export async function GET(request: NextRequest) {
 
     // Filter by distance if requested and user has location
     let filteredTournaments = tournaments
-    if (filterByDistance && userProvince && maxDistance) {
-      filteredTournaments = tournaments.filter((tournament) => {
-        if (!tournament.shop?.city) return false
-        // Use city as province approximation (in production, use proper geocoding)
-        const shopProvince = tournament.shop.city // Approximate: use city as province
-        const distance = calculateProvinceDistance(userProvince!, shopProvince)
-        // If distance calculation fails, include tournament anyway (fallback)
-        return distance === null || distance <= maxDistance!
-      })
+    if (filterByDistance) {
+      if (userCity && maxDistance) {
+        // Utente ha città: filtra per distanza reale
+        filteredTournaments = tournaments.filter((tournament) => {
+          if (!tournament.shop?.city) return false
+          
+          // Calcola distanza reale tra città utente e città negozio
+          const distance = calculateCityDistance(userCity!, tournament.shop.city)
+          
+          // Se il calcolo distanza fallisce (città non trovata), escludi il torneo
+          // Questo garantisce che solo tornei con città riconosciute vengano mostrati
+          if (distance === null) {
+            return false
+          }
+          
+          // Include solo tornei entro la distanza massima
+          return distance <= maxDistance!
+        })
+      } else {
+        // Utente non autenticato o senza città: mostra tutti i tornei (senza filtro distanza)
+        // Questo permette di vedere i tornei anche se non si è impostata la città
+        filteredTournaments = tournaments
+      }
     }
 
     // Apply limit after filtering

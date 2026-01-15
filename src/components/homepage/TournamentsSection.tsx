@@ -31,14 +31,24 @@ export function TournamentsSection() {
 
   const fetchTournaments = async () => {
     try {
-      // Get user distance preference from localStorage
+      // Add cache busting timestamp
+      const timestamp = new Date().getTime()
+      
+      // Try with distance filter first (if user has city)
       const distancePref = localStorage.getItem('preferred_distance') || '50 km'
       const match = distancePref.match(/(\d+)/)
       const maxDistance = match ? match[1] : '50'
       
-      // Add cache busting timestamp
-      const timestamp = new Date().getTime()
-      const res = await fetch(`/api/tournaments?futureOnly=true&limit=2&filterByDistance=true&maxDistance=${maxDistance} km&_t=${timestamp}`)
+      // Try authenticated request with distance filter
+      let res = await fetch(`/api/tournaments?futureOnly=true&limit=2&filterByDistance=true&maxDistance=${maxDistance} km&_t=${timestamp}`, {
+        credentials: 'include', // Include cookies for auth
+      })
+      
+      if (!res.ok || res.status === 401) {
+        // User not authenticated or no city - fetch without distance filter
+        res = await fetch(`/api/tournaments?futureOnly=true&limit=2&_t=${timestamp}`)
+      }
+      
       if (res.ok) {
         const data = await res.json()
         setTournaments(data || [])
