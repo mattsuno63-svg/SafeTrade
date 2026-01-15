@@ -19,6 +19,9 @@ export async function GET(request: NextRequest) {
         in: ['PUBLISHED', 'REGISTRATION_CLOSED', 'IN_PROGRESS'],
       },
     }
+    
+    // Debug: log per verificare query
+    console.log('[Tournaments API] Query params:', { game, futureOnly, filterByDistance, limit })
 
     if (game) {
       where.game = game
@@ -85,14 +88,27 @@ export async function GET(request: NextRequest) {
         { date: 'asc' },
       ],
     })
+    
+    // Debug: log tornei trovati
+    console.log(`[Tournaments API] Found ${tournaments.length} tournaments`, tournaments.map(t => ({
+      id: t.id,
+      title: t.title,
+      status: t.status,
+      shopCity: t.shop?.city,
+      date: t.date,
+    })))
 
     // Filter by distance if requested and user has location
     let filteredTournaments = tournaments
     if (filterByDistance) {
       if (userCity && maxDistance) {
         // Utente ha città: filtra per distanza reale
+        console.log(`[Tournaments API] Filtering by distance: userCity=${userCity}, maxDistance=${maxDistance}km`)
         filteredTournaments = tournaments.filter((tournament) => {
-          if (!tournament.shop?.city) return false
+          if (!tournament.shop?.city) {
+            console.log(`[Tournaments API] Tournament ${tournament.id} excluded: no shop city`)
+            return false
+          }
           
           // Calcola distanza reale tra città utente e città negozio
           const distance = calculateCityDistance(userCity!, tournament.shop.city)
@@ -100,17 +116,25 @@ export async function GET(request: NextRequest) {
           // Se il calcolo distanza fallisce (città non trovata), escludi il torneo
           // Questo garantisce che solo tornei con città riconosciute vengano mostrati
           if (distance === null) {
+            console.log(`[Tournaments API] Tournament ${tournament.id} excluded: city "${tournament.shop.city}" not found in coordinates`)
             return false
           }
           
+          const withinDistance = distance <= maxDistance!
+          console.log(`[Tournaments API] Tournament ${tournament.id} (${tournament.shop.city}): distance=${distance.toFixed(1)}km, within=${withinDistance}`)
+          
           // Include solo tornei entro la distanza massima
-          return distance <= maxDistance!
+          return withinDistance
         })
+        console.log(`[Tournaments API] After distance filter: ${filteredTournaments.length} tournaments`)
       } else {
         // Utente non autenticato o senza città: mostra tutti i tornei (senza filtro distanza)
         // Questo permette di vedere i tornei anche se non si è impostata la città
+        console.log(`[Tournaments API] No distance filter: userCity=${userCity}, showing all ${tournaments.length} tournaments`)
         filteredTournaments = tournaments
       }
+    } else {
+      console.log(`[Tournaments API] Distance filter disabled, showing all ${tournaments.length} tournaments`)
     }
 
     // Apply limit after filtering
