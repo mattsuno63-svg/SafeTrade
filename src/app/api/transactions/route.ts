@@ -138,6 +138,29 @@ export async function POST(request: NextRequest) {
     const { requireEmailVerified } = await import('@/lib/auth')
     const user = await requireEmailVerified()
 
+    // Rate limiting for transaction creation
+    const { checkRateLimit, getRateLimitKey, RATE_LIMITS } = await import('@/lib/rate-limit')
+    const rateLimitKey = getRateLimitKey(user.id, 'PAYMENT_CREATE') // Use PAYMENT_CREATE limit (10/hour)
+    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_CREATE)
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Troppe richieste. Limite di 10 transazioni per ora raggiunto.',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimit.limit.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString(),
+            'Retry-After': Math.ceil((rateLimit.resetAt - Date.now()) / 1000).toString(),
+          },
+        }
+      )
+    }
+
     // SECURITY #10: Validazione feePercentage (deve essere nei limiti ragionevoli)
     if (feePercentage !== undefined) {
       if (feePercentage < 0 || feePercentage > 20) {

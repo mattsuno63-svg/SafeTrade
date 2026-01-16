@@ -44,16 +44,17 @@
 
 ### 🔴 PRIORITÀ 1: Fix Critici Sicurezza
 
-#### **FIX #1: Verifica Duplicati Transazione** 🔴
+#### **FIX #1: Verifica Duplicati Transazione** ✅
 **File**: `src/app/api/transactions/[id]/verify/route.ts`  
-**Stato**: ⚠️ DA VERIFICARE
+**Stato**: ✅ IMPLEMENTATO
 
-**Azione**:
-- [ ] Verificare che transaction non sia già `COMPLETED` prima di verificare
-- [ ] Verificare che non esista già `PendingRelease` per questa transazione
-- [ ] Testare scenario doppia verifica
+**Verifica**:
+- [x] Verifica che transaction non sia già `COMPLETED` (linea 87-91) ✅
+- [x] Verifica che transaction non sia `CANCELLED` (linea 94-98) ✅
+- [x] Verifica che non esista già `PendingRelease` per questa transazione (linea 102-117) ✅
+- [x] Fix params handling Next.js 15 (linea 6-9) ✅
 
-**Priorità**: 🔴 CRITICA
+**Priorità**: ✅ COMPLETATO
 
 ---
 
@@ -69,17 +70,19 @@
 
 ---
 
-#### **FIX #3: Rate Limiting API Critiche** 🔴
-**Stato**: ⚠️ DA IMPLEMENTARE
+#### **FIX #3: Rate Limiting API Critiche** ✅
+**Stato**: ✅ IMPLEMENTATO
 
-**Endpoint da proteggere**:
-- [ ] `/api/transactions` - max 10/ora per utente
-- [ ] `/api/merchant/verify/scan` - max 50/ora per merchant
-- [ ] `/api/escrow/payments/*/hold` - max 10/ora
-- [ ] `/api/escrow/payments/*/release` - max 10/ora
-- [ ] `/api/community` (POST) - già implementato con karma system
+**Endpoint protetti**:
+- [x] `/api/transactions` (POST) - max 10/ora per utente ✅
+- [x] `/api/merchant/verify/scan` - max 20/ora per merchant ✅
+- [x] `/api/escrow/payments/*/hold` - max 10/ora ✅
+- [x] `/api/escrow/payments/*/release` - max 10/ora ✅
+- [x] `/api/escrow/payments/*/refund` - max 5/ora ✅
+- [x] `/api/transactions/[id]/verify` - max 20/ora ✅
+- [x] `/api/community` (POST) - già implementato con karma system ✅
 
-**Priorità**: 🔴 ALTA
+**Priorità**: ✅ COMPLETATO
 
 ---
 
