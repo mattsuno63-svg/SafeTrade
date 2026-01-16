@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/button'
@@ -25,18 +25,7 @@ export default function MerchantSocialPage() {
     tiktokUrl: '',
   })
 
-  useEffect(() => {
-    if (!user && !userLoading) {
-      router.push('/login')
-      return
-    }
-    
-    if (user) {
-      fetchShop()
-    }
-  }, [user, userLoading, router])
-
-  const fetchShop = async () => {
+  const fetchShop = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch('/api/merchant/shop')
@@ -74,7 +63,18 @@ export default function MerchantSocialPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router, toast])
+
+  useEffect(() => {
+    if (!user && !userLoading) {
+      router.push('/login')
+      return
+    }
+    
+    if (user) {
+      fetchShop()
+    }
+  }, [user, userLoading, router, fetchShop])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

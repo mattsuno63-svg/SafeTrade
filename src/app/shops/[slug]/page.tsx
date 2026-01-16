@@ -108,7 +108,15 @@ const getShopData = cache(async (slug: string) => {
     }
 
     // Fetch listings separately (only if merchantId exists)
-    let listings = []
+    let listings: Array<{
+      id: string
+      title: string
+      description: string | null
+      price: number | null
+      condition: string
+      game: string
+      images: string[]
+    }> = []
     try {
       if (shop.merchantId) {
         listings = await prisma.listingP2P.findMany({
@@ -119,7 +127,16 @@ const getShopData = cache(async (slug: string) => {
             isSold: false
           },
           orderBy: { createdAt: 'desc' },
-          take: 6
+          take: 6,
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            price: true,
+            condition: true,
+            game: true,
+            images: true,
+          }
         })
       }
     } catch (listingsError) {
