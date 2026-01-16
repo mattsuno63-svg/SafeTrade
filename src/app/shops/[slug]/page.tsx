@@ -13,6 +13,7 @@ import Link from 'next/link'
 
 // Cache this page for 60 seconds
 export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{
@@ -23,6 +24,7 @@ interface PageProps {
 // Use React.cache to deduplicate queries between generateMetadata and component
 const getShopData = cache(async (slug: string) => {
   try {
+    // First, get the shop without relations to avoid errors
     const shop = await prisma.shop.findUnique({
       where: { slug },
       include: {
@@ -33,42 +35,107 @@ const getShopData = cache(async (slug: string) => {
             avatar: true,
           }
         },
-        promotions: {
-          where: {
-            isActive: true,
-            endDate: { gte: new Date() }
-          },
-          orderBy: { startDate: 'desc' },
-          take: 1
-        },
-        tournaments: {
-          where: {
-            date: { gte: new Date() },
-            status: { in: ['PUBLISHED', 'REGISTRATION_CLOSED'] }
-          },
-          orderBy: { date: 'asc' },
-          take: 3
-        },
       }
     })
 
-    if (!shop) return null
+    if (!shop) {
+      console.error(`Shop with slug "${slug}" not found`)
+      return null
+    }
+
+    // Fetch promotions and tournaments separately to handle errors gracefully
+    let promotions: any[] = []
+    let tournaments: any[] = []
+    
+    try {
+      const now = new Date()
+      promotions = await prisma.promotion.findMany({
+        where: {
+          shopId: shop.id,
+          isActive: true,
+          endDate: { gte: now }
+        },
+        orderBy: { startDate: 'desc' },
+        take: 1
+      })
+    } catch (promoError) {
+      console.error('Error fetching promotions:', promoError)
+      // Log more details
+      if (promoError instanceof Error) {
+        console.error('Promotion error message:', promoError.message)
+        console.error('Promotion error stack:', promoError.stack)
+      }
+      promotions = []
+    }
+
+    try {
+      const now = new Date()
+      tournaments = await prisma.tournament.findMany({
+        where: {
+          shopId: shop.id,
+          date: { gte: now },
+          status: { in: ['PUBLISHED', 'REGISTRATION_CLOSED'] }
+        },
+        orderBy: { date: 'asc' },
+        take: 3
+      })
+    } catch (tournamentError) {
+      console.error('Error fetching tournaments:', tournamentError)
+      // Log more details
+      if (tournamentError instanceof Error) {
+        console.error('Tournament error message:', tournamentError.message)
+        console.error('Tournament error stack:', tournamentError.stack)
+      }
+      tournaments = []
+    }
+
+    // Add promotions and tournaments to shop object
+    const shopWithRelations = {
+      ...shop,
+      promotions,
+      tournaments,
+    }
+
+    // Ensure required fields have defaults
+    if (shopWithRelations.rating === null || shopWithRelations.rating === undefined) {
+      shopWithRelations.rating = 0
+    }
+    if (shopWithRelations.ratingCount === null || shopWithRelations.ratingCount === undefined) {
+      shopWithRelations.ratingCount = 0
+    }
+    if (!Array.isArray(shopWithRelations.images)) {
+      shopWithRelations.images = []
+    }
 
     // Fetch listings separately (only if merchantId exists)
-    const listings = shop.merchantId ? await prisma.listingP2P.findMany({
-      where: {
-        userId: shop.merchantId,
-        isActive: true,
-        isApproved: true,
-        isSold: false
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 6
-    }) : []
+    let listings = []
+    try {
+      if (shop.merchantId) {
+        listings = await prisma.listingP2P.findMany({
+          where: {
+            userId: shop.merchantId,
+            isActive: true,
+            isApproved: true,
+            isSold: false
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 6
+        })
+      }
+    } catch (listingsError) {
+      console.error('Error fetching listings:', listingsError)
+      // Continue even if listings fail
+      listings = []
+    }
 
-    return { shop, listings }
+    return { shop: shopWithRelations, listings }
   } catch (error) {
     console.error('Error fetching shop data:', error)
+    // Log more details for debugging
+    if (error instanceof Error) {
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
     return null
   }
 })
@@ -93,21 +160,38 @@ export default async function ShopPage({ params }: PageProps) {
   }
 
   const { shop, listings } = data
-  const activePromo = shop.promotions && shop.promotions.length > 0 ? shop.promotions[0] : null
+  const activePromo = shop.promotions && Array.isArray(shop.promotions) && shop.promotions.length > 0 ? shop.promotions[0] : null
 
   // Parse opening hours
   let openingHours = null
   try {
-    if (shop.openingHours) {
+    if (shop.openingHours && typeof shop.openingHours === 'string') {
       openingHours = JSON.parse(shop.openingHours)
     }
   } catch (e) {
     console.error('Error parsing opening hours', e)
+    openingHours = null
   }
+
+  // Ensure safe defaults for arrays
+  const shopImages = Array.isArray(shop.images) ? shop.images : []
+  const shopTournaments = Array.isArray(shop.tournaments) ? shop.tournaments : []
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-primary dark:text-white font-display">
       <Header />
+
+      {/* Approval Status Banner */}
+      {!shop.isApproved && (
+        <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-3">
+          <div className="container mx-auto flex items-center gap-3">
+            <span className="material-symbols-outlined text-yellow-600 dark:text-yellow-400">info</span>
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+              <strong>Anteprima:</strong> Questo negozio è in attesa di approvazione. Il contenuto sarà visibile pubblicamente solo dopo l'approvazione da parte dell'amministratore.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <div className="relative h-[300px] md:h-[400px]">
@@ -159,13 +243,17 @@ export default async function ShopPage({ params }: PageProps) {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    <span className="flex items-center gap-1 text-yellow-500 font-bold">
-                      <span className="material-symbols-outlined text-lg">star</span>
-                      {shop.rating.toFixed(1)}
-                    </span>
-                    <span>•</span>
-                    <span>{shop.ratingCount} Reviews</span>
-                    <span>•</span>
+                    {(shop.rating ?? 0) > 0 && (
+                      <>
+                        <span className="flex items-center gap-1 text-yellow-500 font-bold">
+                          <span className="material-symbols-outlined text-lg">star</span>
+                          {(shop.rating ?? 0).toFixed(1)}
+                        </span>
+                        <span>•</span>
+                        <span>{(shop.ratingCount ?? 0)} Reviews</span>
+                        <span>•</span>
+                      </>
+                    )}
                     <span className="flex items-center gap-1">
                       <span className="material-symbols-outlined text-lg">location_on</span>
                       {shop.city || 'Italia'}
@@ -241,9 +329,9 @@ export default async function ShopPage({ params }: PageProps) {
                 <Link href="#" className="text-sm text-primary hover:underline">Vedi Calendario Completo</Link>
               </div>
 
-              {shop.tournaments && shop.tournaments.length > 0 ? (
+              {shopTournaments.length > 0 ? (
                 <div className="space-y-4">
-                  {shop.tournaments.map((tournament) => (
+                  {shopTournaments.map((tournament) => (
                     <Card key={tournament.id} className="p-4 flex items-center gap-4 hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-purple-500">
                       <div className="flex flex-col items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-xl flex-shrink-0">
                         <span className="text-xs font-bold text-gray-500 uppercase">
@@ -281,9 +369,11 @@ export default async function ShopPage({ params }: PageProps) {
                   <span className="material-symbols-outlined text-red-500">diamond</span>
                   <h2 className="text-xl font-bold">Articoli da Collezione</h2>
                 </div>
-                <Link href={`/search?seller=${shop.merchantId}`} className="text-sm text-primary hover:underline">
-                  Vedi Tutti
-                </Link>
+                {shop.merchantId && (
+                  <Link href={`/search?seller=${shop.merchantId}`} className="text-sm text-primary hover:underline">
+                    Vedi Tutti
+                  </Link>
+                )}
               </div>
 
               {listings.length > 0 ? (
@@ -345,7 +435,7 @@ export default async function ShopPage({ params }: PageProps) {
           <div className="space-y-6">
 
             {/* Gallery Preview */}
-            {shop.images && shop.images.length > 0 && (
+            {shopImages.length > 0 && (
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="material-symbols-outlined text-orange-500 text-sm">photo_library</span>
@@ -353,9 +443,9 @@ export default async function ShopPage({ params }: PageProps) {
                 </div>
                 <div className="grid grid-cols-2 gap-2 rounded-xl overflow-hidden">
                   <div className="col-span-2 h-40 bg-gray-200 dark:bg-gray-800 relative">
-                    <Image src={shop.images[0]} fill className="object-cover" alt="Shop 1" />
+                    <Image src={shopImages[0]} fill className="object-cover" alt="Shop 1" />
                   </div>
-                  {shop.images.slice(1, 3).map((img, i) => (
+                  {shopImages.slice(1, 3).map((img, i) => (
                     <div key={i} className="h-24 bg-gray-200 dark:bg-gray-800 relative">
                       <Image src={img} fill className="object-cover" alt={`Shop ${i + 2}`} />
                     </div>
@@ -410,7 +500,7 @@ export default async function ShopPage({ params }: PageProps) {
               <div className="p-4 bg-white dark:bg-gray-900 border-t dark:border-gray-800">
                 <h4 className="font-bold text-sm mb-1">La nostra posizione</h4>
                 <p className="text-sm text-gray-500 mb-2">
-                  {shop.address}, {shop.city}
+                  {[shop.address, shop.city].filter(Boolean).join(', ') || 'Indirizzo non disponibile'}
                 </p>
                 <Link href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${shop.address} ${shop.city}`)}`} target="_blank" className="text-xs text-primary font-medium hover:underline flex items-center">
                   Vedi su Google Maps

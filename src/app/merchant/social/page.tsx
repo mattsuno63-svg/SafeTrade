@@ -38,6 +38,7 @@ export default function MerchantSocialPage() {
 
   const fetchShop = async () => {
     try {
+      setLoading(true)
       const res = await fetch('/api/merchant/shop')
       if (res.ok) {
         const shop = await res.json()
@@ -48,9 +49,28 @@ export default function MerchantSocialPage() {
           youtubeUrl: shop.youtubeUrl || '',
           tiktokUrl: shop.tiktokUrl || '',
         })
+      } else if (res.status === 404) {
+        // No shop found - redirect to setup
+        toast({
+          title: 'Nessun negozio trovato',
+          description: 'Configura prima il tuo negozio',
+          variant: 'destructive',
+        })
+        router.push('/merchant/setup')
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to fetch shop')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching shop:', error)
+      toast({
+        title: 'Errore',
+        description: error.message || 'Impossibile caricare i dati del negozio',
+        variant: 'destructive',
+      })
+      if (error.message?.includes('404') || error.message?.includes('not found')) {
+        router.push('/merchant/setup')
+      }
     } finally {
       setLoading(false)
     }

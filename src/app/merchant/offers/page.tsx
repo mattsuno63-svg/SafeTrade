@@ -52,12 +52,28 @@ export default function MerchantOffersPage() {
 
   const fetchOffers = async () => {
     try {
+      setLoading(true)
       const res = await fetch('/api/merchant/offers')
-      if (!res.ok) throw new Error('Failed to fetch offers')
-      const data = await res.json()
-      setOffers(data)
-    } catch (error) {
+      if (res.ok) {
+        const data = await res.json()
+        setOffers(Array.isArray(data) ? data : [])
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        if (res.status === 404) {
+          // No shop found - this is ok, just show empty state
+          setOffers([])
+        } else {
+          throw new Error(errorData.error || 'Failed to fetch offers')
+        }
+      }
+    } catch (error: any) {
       console.error('Error fetching offers:', error)
+      toast({
+        title: 'Errore',
+        description: error.message || 'Impossibile caricare le offerte',
+        variant: 'destructive',
+      })
+      setOffers([]) // Set empty array on error to show empty state
     } finally {
       setLoading(false)
     }

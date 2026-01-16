@@ -61,18 +61,33 @@ export default function ShopSetupPage() {
 
   const checkExistingShop = async () => {
     try {
+      setLoading(true)
       const res = await fetch('/api/merchant/shop')
       if (res.ok) {
         const shop = await res.json()
         setExistingShop(shop)
-        const openingHours = shop.openingHours ? JSON.parse(shop.openingHours) : {
-          monday: { open: '09:00', close: '18:00', closed: false },
-          tuesday: { open: '09:00', close: '18:00', closed: false },
-          wednesday: { open: '09:00', close: '18:00', closed: false },
-          thursday: { open: '09:00', close: '18:00', closed: false },
-          friday: { open: '09:00', close: '18:00', closed: false },
-          saturday: { open: '09:00', close: '18:00', closed: false },
-          sunday: { open: '', close: '', closed: true },
+        let openingHours
+        try {
+          openingHours = shop.openingHours ? JSON.parse(shop.openingHours) : {
+            monday: { open: '09:00', close: '18:00', closed: false },
+            tuesday: { open: '09:00', close: '18:00', closed: false },
+            wednesday: { open: '09:00', close: '18:00', closed: false },
+            thursday: { open: '09:00', close: '18:00', closed: false },
+            friday: { open: '09:00', close: '18:00', closed: false },
+            saturday: { open: '09:00', close: '18:00', closed: false },
+            sunday: { open: '', close: '', closed: true },
+          }
+        } catch (parseError) {
+          console.error('Error parsing opening hours:', parseError)
+          openingHours = {
+            monday: { open: '09:00', close: '18:00', closed: false },
+            tuesday: { open: '09:00', close: '18:00', closed: false },
+            wednesday: { open: '09:00', close: '18:00', closed: false },
+            thursday: { open: '09:00', close: '18:00', closed: false },
+            friday: { open: '09:00', close: '18:00', closed: false },
+            saturday: { open: '09:00', close: '18:00', closed: false },
+            sunday: { open: '', close: '', closed: true },
+          }
         }
         
         setFormData({
@@ -94,9 +109,24 @@ export default function ShopSetupPage() {
           coverImage: shop.coverImage || '',
           galleryImages: shop.images || [],
         })
+      } else if (res.status === 404) {
+        // No existing shop - this is ok, user can create one
+        setExistingShop(null)
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to fetch shop')
       }
-    } catch (error) {
-      // No existing shop
+    } catch (error: any) {
+      console.error('Error fetching shop:', error)
+      // No existing shop or error - user can still create/update
+      setExistingShop(null)
+      if (error.message && !error.message.includes('404')) {
+        toast({
+          title: 'Errore',
+          description: error.message || 'Impossibile caricare i dati del negozio',
+          variant: 'destructive',
+        })
+      }
     } finally {
       setLoading(false)
     }

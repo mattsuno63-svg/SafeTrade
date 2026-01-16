@@ -57,18 +57,28 @@ export default function MerchantPromosPage() {
 
   const fetchPromos = async () => {
     try {
+      setLoading(true)
       const res = await fetch('/api/merchant/promos')
       if (res.ok) {
         const data = await res.json()
-        setPromos(data)
+        setPromos(Array.isArray(data) ? data : [])
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        if (res.status === 404) {
+          // No shop found - this is ok, just show empty state
+          setPromos([])
+        } else {
+          throw new Error(errorData.error || 'Failed to fetch promos')
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching promos:', error)
       toast({
         title: 'Errore',
-        description: 'Impossibile caricare le promozioni',
+        description: error.message || 'Impossibile caricare le promozioni',
         variant: 'destructive'
       })
+      setPromos([]) // Set empty array on error to show empty state
     } finally {
       setLoading(false)
     }

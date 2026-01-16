@@ -343,7 +343,7 @@ export default function MerchantShopPage() {
           </div>
 
           {/* Shop Landing Page Banner */}
-          {shop?.slug && (
+          {shop?.slug ? (
             <Card className="glass-panel p-4 mb-8 bg-gradient-to-r from-primary/10 via-orange-500/10 to-purple-500/10 border border-primary/20">
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-3">
@@ -355,28 +355,101 @@ export default function MerchantShopPage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       <span className="font-mono text-primary font-semibold">safetrade.com/shops/{shop.slug}</span>
                     </p>
+                    {!shop.isApproved && (
+                      <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                        ⚠️ Il negozio non è ancora approvato. Il link sarà disponibile dopo l'approvazione.
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Link
-                    href={`/shops/${shop.slug}`}
-                    target="_blank"
-                  >
-                    <Button size="sm" className="bg-primary hover:bg-primary-dark text-white font-semibold">
-                      <span className="material-symbols-outlined mr-1 text-sm">open_in_new</span>
-                      Visualizza Sito
+                  {shop.isApproved ? (
+                    <Link
+                      href={`/shops/${shop.slug}`}
+                      target="_blank"
+                    >
+                      <Button size="sm" className="bg-primary hover:bg-primary-dark text-white font-semibold">
+                        <span className="material-symbols-outlined mr-1 text-sm">open_in_new</span>
+                        Visualizza Sito
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button size="sm" disabled className="bg-gray-400 text-white font-semibold cursor-not-allowed">
+                      <span className="material-symbols-outlined mr-1 text-sm">lock</span>
+                      In Attesa di Approvazione
                     </Button>
-                  </Link>
+                  )}
+                  {shop.isApproved && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        const link = `${window.location.origin}/shops/${shop.slug}`
+                        try {
+                          // Try modern clipboard API first
+                          if (navigator.clipboard && navigator.clipboard.writeText) {
+                            await navigator.clipboard.writeText(link)
+                            toast({
+                              title: 'Link copiato!',
+                              description: 'Il link è stato copiato negli appunti',
+                            })
+                          } else {
+                            // Fallback for older browsers
+                            const textArea = document.createElement('textarea')
+                            textArea.value = link
+                            textArea.style.position = 'fixed'
+                            textArea.style.left = '-999999px'
+                            document.body.appendChild(textArea)
+                            textArea.focus()
+                            textArea.select()
+                            try {
+                              document.execCommand('copy')
+                              toast({
+                                title: 'Link copiato!',
+                                description: 'Il link è stato copiato negli appunti',
+                              })
+                            } catch (err) {
+                              // Last resort: show link to copy manually
+                              toast({
+                                title: 'Copia manuale',
+                                description: `Copia questo link: ${link}`,
+                                variant: 'default',
+                              })
+                            }
+                            document.body.removeChild(textArea)
+                          }
+                        } catch (error) {
+                          console.error('Failed to copy link:', error)
+                          toast({
+                            title: 'Errore',
+                            description: `Copia manualmente questo link: ${link}`,
+                            variant: 'destructive',
+                          })
+                        }
+                      }}
+                    >
+                      <span className="material-symbols-outlined mr-1 text-sm">content_copy</span>
+                      Copia Link
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card className="glass-panel p-4 mb-8 bg-yellow-500/10 border border-yellow-500/20">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-yellow-600 dark:text-yellow-400">info</span>
+                <div>
+                  <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">
+                    Il tuo negozio non ha ancora uno slug. Configura il negozio per generare il link pubblico.
+                  </p>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/shops/${shop.slug}`)
-                      alert('Link copiato!')
-                    }}
+                    onClick={() => router.push('/merchant/setup')}
+                    className="mt-2"
                   >
-                    <span className="material-symbols-outlined mr-1 text-sm">content_copy</span>
-                    Copia Link
+                    Configura Negozio
                   </Button>
                 </div>
               </div>
