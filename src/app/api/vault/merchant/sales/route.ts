@@ -75,18 +75,13 @@ export async function POST(request: NextRequest) {
     // SECURITY #7: Arrotonda prezzo a 2 decimali
     const soldPrice = Math.round(data.soldPrice * 100) / 100
 
-    // Get item with slot verification and estimated price
+    // Get item with slot verification
     const item = await prisma.vaultItem.findUnique({
       where: { id: data.itemId },
       include: {
         slot: {
           include: {
             case: true,
-          },
-        },
-        deposit: {
-          select: {
-            estimatedValue: true,
           },
         },
       },
@@ -154,7 +149,8 @@ export async function POST(request: NextRequest) {
     }
 
     // SECURITY #7: Validazione prezzo vendita
-    const estimatedValue = item.deposit?.estimatedValue || 0
+    // Usa priceFinal se disponibile, altrimenti 0 (nessun valore stimato)
+    const estimatedValue = item.priceFinal || 0
 
     // Verifica che prezzo sia ragionevole rispetto al valore stimato
     if (estimatedValue > 0) {

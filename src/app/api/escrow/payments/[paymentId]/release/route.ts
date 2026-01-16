@@ -104,13 +104,8 @@ export async function POST(
       )
     }
 
-    // SECURITY #9: Verify payment is not already released
-    if (payment.status === 'RELEASED') {
-      return NextResponse.json(
-        { error: 'Payment has already been released' },
-        { status: 400 }
-      )
-    }
+    // SECURITY #9: Payment status already verified as 'HELD' above (line 74)
+    // No need to check for 'RELEASED' as TypeScript knows it's 'HELD' at this point
 
     // Verifica se esiste già una pending release per questo pagamento
     const existingPendingRelease = await prisma.pendingRelease.findFirst({
