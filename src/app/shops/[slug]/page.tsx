@@ -214,13 +214,14 @@ export default async function ShopPage({ params }: PageProps) {
       <div className="relative h-[300px] md:h-[400px]">
         {/* Cover Image */}
         <div className="absolute inset-0 z-0 text-white">
-          {shop.coverImage ? (
+          {shop.coverImage && shop.coverImage.trim() ? (
             <Image
               src={shop.coverImage}
               alt="Cover"
               fill
               className="object-cover"
               priority
+              unoptimized={shop.coverImage.includes('supabase.co')}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-r from-gray-800 to-gray-900" />
@@ -236,12 +237,13 @@ export default async function ShopPage({ params }: PageProps) {
               <div className="flex items-start gap-4 md:gap-6">
                 {/* Logo */}
                 <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-md flex-shrink-0 bg-gray-100 dark:bg-gray-800 relative">
-                  {shop.logo ? (
+                  {shop.logo && shop.logo.trim() ? (
                     <Image
                       src={shop.logo}
                       alt="Logo"
                       fill
                       className="object-cover"
+                      unoptimized={shop.logo.includes('supabase.co')}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-400">
@@ -399,12 +401,13 @@ export default async function ShopPage({ params }: PageProps) {
                     <Link key={item.id} href={`/listings/${item.id}`} className="group">
                       <Card className="flex items-start gap-4 p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors h-full">
                         <div className="w-24 h-24 bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0 relative">
-                          {item.images && item.images.length > 0 && item.images[0] ? (
+                          {item.images && item.images.length > 0 && item.images[0] && item.images[0].trim() ? (
                             <Image
                               src={item.images[0]}
                               alt={item.title}
                               fill
                               className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              unoptimized={item.images[0].includes('supabase.co')}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -459,14 +462,30 @@ export default async function ShopPage({ params }: PageProps) {
                   <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">Galleria</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-2 rounded-xl overflow-hidden">
-                  <div className="col-span-2 h-40 bg-gray-200 dark:bg-gray-800 relative">
-                    <Image src={shopImages[0]} fill className="object-cover" alt="Shop 1" />
-                  </div>
-                  {shopImages.slice(1, 3).map((img, i) => (
-                    <div key={i} className="h-24 bg-gray-200 dark:bg-gray-800 relative">
-                      <Image src={img} fill className="object-cover" alt={`Shop ${i + 2}`} />
+                  {shopImages[0] && shopImages[0].trim() && (
+                    <div className="col-span-2 h-40 bg-gray-200 dark:bg-gray-800 relative">
+                      <Image 
+                        src={shopImages[0]} 
+                        fill 
+                        className="object-cover" 
+                        alt="Shop 1"
+                        unoptimized={shopImages[0].includes('supabase.co')}
+                      />
                     </div>
-                  ))}
+                  )}
+                  {shopImages.slice(1, 3).map((img, i) => 
+                    img && img.trim() ? (
+                      <div key={i} className="h-24 bg-gray-200 dark:bg-gray-800 relative">
+                        <Image 
+                          src={img} 
+                          fill 
+                          className="object-cover" 
+                          alt={`Shop ${i + 2}`}
+                          unoptimized={img.includes('supabase.co')}
+                        />
+                      </div>
+                    ) : null
+                  )}
                 </div>
               </section>
             )}

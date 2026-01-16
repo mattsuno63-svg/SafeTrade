@@ -5,10 +5,10 @@ const nextConfig = {
   outputFileTracing: false,
   images: {
     remotePatterns: [
-      // Rimuoviamo temporaneamente il pattern problematico *.supabase.co
-      // Le immagini Supabase useranno tag <img> normali invece di next/image
-      // Se necessario, possiamo aggiungere domini specifici come:
-      // { protocol: 'https', hostname: 'your-project-id.supabase.co' }
+      {
+        protocol: 'https',
+        hostname: 'iltjqmorddgrkterjezj.supabase.co',
+      },
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
