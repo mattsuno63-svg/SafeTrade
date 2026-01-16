@@ -108,10 +108,16 @@ if (user.role !== 'ADMIN' && session.merchantId !== user.id) {
 **Controlli Aggiuntivi da Verificare**:
 - [x] Controllo merchant autorizzato per escrow ✅
 - [x] Controllo merchant autorizzato per Vault slots ✅ (linea 189)
-- [ ] Verificare che il controllo funzioni anche per endpoint `/merchant/verify/[qrCode]`
-- [ ] Aggiungere logging per tentativi di accesso non autorizzati
+- [x] Verificato controllo per endpoint `/merchant/verify/[qrCode]` ✅
+- [x] Aggiunto logging completo per tentativi di accesso non autorizzati ✅
 
-**Priorità**: ✅ COMPLETATO (verificare endpoint aggiuntivi)
+**Logging Implementato**:
+- ✅ Tabella `SecurityAuditLog` creata in schema Prisma
+- ✅ Utility `src/lib/security/audit.ts` per logging sicurezza
+- ✅ Logging in tutti gli endpoint QR code con eventi: `QR_SCAN_UNAUTHORIZED`, `QR_SCAN_EXPIRED`, `ROLE_ACCESS_DENIED`, `VAULT_ACCESS_UNAUTHORIZED`, `ESCROW_SESSION_ACCESS_UNAUTHORIZED`
+- ✅ Alert admin automatico se > 5 tentativi falliti in 10 minuti
+
+**Priorità**: ✅ COMPLETATO
 
 ---
 
