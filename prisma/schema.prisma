@@ -106,9 +106,12 @@ model User {
   escrowHubReviews         EscrowHubReview[] @relation("EscrowHubReviewer")
 
   // Community Relations
-  posts    Post[]
-  comments Comment[]
-  badges   UserBadge[]
+  posts         Post[]
+  comments      Comment[]
+  badges        UserBadge[]
+  postVotes     PostVote[]       @relation("PostVotes")
+  commentVotes  CommentVote[]     @relation("CommentVotes")
+  createdTopics Topic[]           @relation("SubredditCreator")
 
   // Premium & Subscription
   subscription       UserSubscription?
@@ -862,6 +865,17 @@ model Topic {
   // Premium Community (Insider Circle)
   isPremiumOnly Boolean @default(false)
   requiredTier  String? // "PREMIUM", "PRO", null = public
+  
+  // Subreddit-style features
+  creatorId   String? // User who created this subreddit
+  creator    User?    @relation("SubredditCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  memberCount Int     @default(0) // Number of members
+  rules       String? @db.Text // Subreddit rules
+  bannerImage String? // Banner image URL
+  isNSFW      Boolean @default(false) // Not Safe For Work flag
+  
+  @@index([creatorId])
+  @@index([slug])
 }
 
 model Post {
@@ -887,11 +901,15 @@ model Post {
   isFlagged      Boolean @default(false)
   flagReason     String?
   karmaChange    Int     @default(0) // Karma gained/lost from this post
+  
+  // Voting system
+  votes PostVote[]
 
   @@index([topicId])
   @@index([authorId])
   @@index([createdAt])
   @@index([isFlagged])
+  @@index([upvotes])
 }
 
 model Comment {
@@ -906,10 +924,44 @@ model Comment {
   replies   Comment[] @relation("CommentReplies")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  
+  // Voting system
+  upvotes   Int       @default(0)
+  downvotes Int       @default(0)
+  votes     CommentVote[]
 
   @@index([postId])
   @@index([authorId])
   @@index([parentId])
+}
+
+// Voting models
+model PostVote {
+  id     String @id @default(cuid())
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("PostVotes", fields: [userId], references: [id], onDelete: Cascade)
+  vote   Int    // 1 for upvote, -1 for downvote
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model CommentVote {
+  id        String   @id @default(cuid())
+  commentId String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("CommentVotes", fields: [userId], references: [id], onDelete: Cascade)
+  vote      Int      // 1 for upvote, -1 for downvote
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
 }
 
 // ============= BADGES SYSTEM =============

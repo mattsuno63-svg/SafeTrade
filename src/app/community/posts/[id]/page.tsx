@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -17,6 +17,101 @@ import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useUser } from '@/hooks/use-user'
 import { useToast } from '@/hooks/use-toast'
+
+// Vote Column Component
+function VoteColumn({ postId, initialUpvotes, initialDownvotes }: { postId: string, initialUpvotes: number, initialDownvotes: number }) {
+  const { user } = useUser()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [upvotes, setUpvotes] = useState(initialUpvotes)
+  const [downvotes, setDownvotes] = useState(initialDownvotes)
+  const [userVote, setUserVote] = useState<number | null>(null)
+
+  // Fetch user's vote
+  useEffect(() => {
+    if (user) {
+      fetch(`/api/community/posts/${postId}/vote`)
+        .then(res => res.json())
+        .then(data => setUserVote(data.vote))
+        .catch(() => {})
+    }
+  }, [user, postId])
+
+  const voteMutation = useMutation({
+    mutationFn: async (vote: number) => {
+      const res = await fetch(`/api/community/posts/${postId}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vote }),
+      })
+      if (!res.ok) throw new Error('Failed to vote')
+      return res.json()
+    },
+    onSuccess: (data) => {
+      setUpvotes(data.post.upvotes)
+      setDownvotes(data.post.downvotes)
+      setUserVote(data.userVote)
+      queryClient.invalidateQueries({ queryKey: ['post', postId] })
+    },
+    onError: () => {
+      if (!user) {
+        toast({
+          title: 'Accesso richiesto',
+          description: 'Devi essere loggato per votare',
+          variant: 'destructive',
+        })
+      }
+    },
+  })
+
+  const handleVote = (vote: number) => {
+    if (!user) {
+      toast({
+        title: 'Accesso richiesto',
+        description: 'Devi essere loggato per votare',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // If clicking same vote, remove it
+    if (userVote === vote) {
+      voteMutation.mutate(0)
+    } else {
+      voteMutation.mutate(vote)
+    }
+  }
+
+  const score = upvotes - downvotes
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        className={`h-10 w-10 rounded-full hover:bg-orange-100 hover:text-orange-500 ${
+          userVote === 1 ? 'bg-orange-100 text-orange-500' : ''
+        }`}
+        onClick={() => handleVote(1)}
+        disabled={voteMutation.isPending}
+      >
+        <span className="material-symbols-outlined text-2xl">arrow_upward</span>
+      </Button>
+      <span className="font-bold font-mono text-lg">{score}</span>
+      <Button
+        variant="ghost"
+        size="icon"
+        className={`h-10 w-10 rounded-full hover:bg-blue-100 hover:text-blue-500 ${
+          userVote === -1 ? 'bg-blue-100 text-blue-500' : ''
+        }`}
+        onClick={() => handleVote(-1)}
+        disabled={voteMutation.isPending}
+      >
+        <span className="material-symbols-outlined text-2xl">arrow_downward</span>
+      </Button>
+    </div>
+  )
+}
 
 export default function PostPage() {
     const { id } = useParams()
@@ -82,20 +177,16 @@ export default function PostPage() {
                 {/* Main Post Card */}
                 <Card className="p-6 mb-8 overflow-hidden relative border-[1px] border-primary/60 dark:border-primary/50">
                     {/* Header */}
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="flex flex-col items-center">
-                            <span className="material-symbols-outlined text-gray-400 hover:text-orange-500 text-2xl cursor-pointer">arrow_upward</span>
-                            <span className="font-bold font-mono text-lg">{(post.views / 10).toFixed(0)}</span>
-                            <span className="material-symbols-outlined text-gray-400 hover:text-blue-500 text-2xl cursor-pointer">arrow_downward</span>
-                        </div>
+                    <div className="flex items-start gap-3 mb-6">
+                        <VoteColumn postId={post.id} initialUpvotes={post.upvotes || 0} initialDownvotes={post.downvotes || 0} />
 
                         <div className="w-full">
                             <div className="flex items-center gap-2 mb-2">
                                 <Badge variant="outline" className="flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-[14px]">{post.topic.icon}</span>
-                                    {post.topic.name}
+                                    <span className="material-symbols-outlined text-[14px]">{post.topic?.icon || 'tag'}</span>
+                                    {post.topic?.name || 'Unknown'}
                                 </Badge>
-                                <span className="text-sm text-gray-500">• Posted by {post.author.name} {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: it })}</span>
+                                <span className="text-sm text-gray-500">• Posted by {post.author?.name || 'Unknown'} {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: it })}</span>
                             </div>
                             <h1 className="text-2xl md:text-3xl font-bold mb-4">{post.title}</h1>
                             <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
@@ -107,7 +198,11 @@ export default function PostPage() {
                     <div className="flex items-center gap-4 text-sm text-gray-500 border-t pt-4 dark:border-white/10">
                         <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined">chat_bubble</span>
-                            {post.comments.length} Commenti
+                            {post.comments?.length || 0} Commenti
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined">visibility</span>
+                            {post.views || 0} Views
                         </div>
                         <div className="flex items-center gap-2 ml-auto">
                             <span className="material-symbols-outlined">share</span>
@@ -142,7 +237,7 @@ export default function PostPage() {
 
                     {/* Comments List */}
                     <div className="space-y-4">
-                        {post.comments.map((comment: any) => (
+                        {post.comments?.map((comment: any) => (
                             <Card key={comment.id} className="p-4 bg-gray-50 dark:bg-white/5 border-none">
                                 <div className="flex gap-3">
                                     <Avatar className="w-8 h-8">
