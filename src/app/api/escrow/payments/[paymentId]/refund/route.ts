@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
+import { validateAmountPositive, validateAmountLimit } from '@/lib/security/amount-validation'
+
+export const dynamic = 'force-dynamic'
 
 // POST - Refund funds to buyer (called if transaction fails or is disputed)
 export async function POST(
@@ -72,11 +75,45 @@ export async function POST(
       )
     }
 
+    // SECURITY #9: Verify transaction is not already completed
+    if (payment.transaction.status === 'COMPLETED') {
+      return NextResponse.json(
+        { error: 'Transaction has already been completed. Refund must be processed through dispute system.' },
+        { status: 400 }
+      )
+    }
+
+    // SECURITY #9: Verify payment status
+    if (payment.status === 'RELEASED') {
+      return NextResponse.json(
+        { error: 'Payment has already been released. Cannot refund.' },
+        { status: 400 }
+      )
+    }
+
+    if (payment.status === 'REFUNDED') {
+      return NextResponse.json(
+        { error: 'Payment has already been refunded' },
+        { status: 400 }
+      )
+    }
+
     if (payment.status !== 'HELD' && payment.status !== 'PENDING') {
       return NextResponse.json(
         { error: `Payment cannot be refunded. Current status: ${payment.status}` },
         { status: 400 }
       )
+    }
+
+    // SECURITY #15: Validazione amount del payment
+    const positiveCheck = validateAmountPositive(payment.amount)
+    if (!positiveCheck.valid) {
+      return NextResponse.json({ error: positiveCheck.reason }, { status: 400 })
+    }
+
+    const limitCheck = validateAmountLimit(payment.amount)
+    if (!limitCheck.valid) {
+      return NextResponse.json({ error: limitCheck.reason }, { status: 400 })
     }
 
     // Verifica se esiste già una pending release per questo rimborso

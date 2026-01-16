@@ -2,8 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { logSecurityEvent } from '@/lib/security/audit'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
+
+// SECURITY #5: Schema Zod per validazione QR code
+const qrCodeSchema = z.string()
+  .min(1, 'QR code non può essere vuoto')
+  .max(255, 'QR code troppo lungo (max 255 caratteri)')
+  .refine(
+    (val) => {
+      // Verifica che non contenga script injection o caratteri pericolosi
+      const dangerousPatterns = [
+        /<script/i,
+        /javascript:/i,
+        /on\w+\s*=/i,
+        /eval\(/i,
+        /expression\(/i,
+      ]
+      return !dangerousPatterns.some(pattern => pattern.test(val))
+    },
+    { message: 'QR code contiene caratteri non validi o potenzialmente pericolosi' }
+  )
 
 /**
  * GET /api/merchant/verify/[qrCode]
@@ -18,7 +38,39 @@ export async function GET(
     const user = await requireAuth()
     // Handle both Promise and non-Promise params (Next.js 14 vs 15)
     const resolvedParams = 'then' in params ? await params : params
-    const { qrCode } = resolvedParams
+    let { qrCode } = resolvedParams
+
+    // SECURITY #5: Validazione e sanitizzazione QR code
+    const validationResult = qrCodeSchema.safeParse(qrCode)
+    if (!validationResult.success) {
+      // Log tentativo con QR code non valido
+      await logSecurityEvent({
+        eventType: 'QR_SCAN_UNAUTHORIZED',
+        attemptedById: user.id,
+        endpoint: `/api/merchant/verify/${qrCode}`,
+        method: 'GET',
+        resourceId: qrCode,
+        resourceType: 'QR_CODE',
+        request,
+        wasBlocked: true,
+        reason: `Invalid QR code format: ${validationResult.error.errors.map(e => e.message).join(', ')}`,
+        severity: 'MEDIUM',
+        metadata: { validationErrors: validationResult.error.errors },
+      })
+
+      return NextResponse.json(
+        { 
+          error: 'QR code non valido',
+          details: validationResult.error.errors.map(e => e.message),
+        },
+        { status: 400 }
+      )
+    }
+
+    // Sanitizzazione aggiuntiva
+    qrCode = validationResult.data
+      .replace(/[\x00-\x1F\x7F]/g, '') // Rimuovi caratteri di controllo
+      .trim()
 
     // Verifica che l'utente sia un merchant o admin
     if (user.role !== 'MERCHANT' && user.role !== 'ADMIN') {

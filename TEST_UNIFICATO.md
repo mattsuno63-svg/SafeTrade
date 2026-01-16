@@ -492,12 +492,39 @@
 ### **TEST #19: Validazione QR Code** 🔴
 **Priorità**: 🔴 ALTA (SECURITY #5)
 
-**Test**:
+**Test Validazione Zod**:
 - [ ] QR code formato valido → Accettato
-- [ ] QR code formato non valido → Errore 400
-- [ ] QR code troppo lungo (> 255 caratteri) → Errore 400
-- [ ] QR code contiene script injection → Bloccato
-- [ ] QR code esiste nel database → Verificato
+- [ ] QR code vuoto → Errore 400 con messaggio "QR code non può essere vuoto"
+- [ ] QR code troppo lungo (> 500 caratteri per scan, > 255 per direct) → Errore 400
+- [ ] QR code contiene `<script>` → Bloccato con messaggio "QR code contiene caratteri non validi"
+- [ ] QR code contiene `javascript:` → Bloccato
+- [ ] QR code contiene `onclick=` → Bloccato
+- [ ] QR code contiene `eval(` → Bloccato
+- [ ] QR code contiene `expression(` → Bloccato
+- [ ] QR code con caratteri di controllo (0x00-0x1F, 0x7F) → Sanitizzato
+
+**Test Sanitizzazione**:
+- [ ] Caratteri di controllo rimossi correttamente
+- [ ] Trim applicato correttamente
+- [ ] QR code vuoto dopo sanitizzazione → Errore 400
+
+**Test Endpoint `/api/merchant/verify/scan`**:
+- [ ] Body non valido (non JSON) → Errore 400
+- [ ] QR code mancante nel body → Errore 400
+- [ ] QR code JSON string valido → Parsato correttamente
+- [ ] QR code URL format `/merchant/verify/...` → Parsato correttamente
+- [ ] QR code URL format `/scan/...` (Vault) → Parsato correttamente
+- [ ] QR code diretto (stringa) → Parsato correttamente
+- [ ] Errore parsing → Loggato come `QR_SCAN_UNAUTHORIZED` con severity `MEDIUM`
+
+**Test Endpoint `/api/merchant/verify/[qrCode]`**:
+- [ ] QR code nel path validato con Zod
+- [ ] QR code non valido nel path → Errore 400 con dettagli
+- [ ] Log creato per tentativo non valido
+
+**File da testare**:
+- `src/app/api/merchant/verify/scan/route.ts`
+- `src/app/api/merchant/verify/[qrCode]/route.ts`
 
 ---
 
@@ -523,14 +550,165 @@
 
 ---
 
+### **TEST #23: Validazione Prezzo Vendita Vault** 🔴
+**Priorità**: 🔴 ALTA (SECURITY #7)
+
+**Test Range Prezzo**:
+- [ ] Prezzo < €0.01 → Errore 400 "Il prezzo minimo è €0.01"
+- [ ] Prezzo > €100,000 → Errore 400 "Il prezzo massimo è €100,000"
+- [ ] Prezzo negativo → Errore 400 "Il prezzo deve essere positivo"
+- [ ] Prezzo con più di 2 decimali → Arrotondato a 2 decimali
+- [ ] Prezzo valido (€10.50) → Accettato
+
+**Test Arrotondamento**:
+- [ ] €10.123 → Arrotondato a €10.12
+- [ ] €10.126 → Arrotondato a €10.13
+- [ ] €0.001 → Arrotondato a €0.01
+
+**Test Anomalie Prezzo**:
+- [ ] Prezzo > 200% del valore stimato → Alert admin creato
+- [ ] Alert ha tipo `URGENT_ACTION` e priority `HIGH`
+- [ ] Alert contiene: soldPrice, estimatedValue, priceRatio, itemId, merchant email
+- [ ] Log security event creato con severity `HIGH`
+- [ ] Vendita non bloccata (solo alertato)
+
+**Test Conferma Vendite Grandi**:
+- [ ] Vendita > €500 senza `requiresConfirmation: true` → Errore 400
+- [ ] Messaggio errore: "Vendite superiori a €500 richiedono conferma esplicita"
+- [ ] Vendita > €500 con `requiresConfirmation: true` → Accettata
+- [ ] Vendita ≤ €500 → Accettata senza conferma
+
+**Test Split e Audit**:
+- [ ] Split calcolato correttamente con prezzo arrotondato
+- [ ] VaultSale creato con soldPrice arrotondato
+- [ ] VaultSplit creato con grossAmount arrotondato
+- [ ] Audit log creato con prezzo corretto
+
+**File da testare**:
+- `src/app/api/vault/merchant/sales/route.ts`
+
+---
+
+### **TEST #24: Validazione Stato Transazione** 🔴
+**Priorità**: 🔴 ALTA (SECURITY #9)
+
+**Test Endpoint `/api/transactions/[id]/verify`**:
+- [ ] Transazione già `COMPLETED` → Errore 400 "Transaction has already been completed"
+- [ ] Transazione già `CANCELLED` → Errore 400 "Transaction has been cancelled"
+- [ ] PendingRelease già esistente → Errore 400 "A pending release is already in progress"
+- [ ] Transazione `PENDING` → Accettata
+
+**Test Endpoint `/api/escrow/payments/[paymentId]/release`**:
+- [ ] Transazione `CANCELLED` → Errore 400 "Transaction has been cancelled"
+- [ ] Transazione non `COMPLETED` → Errore 400 "Transaction must be completed"
+- [ ] Payment già `RELEASED` → Errore 400 "Payment has already been released"
+- [ ] Payment `HELD` e transazione `COMPLETED` → Accettato
+
+**Test Endpoint `/api/escrow/payments/[paymentId]/refund`**:
+- [ ] Transazione già `COMPLETED` → Errore 400 "Transaction has already been completed"
+- [ ] Payment già `RELEASED` → Errore 400 "Payment has already been released"
+- [ ] Payment già `REFUNDED` → Errore 400 "Payment has already been refunded"
+- [ ] Payment `HELD` o `PENDING` e transazione non `COMPLETED` → Accettato
+
+**Test Endpoint `/api/escrow/payments/[paymentId]/hold`**:
+- [ ] Payment già `HELD` → Errore 400 "Payment cannot be held. Current status: HELD"
+- [ ] Payment `PENDING` → Accettato
+
+**File da testare**:
+- `src/app/api/transactions/[id]/verify/route.ts`
+- `src/app/api/escrow/payments/[paymentId]/hold/route.ts`
+- `src/app/api/escrow/payments/[paymentId]/release/route.ts`
+- `src/app/api/escrow/payments/[paymentId]/refund/route.ts`
+
+---
+
+### **TEST #25: Validazione Fee** 🔴
+**Priorità**: 🔴 ALTA (SECURITY #10)
+
+**Test Validazione Input**:
+- [ ] `feePercentage` < 0 → Errore 400 "feePercentage deve essere tra 0 e 20%"
+- [ ] `feePercentage` > 20 → Errore 400 "feePercentage deve essere tra 0 e 20%"
+- [ ] `feePercentage` tra 0 e 20 → Accettato
+- [ ] `feePaidBy` non valido (es. "INVALID") → Errore 400
+- [ ] `feePaidBy` valido ("SELLER", "BUYER", "SPLIT") → Accettato
+
+**Test Calcolo Server-Side**:
+- [ ] Fee calcolata sempre server-side (ignora modifiche client)
+- [ ] Fee calcolata con `calculateEscrowFee` utility
+- [ ] Fee da proposta ha priorità su fee da body
+- [ ] FeePercentage da proposta ha priorità su feePercentage da body
+- [ ] Default feePercentage: 5% se non specificato
+- [ ] Default feePaidBy: "SELLER" se non specificato
+
+**Test Validazione Fee Calcolata**:
+- [ ] `feeAmount` non negativo → Verificato
+- [ ] `feeAmount` non supera `totalAmount` → Verificato
+- [ ] Se `feeAmount` invalido → Errore 500 "Errore nel calcolo delle fee"
+
+**Test EscrowSession**:
+- [ ] EscrowSession creato con fee calcolate server-side
+- [ ] `feePercentage`, `feeAmount`, `feePaidBy`, `finalAmount` salvati correttamente
+- [ ] Fee non modificabili dopo creazione transazione
+
+**Test Scenari**:
+- [ ] Prezzo €100, Fee 5%, SELLER → feeAmount €5, finalAmount €95
+- [ ] Prezzo €100, Fee 5%, BUYER → feeAmount €5, finalAmount €100
+- [ ] Prezzo €100, Fee 5%, SPLIT → feeAmount €5, finalAmount €97.50
+- [ ] Prezzo €10.33, Fee 5% → feeAmount arrotondato correttamente
+
+**File da testare**:
+- `src/app/api/transactions/route.ts` (POST)
+- `src/lib/escrow-fee.ts`
+
+---
+
 ### **TEST #22: Validazione Importi** 🔴
 **Priorità**: 🔴 ALTA (SECURITY #15)
 
-**Test**:
-- [ ] Amount non negativo o zero → Errore 400
-- [ ] Amount non supera limite ragionevole (€100,000) → Errore 400
-- [ ] Amount corrisponde a quello nella sessione escrow
-- [ ] Arrotondamento a 2 decimali sempre
+**Test Validazione Base**:
+- [ ] Amount negativo → Errore 400 "L'importo deve essere positivo"
+- [ ] Amount zero → Errore 400 "L'importo minimo è €0.01"
+- [ ] Amount > €100,000 → Errore 400 "L'importo massimo è €100,000"
+- [ ] Amount con più di 2 decimali (es. 10.123) → Arrotondato a 10.12
+- [ ] Amount con 2 decimali (es. 10.12) → Accettato
+
+**Test Arrotondamento**:
+- [ ] €10.123 → Arrotondato a €10.12
+- [ ] €10.126 → Arrotondato a €10.13
+- [ ] €10.125 → Arrotondato a €10.13 (banker's rounding)
+- [ ] €0.001 → Arrotondato a €0.01
+- [ ] €999.999 → Arrotondato a €1000.00
+
+**Test Match Sessione Escrow**:
+- [ ] Amount corrisponde esattamente a `escrowSession.totalAmount` → Accettato
+- [ ] Amount entro 5% di tolleranza → Accettato
+- [ ] Amount fuori 5% di tolleranza → Errore 400 con dettagli
+- [ ] Messaggio errore include: expectedAmount, providedAmount, differenza
+
+**Test Endpoint `/api/escrow/payments` (POST)**:
+- [ ] Amount validato con Zod schema
+- [ ] Amount arrotondato prima di salvare
+- [ ] Amount verificato contro escrowSession.totalAmount
+- [ ] Payment creato con amount corretto (da escrowSession, non da client)
+
+**Test Endpoint `/api/escrow/payments/[paymentId]/hold`**:
+- [ ] Payment.amount validato (positivo, limite)
+- [ ] Payment.amount arrotondato correttamente
+
+**Test Endpoint `/api/escrow/payments/[paymentId]/release`**:
+- [ ] Payment.amount validato (positivo, limite)
+- [ ] Payment.amount arrotondato correttamente
+
+**Test Endpoint `/api/escrow/payments/[paymentId]/refund`**:
+- [ ] Payment.amount validato (positivo, limite)
+- [ ] Payment.amount arrotondato correttamente
+
+**File da testare**:
+- `src/lib/security/amount-validation.ts`
+- `src/app/api/escrow/payments/route.ts`
+- `src/app/api/escrow/payments/[paymentId]/hold/route.ts`
+- `src/app/api/escrow/payments/[paymentId]/release/route.ts`
+- `src/app/api/escrow/payments/[paymentId]/refund/route.ts`
 
 ---
 

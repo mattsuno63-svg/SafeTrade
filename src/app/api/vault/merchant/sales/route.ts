@@ -6,7 +6,10 @@ import { canTransitionItemStatus, canSellPhysically } from '@/lib/vault/state-ma
 import { calculateSplit } from '@/lib/vault/split-calculator'
 import { notifySaleComplete } from '@/lib/vault/notifications'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
+import { logSecurityEvent } from '@/lib/security/audit'
 import { z } from 'zod'
+
+export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/vault/merchant/sales
@@ -48,21 +51,42 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    // SECURITY #7: Validazione prezzo con range e arrotondamento
     const schema = z.object({
       itemId: z.string(),
-      soldPrice: z.number().positive(),
+      soldPrice: z.number()
+        .positive('Il prezzo deve essere positivo')
+        .min(0.01, 'Il prezzo minimo è €0.01')
+        .max(100000, 'Il prezzo massimo è €100,000')
+        .refine(
+          (val) => {
+            // Arrotonda a 2 decimali e verifica che non ci siano più di 2 decimali
+            const rounded = Math.round(val * 100) / 100
+            return Math.abs(val - rounded) < 0.001
+          },
+          { message: 'Il prezzo può avere massimo 2 decimali' }
+        ),
       proofImage: z.string().optional(),
+      requiresConfirmation: z.boolean().optional(), // Per vendite > €500
     })
 
     const data = schema.parse(body)
 
-    // Get item with slot verification
+    // SECURITY #7: Arrotonda prezzo a 2 decimali
+    const soldPrice = Math.round(data.soldPrice * 100) / 100
+
+    // Get item with slot verification and estimated price
     const item = await prisma.vaultItem.findUnique({
       where: { id: data.itemId },
       include: {
         slot: {
           include: {
             case: true,
+          },
+        },
+        deposit: {
+          select: {
+            estimatedValue: true,
           },
         },
       },
@@ -129,17 +153,72 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // SECURITY #7: Validazione prezzo vendita
+    const estimatedValue = item.deposit?.estimatedValue || 0
+
+    // Verifica che prezzo sia ragionevole rispetto al valore stimato
+    if (estimatedValue > 0) {
+      const priceRatio = soldPrice / estimatedValue
+      
+      // Alert admin se prezzo > 200% del valore stimato
+      if (priceRatio > 2.0) {
+        await prisma.adminNotification.create({
+          data: {
+            type: 'URGENT_ACTION',
+            referenceType: 'VAULT_SALE',
+            referenceId: data.itemId,
+            title: '⚠️ Vendita Vault: Prezzo anomalo',
+            message: `Vendita Vault con prezzo sospetto: €${soldPrice.toFixed(2)} (valore stimato: €${estimatedValue.toFixed(2)}, rapporto: ${(priceRatio * 100).toFixed(0)}%). Item ID: ${data.itemId}. Merchant: ${user.email}`,
+            targetRoles: ['ADMIN'],
+            priority: 'HIGH',
+          },
+        })
+
+        // Log security event
+        await logSecurityEvent({
+          eventType: 'VAULT_ACCESS_UNAUTHORIZED',
+          attemptedById: user.id,
+          endpoint: '/api/vault/merchant/sales',
+          method: 'POST',
+          resourceId: data.itemId,
+          resourceType: 'VAULT_ITEM',
+          request,
+          wasBlocked: false, // Non bloccato, ma alertato
+          reason: `Price anomaly: soldPrice (€${soldPrice}) is ${(priceRatio * 100).toFixed(0)}% of estimated value (€${estimatedValue})`,
+          severity: 'HIGH',
+          metadata: {
+            soldPrice,
+            estimatedValue,
+            priceRatio,
+            itemId: data.itemId,
+          },
+        })
+      }
+    }
+
+    // SECURITY #7: Richiedere conferma per vendite > €500
+    if (soldPrice > 500 && !data.requiresConfirmation) {
+      return NextResponse.json(
+        { 
+          error: 'Vendite superiori a €500 richiedono conferma esplicita',
+          requiresConfirmation: true,
+          soldPrice,
+        },
+        { status: 400 }
+      )
+    }
+
     // Calculate split
-    const split = calculateSplit(data.soldPrice)
+    const split = calculateSplit(soldPrice)
 
     // Create sale and update item in transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create sale
+      // Create sale (usa soldPrice arrotondato)
       const sale = await tx.vaultSale.create({
         data: {
           itemId: data.itemId,
           shopId: shop.id,
-          soldPrice: data.soldPrice,
+          soldPrice: soldPrice, // Prezzo arrotondato a 2 decimali
           proofImage: data.proofImage,
           createdByMerchantUserId: user.id,
         },
@@ -159,7 +238,7 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // Create split
+      // Create split (usa soldPrice arrotondato)
       const splitRecord = await tx.vaultSplit.create({
         data: {
           sourceType: 'SALE',
@@ -167,7 +246,7 @@ export async function POST(request: NextRequest) {
           itemId: data.itemId,
           ownerUserId: item.ownerUserId,
           shopId: shop.id,
-          grossAmount: data.soldPrice,
+          grossAmount: soldPrice, // Prezzo arrotondato a 2 decimali
           ownerAmount: split.ownerAmount,
           merchantAmount: split.merchantAmount,
           platformAmount: split.platformAmount,
@@ -186,7 +265,7 @@ export async function POST(request: NextRequest) {
       itemId: data.itemId,
       saleId: result.sale.id,
       oldValue: { status: item.status },
-      newValue: { status: 'SOLD', soldPrice: data.soldPrice },
+      newValue: { status: 'SOLD', soldPrice: soldPrice },
     })
 
     await createVaultAuditLog({

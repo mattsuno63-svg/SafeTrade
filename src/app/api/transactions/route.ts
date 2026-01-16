@@ -138,6 +138,25 @@ export async function POST(request: NextRequest) {
     const { requireEmailVerified } = await import('@/lib/auth')
     const user = await requireEmailVerified()
 
+    // SECURITY #10: Validazione feePercentage (deve essere nei limiti ragionevoli)
+    if (feePercentage !== undefined) {
+      if (feePercentage < 0 || feePercentage > 20) {
+        return NextResponse.json(
+          { error: 'feePercentage deve essere tra 0 e 20%' },
+          { status: 400 }
+        )
+      }
+    }
+
+    // SECURITY #10: Validazione feePaidBy (deve essere uno dei valori validi)
+    const validFeePaidBy = ['SELLER', 'BUYER', 'SPLIT']
+    if (feePaidBy && !validFeePaidBy.includes(feePaidBy)) {
+      return NextResponse.json(
+        { error: `feePaidBy deve essere uno di: ${validFeePaidBy.join(', ')}` },
+        { status: 400 }
+      )
+    }
+
     // If proposalId provided, get proposal details
     let userAId: string
     let userBId: string
@@ -252,16 +271,28 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Calculate fee and amounts - usa feePaidBy dalla proposta se disponibile
+    // SECURITY #10: Calculate fee and amounts server-side (usa feePaidBy dalla proposta se disponibile)
     const { calculateEscrowFee } = await import('@/lib/escrow-fee')
-    const actualFeePaidBy = proposalData?.feePaidBy || feePaidBy
+    const actualFeePaidBy = proposalData?.feePaidBy || feePaidBy || 'SELLER'
     const actualTotalAmount = totalAmount || proposalData?.offerPrice || 0
     
+    // SECURITY #10: Usa feePercentage dalla proposta se disponibile, altrimenti default 5%
+    const actualFeePercentage = proposalData?.feePercentage || feePercentage || 5.0
+    
+    // SECURITY #10: Ricalcola fee server-side per sicurezza (ignora eventuali modifiche client-side)
     const feeCalculation = calculateEscrowFee(
       actualTotalAmount,
-      feePercentage,
+      actualFeePercentage,
       actualFeePaidBy as 'SELLER' | 'BUYER' | 'SPLIT'
     )
+
+    // SECURITY #10: Verifica che fee calcolata sia valida
+    if (feeCalculation.feeAmount < 0 || feeCalculation.feeAmount > actualTotalAmount) {
+      return NextResponse.json(
+        { error: 'Errore nel calcolo delle fee. Riprova.' },
+        { status: 500 }
+      )
+    }
 
     // Generate unique QR code with crypto randomness for extra security
     const crypto = require('crypto')

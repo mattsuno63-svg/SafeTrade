@@ -3,8 +3,32 @@ import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { logSecurityEvent } from '@/lib/security/audit'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
+
+// SECURITY #5: Schema Zod per validazione QR code
+const qrDataSchema = z.string()
+  .min(1, 'QR code non può essere vuoto')
+  .max(500, 'QR code troppo lungo (max 500 caratteri)')
+  .refine(
+    (val) => {
+      // Verifica che non contenga script injection o caratteri pericolosi
+      const dangerousPatterns = [
+        /<script/i,
+        /javascript:/i,
+        /on\w+\s*=/i, // onclick, onerror, etc.
+        /eval\(/i,
+        /expression\(/i,
+      ]
+      return !dangerousPatterns.some(pattern => pattern.test(val))
+    },
+    { message: 'QR code contiene caratteri non validi o potenzialmente pericolosi' }
+  )
+
+const scanQRRequestSchema = z.object({
+  qrData: qrDataSchema,
+})
 
 /**
  * POST /api/merchant/verify/scan
@@ -57,19 +81,61 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const { qrData } = body
+    // SECURITY #5: Validazione input con Zod
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Body richiesta non valido' },
+        { status: 400 }
+      )
+    }
 
-    if (!qrData) {
-      return NextResponse.json({ error: 'QR code mancante' }, { status: 400 })
+    const validationResult = scanQRRequestSchema.safeParse(body)
+    if (!validationResult.success) {
+      // Log tentativo con input non valido
+      await logSecurityEvent({
+        eventType: 'QR_SCAN_UNAUTHORIZED',
+        attemptedById: user.id,
+        endpoint: '/api/merchant/verify/scan',
+        method: 'POST',
+        request,
+        wasBlocked: true,
+        reason: `Invalid QR code input: ${validationResult.error.errors.map(e => e.message).join(', ')}`,
+        severity: 'MEDIUM',
+        metadata: { validationErrors: validationResult.error.errors },
+      })
+
+      return NextResponse.json(
+        { 
+          error: 'QR code non valido',
+          details: validationResult.error.errors.map(e => e.message),
+        },
+        { status: 400 }
+      )
+    }
+
+    const { qrData } = validationResult.data
+
+    // SECURITY #5: Sanitizzazione aggiuntiva - rimuovi caratteri di controllo
+    const sanitizedQrData = qrData
+      .replace(/[\x00-\x1F\x7F]/g, '') // Rimuovi caratteri di controllo
+      .trim()
+
+    if (!sanitizedQrData) {
+      return NextResponse.json(
+        { error: 'QR code non valido dopo sanitizzazione' },
+        { status: 400 }
+      )
     }
 
     // Parse QR data (può essere JSON string o URL)
     let parsedData: any
     try {
-      if (qrData.startsWith('{')) {
-        parsedData = JSON.parse(qrData)
-      } else if (qrData.includes('/merchant/verify/')) {
+      if (sanitizedQrData.startsWith('{')) {
+        parsedData = JSON.parse(sanitizedQrData)
+      } else if (sanitizedQrData.includes('/merchant/verify/')) {
         // URL format: extract QR code from URL
         const qrCode = qrData.split('/merchant/verify/')[1]?.split('?')[0]
         if (qrCode) {
@@ -77,19 +143,35 @@ export async function POST(request: NextRequest) {
         } else {
           throw new Error('QR code non valido')
         }
-      } else if (qrData.includes('/scan/')) {
+      } else if (sanitizedQrData.includes('/scan/')) {
         // Vault slot scan URL
-        const qrToken = qrData.split('/scan/')[1]?.split('?')[0]
-        if (qrToken) {
+        const qrToken = sanitizedQrData.split('/scan/')[1]?.split('?')[0]
+        if (qrToken && qrToken.length <= 255) {
           parsedData = { type: 'VAULT_SLOT', qrToken }
         } else {
-          throw new Error('QR token non valido')
+          throw new Error('QR token non valido o troppo lungo')
         }
       } else {
         // Assume it's a direct QR code string
-        parsedData = { type: 'ESCROW', qrCode: qrData }
+        // SECURITY #5: Verifica lunghezza massima per QR code diretto
+        if (sanitizedQrData.length > 255) {
+          throw new Error('QR code troppo lungo (max 255 caratteri)')
+        }
+        parsedData = { type: 'ESCROW', qrCode: sanitizedQrData }
       }
     } catch (parseError) {
+      // Log errore parsing
+      await logSecurityEvent({
+        eventType: 'QR_SCAN_UNAUTHORIZED',
+        attemptedById: user.id,
+        endpoint: '/api/merchant/verify/scan',
+        method: 'POST',
+        request,
+        wasBlocked: true,
+        reason: `QR code parsing error: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+        severity: 'MEDIUM',
+      })
+
       return NextResponse.json(
         { error: 'QR code non valido o formato non supportato' },
         { status: 400 }

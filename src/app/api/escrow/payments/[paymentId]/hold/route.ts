@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
+import { validateAmountPositive, validateAmountLimit } from '@/lib/security/amount-validation'
+
+export const dynamic = 'force-dynamic'
 
 // POST - Hold funds in escrow (called when payment is confirmed at store)
 export async function POST(
@@ -73,6 +76,17 @@ export async function POST(
         { error: `Payment cannot be held. Current status: ${payment.status}` },
         { status: 400 }
       )
+    }
+
+    // SECURITY #15: Validazione amount del payment
+    const positiveCheck = validateAmountPositive(payment.amount)
+    if (!positiveCheck.valid) {
+      return NextResponse.json({ error: positiveCheck.reason }, { status: 400 })
+    }
+
+    const limitCheck = validateAmountLimit(payment.amount)
+    if (!limitCheck.valid) {
+      return NextResponse.json({ error: limitCheck.reason }, { status: 400 })
     }
 
     // Update payment status

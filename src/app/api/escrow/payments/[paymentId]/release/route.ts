@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
+import { validateAmountPositive, validateAmountLimit } from '@/lib/security/amount-validation'
+
+export const dynamic = 'force-dynamic'
 
 // POST - Release funds to seller (called when transaction is verified)
 export async function POST(
@@ -75,10 +78,36 @@ export async function POST(
       )
     }
 
-    // Verify transaction is completed
+    // SECURITY #15: Validazione amount del payment
+    const positiveCheck = validateAmountPositive(payment.amount)
+    if (!positiveCheck.valid) {
+      return NextResponse.json({ error: positiveCheck.reason }, { status: 400 })
+    }
+
+    const limitCheck = validateAmountLimit(payment.amount)
+    if (!limitCheck.valid) {
+      return NextResponse.json({ error: limitCheck.reason }, { status: 400 })
+    }
+
+    // SECURITY #9: Verify transaction is completed and not cancelled
+    if (payment.transaction.status === 'CANCELLED') {
+      return NextResponse.json(
+        { error: 'Transaction has been cancelled. Funds cannot be released.' },
+        { status: 400 }
+      )
+    }
+
     if (payment.transaction.status !== 'COMPLETED') {
       return NextResponse.json(
         { error: 'Transaction must be completed before releasing funds' },
+        { status: 400 }
+      )
+    }
+
+    // SECURITY #9: Verify payment is not already released
+    if (payment.status === 'RELEASED') {
+      return NextResponse.json(
+        { error: 'Payment has already been released' },
         { status: 400 }
       )
     }

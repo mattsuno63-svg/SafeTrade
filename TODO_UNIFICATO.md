@@ -901,19 +901,20 @@ if (user.role !== 'ADMIN' && session.merchantId !== user.id) {
 ---
 
 #### **SECURITY #5: Validazione Input QR Code** 🔴
-**Stato**: Parzialmente implementato
+**Stato**: ✅ IMPLEMENTATO
 
 **Problema**: QR code può essere manipolato o iniettato con dati malevoli.
 
 **Soluzione**:
-- [ ] Validare formato QR code con Zod schema
-- [ ] Verificare che QR code esista nel database prima di processare
-- [ ] Sanitizzare tutti gli input QR code
-- [ ] Limite lunghezza QR code (max 255 caratteri)
-- [ ] Verificare che QR code non contenga script injection
+- [x] Validare formato QR code con Zod schema ✅
+- [x] Verificare che QR code esista nel database prima di processare ✅
+- [x] Sanitizzare tutti gli input QR code ✅
+- [x] Limite lunghezza QR code (max 500 caratteri per scan, 255 per direct) ✅
+- [x] Verificare che QR code non contenga script injection ✅
 
-**File da modificare**:
-- `src/app/api/merchant/verify/scan/route.ts` - Aggiungere validazione Zod
+**File modificati**:
+- `src/app/api/merchant/verify/scan/route.ts` - Aggiunta validazione Zod, sanitizzazione, logging
+- `src/app/api/merchant/verify/[qrCode]/route.ts` - Aggiunta validazione Zod, sanitizzazione
 
 **Priorità**: 🔴 ALTA
 
@@ -945,18 +946,19 @@ if (user.role !== 'ADMIN' && session.merchantId !== user.id) {
 ---
 
 #### **SECURITY #7: Validazione Prezzo Vendita Vault** 🔴
-**Stato**: Parzialmente implementato
+**Stato**: ✅ IMPLEMENTATO
 
 **Problema**: Merchant potrebbe inserire prezzo sbagliato (troppo basso o troppo alto).
 
 **Soluzione**:
-- [ ] Validare che `soldPrice` sia ragionevole (es. > €0.01, < €100,000)
-- [ ] Verificare che prezzo non sia stato modificato dopo creazione ordine
-- [ ] Alert admin se prezzo vendita è > 200% del prezzo stimato
-- [ ] Richiedere conferma per vendite > €500
+- [x] Validare che `soldPrice` sia ragionevole (es. > €0.01, < €100,000) ✅
+- [x] Verificare che prezzo non sia stato modificato dopo creazione ordine ✅
+- [x] Alert admin se prezzo vendita è > 200% del prezzo stimato ✅
+- [x] Richiedere conferma per vendite > €500 ✅
+- [x] Arrotondamento a 2 decimali sempre ✅
 
-**File da modificare**:
-- `src/app/api/vault/merchant/sales/route.ts` - Aggiungere validazione prezzo
+**File modificati**:
+- `src/app/api/vault/merchant/sales/route.ts` - Aggiunta validazione prezzo, alert admin, conferma vendite grandi
 
 **Priorità**: 🔴 ALTA
 
@@ -978,30 +980,44 @@ if (user.role !== 'ADMIN' && session.merchantId !== user.id) {
 ---
 
 #### **SECURITY #9: Validazione Stato Transazione** 🔴
-**Stato**: Parzialmente implementato
+**Stato**: ✅ IMPLEMENTATO
 
 **Problema**: Transazione potrebbe essere modificata dopo essere stata completata.
 
 **Soluzione**:
-- [x] Verifica stato in `/api/transactions/[id]/verify` (linea 136) ✅
-- [ ] Verificare che transazione non sia già `COMPLETED` prima di ogni modifica
-- [ ] Verificare che payment non sia già `RELEASED` prima di release
-- [ ] Aggiungere lock ottimistico (version field) per transazioni
+- [x] Verifica stato in `/api/transactions/[id]/verify` ✅
+- [x] Verificare che transazione non sia già `COMPLETED` prima di ogni modifica ✅
+- [x] Verificare che transazione non sia `CANCELLED` prima di release ✅
+- [x] Verificare che payment non sia già `RELEASED` prima di release ✅
+- [x] Verificare che payment non sia già `REFUNDED` prima di refund ✅
+- [ ] Aggiungere lock ottimistico (version field) per transazioni (opzionale, da implementare in futuro)
+
+**File modificati**:
+- `src/app/api/transactions/[id]/verify/route.ts` - Già implementato
+- `src/app/api/escrow/payments/[paymentId]/release/route.ts` - Aggiunta validazione stato
+- `src/app/api/escrow/payments/[paymentId]/refund/route.ts` - Aggiunta validazione stato
+- `src/app/api/escrow/payments/[paymentId]/hold/route.ts` - Aggiunta validazione stato
 
 **Priorità**: 🔴 ALTA
 
 ---
 
 #### **SECURITY #10: Protezione contro Manipolazione Fee** 🔴
-**Stato**: Parzialmente implementato
+**Stato**: ✅ IMPLEMENTATO
 
 **Problema**: Fee potrebbero essere modificate lato client.
 
 **Soluzione**:
 - [x] Fee calcolate server-side ✅
-- [ ] Validare che fee calcolata corrisponda a quella nel database
-- [ ] Non permettere modifica fee dopo creazione transazione
-- [ ] Log tutte le modifiche a fee
+- [x] Validare che feePercentage sia tra 0 e 20% ✅
+- [x] Validare che feePaidBy sia uno dei valori validi ✅
+- [x] Ricalcolare fee server-side (ignora modifiche client) ✅
+- [x] Verificare che feeAmount calcolata sia valida (non negativa, non supera totalAmount) ✅
+- [x] Non permettere modifica fee dopo creazione transazione (fee salvate in EscrowSession) ✅
+- [ ] Log tutte le modifiche a fee (opzionale, da implementare se necessario)
+
+**File modificati**:
+- `src/app/api/transactions/route.ts` - Aggiunta validazione feePercentage, feePaidBy, ricalcolo server-side
 
 **Priorità**: 🔴 ALTA
 
@@ -1070,16 +1086,23 @@ if (user.role !== 'ADMIN' && session.merchantId !== user.id) {
 ---
 
 #### **SECURITY #15: Validazione Importi Pagamento** 🔴
-**Stato**: Parzialmente implementato
+**Stato**: ✅ IMPLEMENTATO
 
 **Problema**: Importi potrebbero essere modificati o non validati.
 
 **Soluzione**:
 - [x] Validazione amount in `hold/release/refund` ✅
-- [ ] Verificare che amount non sia negativo o zero
-- [ ] Verificare che amount non superi limite ragionevole (es. €100,000)
-- [ ] Verificare che amount corrisponda a quello nella sessione escrow
-- [ ] Arrotondare a 2 decimali sempre
+- [x] Verificare che amount non sia negativo o zero ✅
+- [x] Verificare che amount non superi limite ragionevole (es. €100,000) ✅
+- [x] Verificare che amount corrisponda a quello nella sessione escrow (con 5% tolleranza) ✅
+- [x] Arrotondare a 2 decimali sempre ✅
+
+**File modificati**:
+- `src/lib/security/amount-validation.ts` - Nuova utility per validazione importi
+- `src/app/api/escrow/payments/route.ts` - Aggiunta validazione con Zod e utility
+- `src/app/api/escrow/payments/[paymentId]/hold/route.ts` - Aggiunta validazione amount
+- `src/app/api/escrow/payments/[paymentId]/release/route.ts` - Aggiunta validazione amount
+- `src/app/api/escrow/payments/[paymentId]/refund/route.ts` - Aggiunta validazione amount
 
 **Priorità**: 🔴 ALTA
 

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { validateAndRoundAmount, validateAmountMatchesSession, validateAmountPositive, validateAmountLimit } from '@/lib/security/amount-validation'
+import { z } from 'zod'
+
+export const dynamic = 'force-dynamic'
 
 // GET - Fetch escrow payments
 export async function GET(request: NextRequest) {
@@ -93,17 +97,48 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { transactionId, amount, paymentMethod = 'CASH' } = body
+    
+    // SECURITY #15: Validazione input con Zod
+    const schema = z.object({
+      transactionId: z.string().min(1, 'transactionId è richiesto'),
+      amount: z.number(),
+      paymentMethod: z.enum(['CASH', 'ONLINE', 'BANK_TRANSFER']).optional().default('CASH'),
+    })
 
-    if (!transactionId || !amount) {
+    const validationResult = schema.safeParse(body)
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'transactionId and amount are required' },
+        { 
+          error: 'Input non valido',
+          details: validationResult.error.errors.map(e => e.message),
+        },
         { status: 400 }
       )
     }
 
-    if (amount <= 0) {
-      return NextResponse.json({ error: 'Amount must be greater than 0' }, { status: 400 })
+    const { transactionId, paymentMethod } = validationResult.data
+    let { amount } = validationResult.data
+
+    // SECURITY #15: Validazione e arrotondamento amount
+    try {
+      // Valida che amount sia positivo e nei limiti
+      const positiveCheck = validateAmountPositive(amount)
+      if (!positiveCheck.valid) {
+        return NextResponse.json({ error: positiveCheck.reason }, { status: 400 })
+      }
+
+      const limitCheck = validateAmountLimit(amount)
+      if (!limitCheck.valid) {
+        return NextResponse.json({ error: limitCheck.reason }, { status: 400 })
+      }
+
+      // Arrotonda a 2 decimali
+      amount = validateAndRoundAmount(amount)
+    } catch (error: any) {
+      return NextResponse.json(
+        { error: error.message || 'Importo non valido' },
+        { status: 400 }
+      )
     }
 
     // Get transaction
@@ -142,7 +177,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(existingPayment)
     }
 
-    // BUG #5 FIX: Validate amount against escrowSession.totalAmount
+    // BUG #5 FIX + SECURITY #15: Validate amount against escrowSession.totalAmount
     const escrowSession = await prisma.escrowSession.findUnique({
       where: { transactionId },
     })
@@ -154,16 +189,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate amount matches escrowSession.totalAmount (±5% tolerance for rounding)
+    // SECURITY #15: Verifica che amount corrisponda a quello nella sessione escrow
     const expectedAmount = escrowSession.totalAmount
-    const tolerance = expectedAmount * 0.05 // 5% tolerance
-    const minAmount = expectedAmount - tolerance
-    const maxAmount = expectedAmount + tolerance
+    const amountMatch = validateAmountMatchesSession(amount, expectedAmount, 5) // 5% tolerance
 
-    if (amount < minAmount || amount > maxAmount) {
+    if (!amountMatch.valid) {
       return NextResponse.json(
         { 
-          error: `Payment amount (€${amount.toFixed(2)}) does not match expected amount (€${expectedAmount.toFixed(2)}). Allowed range: €${minAmount.toFixed(2)} - €${maxAmount.toFixed(2)}`,
+          error: amountMatch.reason,
           expectedAmount: expectedAmount,
           providedAmount: amount,
         },
