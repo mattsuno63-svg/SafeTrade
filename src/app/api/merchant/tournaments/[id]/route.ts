@@ -4,11 +4,13 @@ import { requireAuth } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = params
+    // Handle both Promise and non-Promise params (Next.js 14 vs 15)
+    const resolvedParams = 'then' in params ? await params : params
+    const { id } = resolvedParams
 
     const tournament = await prisma.tournament.findUnique({
       where: { id },
@@ -72,11 +74,13 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = params
+    // Handle both Promise and non-Promise params (Next.js 14 vs 15)
+    const resolvedParams = 'then' in params ? await params : params
+    const { id } = resolvedParams
     const body = await request.json()
 
     // Get tournament with shop info
@@ -117,6 +121,7 @@ export async function PATCH(
       prizePool,
       rules,
       status,
+      winners,
     } = body
 
     const updateData: any = {}
@@ -130,6 +135,7 @@ export async function PATCH(
     if (prizePool !== undefined) updateData.prizePool = prizePool
     if (rules !== undefined) updateData.rules = rules
     if (status !== undefined) updateData.status = status
+    if (winners !== undefined) updateData.winners = winners || null
 
     const updatedTournament = await prisma.tournament.update({
       where: { id },
@@ -161,11 +167,13 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = params
+    // Handle both Promise and non-Promise params (Next.js 14 vs 15)
+    const resolvedParams = 'then' in params ? await params : params
+    const { id } = resolvedParams
 
     // Get tournament with shop info
     const tournament = await prisma.tournament.findUnique({
