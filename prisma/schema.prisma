@@ -133,12 +133,13 @@ model User {
 
   // Vault relations
   vaultDeposits           VaultDeposit[]
-  vaultItemsOwned         VaultItem[]       @relation("VaultItemOwner")
+  vaultItemsOwned         VaultItem[]        @relation("VaultItemOwner")
   vaultOrdersAsBuyer      VaultOrder[]
-  vaultSplitsAsOwner      VaultSplit[]      @relation("VaultSplitOwner")
+  vaultSplitsAsOwner      VaultSplit[]       @relation("VaultSplitOwner")
   vaultPayoutLinesAsPayee VaultPayoutLine[]
   vaultAuditLogs          VaultAuditLog[]
   vaultCaseRequests       VaultCaseRequest[] @relation("VaultCaseRequestUser")
+  securityAuditLogs       SecurityAuditLog[] @relation("SecurityAuditAttemptedBy")
 
   @@index([email])
   @@index([role])
@@ -187,14 +188,14 @@ model Shop {
   promotions    Promotion[]
 
   // Vault relations
-  vaultEnabled          Boolean      @default(false) // Partecipa al programma Vetrina Vault
-  vaultCaseAuthorized   Boolean      @default(false) // Ha pagato e ha teca autorizzata (può usare scansione QR)
-  vaultCase             VaultCase?   @relation("ShopVaultCase") // Teca autorizzata (one-to-one)
-  vaultCases            VaultCase[]  @relation("VaultCaseShop") // Teche assegnate (possono essere multiple)
-  vaultItems            VaultItem[]  @relation("VaultItemShop")
+  vaultEnabled          Boolean            @default(false) // Partecipa al programma Vetrina Vault
+  vaultCaseAuthorized   Boolean            @default(false) // Ha pagato e ha teca autorizzata (può usare scansione QR)
+  vaultCase             VaultCase?         @relation("ShopVaultCase") // Teca autorizzata (one-to-one)
+  vaultCases            VaultCase[]        @relation("VaultCaseShop") // Teche assegnate (possono essere multiple)
+  vaultItems            VaultItem[]        @relation("VaultItemShop")
   vaultOrders           VaultOrder[]
   vaultSales            VaultSale[]
-  vaultSplitsAsMerchant VaultSplit[] @relation("VaultSplitMerchant")
+  vaultSplitsAsMerchant VaultSplit[]       @relation("VaultSplitMerchant")
   vaultCaseRequests     VaultCaseRequest[] @relation("VaultCaseRequest")
 
   @@index([merchantId])
@@ -685,10 +686,10 @@ model EscrowSession {
   paymentMethod EscrowPaymentMethod @default(CASH) // Solo CASH per ora
 
   // QR Code for in-store verification
-  qrCode         String?   @unique // Codice univoco per QR (nullable per record esistenti)
+  qrCode          String?   @unique // Codice univoco per QR (nullable per record esistenti)
   qrCodeExpiresAt DateTime? // Scadenza QR code (7 giorni dalla creazione)
-  qrScannedAt    DateTime? // Timestamp quando il QR è stato scannerizzato
-  qrScannedBy    String? // ID del merchant che ha scannerizzato
+  qrScannedAt     DateTime? // Timestamp quando il QR è stato scannerizzato
+  qrScannedBy     String? // ID del merchant che ha scannerizzato
 
   // Session metadata
   lastActivity DateTime @default(now())
@@ -1970,23 +1971,23 @@ enum VaultCaseRequestStatus {
 }
 
 model VaultCaseRequest {
-  id          String                @id @default(cuid())
-  shopId      String
-  shop        Shop                  @relation("VaultCaseRequest", fields: [shopId], references: [id], onDelete: Cascade)
-  requestedBy String // User ID del merchant
-  requestedByUser User @relation("VaultCaseRequestUser", fields: [requestedBy], references: [id], onDelete: Cascade)
-  
-  status      VaultCaseRequestStatus @default(PENDING)
-  notes       String? // Note del merchant
-  adminNotes  String? // Note dell'admin
-  
+  id              String @id @default(cuid())
+  shopId          String
+  shop            Shop   @relation("VaultCaseRequest", fields: [shopId], references: [id], onDelete: Cascade)
+  requestedBy     String // User ID del merchant
+  requestedByUser User   @relation("VaultCaseRequestUser", fields: [requestedBy], references: [id], onDelete: Cascade)
+
+  status     VaultCaseRequestStatus @default(PENDING)
+  notes      String? // Note del merchant
+  adminNotes String? // Note dell'admin
+
   // Payment tracking (per futuro Stripe)
   paymentIntentId String? // Stripe Payment Intent ID
   paymentStatus   String? // PENDING, PAID, FAILED
-  
+
   // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   approvedAt  DateTime?
   rejectedAt  DateTime?
   paidAt      DateTime?
@@ -1996,4 +1997,45 @@ model VaultCaseRequest {
   @@index([requestedBy])
   @@index([status])
   @@index([createdAt])
+}
+
+// Security Audit Log - Logging tentativi accesso non autorizzati
+model SecurityAuditLog {
+  id String @id @default(cuid())
+
+  // Tipo di evento
+  eventType String // 'QR_SCAN_UNAUTHORIZED', 'PAYMENT_ACCESS_UNAUTHORIZED', 'VAULT_ACCESS_UNAUTHORIZED', etc.
+
+  // Utente che ha tentato l'accesso
+  attemptedById String?
+  attemptedBy   User?   @relation("SecurityAuditAttemptedBy", fields: [attemptedById], references: [id], onDelete: SetNull)
+
+  // Dettagli tentativo
+  endpoint     String // Endpoint chiamato (es. '/api/merchant/verify/scan')
+  method       String // HTTP method (GET, POST, etc.)
+  resourceId   String? // ID della risorsa (es. sessionId, qrCode, paymentId)
+  resourceType String? // Tipo risorsa (es. 'ESCROW_SESSION', 'PAYMENT', 'VAULT_SLOT')
+
+  // Informazioni richiesta
+  ipAddress   String?
+  userAgent   String? @db.Text
+  requestBody Json? // Body della richiesta (sanitizzato)
+
+  // Risultato
+  wasBlocked Boolean @default(true) // Se l'accesso è stato bloccato
+  reason     String? // Motivo del blocco (es. 'Merchant not authorized', 'QR code expired')
+
+  // Metadata
+  // Severity: 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
+  severity String @default("MEDIUM")
+  metadata Json? // Dati aggiuntivi
+
+  createdAt DateTime @default(now())
+
+  @@index([eventType])
+  @@index([attemptedById])
+  @@index([endpoint])
+  @@index([resourceId])
+  @@index([createdAt])
+  @@index([severity])
 }

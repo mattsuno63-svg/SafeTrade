@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
+import { logSecurityEvent } from '@/lib/security/audit'
+
+export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/merchant/verify/scan
@@ -14,6 +17,18 @@ export async function POST(request: NextRequest) {
 
     // Verifica che l'utente sia un merchant o admin
     if (user.role !== 'MERCHANT' && user.role !== 'ADMIN') {
+      // BUG #4 FIX: Log unauthorized access attempt
+      await logSecurityEvent({
+        eventType: 'ROLE_ACCESS_DENIED',
+        attemptedById: user.id,
+        endpoint: '/api/merchant/verify/scan',
+        method: 'POST',
+        request,
+        wasBlocked: true,
+        reason: `User role ${user.role} not authorized for merchant operations`,
+        severity: 'MEDIUM',
+      })
+
       return NextResponse.json(
         { error: 'Accesso negato. Solo i merchant possono verificare le transazioni.' },
         { status: 403 }
@@ -147,6 +162,21 @@ export async function POST(request: NextRequest) {
 
       // BUG #6 FIX: Check if QR code has expired
       if (session.qrCodeExpiresAt && new Date() > session.qrCodeExpiresAt) {
+        // BUG #4 FIX: Log expired QR code attempt
+        await logSecurityEvent({
+          eventType: 'QR_SCAN_EXPIRED',
+          attemptedById: user.id,
+          endpoint: '/api/merchant/verify/scan',
+          method: 'POST',
+          resourceId: session.id,
+          resourceType: 'ESCROW_SESSION',
+          request,
+          wasBlocked: true,
+          reason: `QR code expired at ${session.qrCodeExpiresAt}`,
+          severity: 'LOW',
+          metadata: { qrCode, expiredAt: session.qrCodeExpiresAt },
+        })
+
         return NextResponse.json(
           { 
             error: 'QR Code scaduto. Il QR code è valido per 7 giorni dalla creazione della transazione.',
@@ -158,6 +188,21 @@ export async function POST(request: NextRequest) {
 
       // Verifica che il merchant sia autorizzato
       if (user.role !== 'ADMIN' && session.merchantId !== user.id) {
+        // BUG #4 FIX: Log unauthorized QR scan attempt
+        await logSecurityEvent({
+          eventType: 'QR_SCAN_UNAUTHORIZED',
+          attemptedById: user.id,
+          endpoint: '/api/merchant/verify/scan',
+          method: 'POST',
+          resourceId: session.id,
+          resourceType: 'ESCROW_SESSION',
+          request,
+          wasBlocked: true,
+          reason: `Merchant ${user.id} not authorized for session ${session.id} (authorized merchant: ${session.merchantId})`,
+          severity: 'HIGH',
+          metadata: { qrCode, sessionId: session.id, authorizedMerchantId: session.merchantId },
+        })
+
         return NextResponse.json(
           { error: 'Non sei autorizzato a gestire questa transazione' },
           { status: 403 }
@@ -221,12 +266,42 @@ export async function POST(request: NextRequest) {
         if (slot.case.authorizedShopId) {
           const shop = slot.case.authorizedShop
           if (shop?.merchantId !== user.id) {
+            // BUG #4 FIX: Log unauthorized Vault slot access attempt
+            await logSecurityEvent({
+              eventType: 'VAULT_ACCESS_UNAUTHORIZED',
+              attemptedById: user.id,
+              endpoint: '/api/merchant/verify/scan',
+              method: 'POST',
+              resourceId: slot.id,
+              resourceType: 'VAULT_SLOT',
+              request,
+              wasBlocked: true,
+              reason: `Merchant ${user.id} not authorized for slot ${slot.id} (authorized merchant: ${shop?.merchantId})`,
+              severity: 'HIGH',
+              metadata: { qrToken, slotId: slot.id, caseId: slot.caseId, authorizedShopId: slot.case.authorizedShopId },
+            })
+
             return NextResponse.json(
               { error: 'Non sei autorizzato a gestire questo slot' },
               { status: 403 }
             )
           }
         } else {
+          // BUG #4 FIX: Log unauthorized Vault slot access attempt (no authorized shop)
+          await logSecurityEvent({
+            eventType: 'VAULT_ACCESS_UNAUTHORIZED',
+            attemptedById: user.id,
+            endpoint: '/api/merchant/verify/scan',
+            method: 'POST',
+            resourceId: slot.id,
+            resourceType: 'VAULT_SLOT',
+            request,
+            wasBlocked: true,
+            reason: `Slot ${slot.id} has no authorized shop`,
+            severity: 'HIGH',
+            metadata: { qrToken, slotId: slot.id, caseId: slot.caseId },
+          })
+
           return NextResponse.json(
             { error: 'Non sei autorizzato a gestire questo slot' },
             { status: 403 }

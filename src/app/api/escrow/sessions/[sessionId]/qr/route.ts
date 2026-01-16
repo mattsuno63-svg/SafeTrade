@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import QRCode from 'qrcode'
+import { logSecurityEvent } from '@/lib/security/audit'
+
+export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/escrow/sessions/[sessionId]/qr
@@ -12,11 +15,13 @@ import QRCode from 'qrcode'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> | { sessionId: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { sessionId } = params
+    // Handle both Promise and non-Promise params (Next.js 14 vs 15)
+    const resolvedParams = 'then' in params ? await params : params
+    const { sessionId } = resolvedParams
 
     // Fetch the escrow session
     const session = await prisma.escrowSession.findUnique({
@@ -53,6 +58,27 @@ export async function GET(
       user.role === 'ADMIN'
 
     if (!isAuthorized) {
+      // BUG #4 FIX: Log unauthorized QR generation attempt
+      await logSecurityEvent({
+        eventType: 'ESCROW_SESSION_ACCESS_UNAUTHORIZED',
+        attemptedById: user.id,
+        endpoint: `/api/escrow/sessions/${sessionId}/qr`,
+        method: 'GET',
+        resourceId: sessionId,
+        resourceType: 'ESCROW_SESSION',
+        request,
+        wasBlocked: true,
+        reason: `User ${user.id} not authorized to generate QR for session ${sessionId}`,
+        severity: 'MEDIUM',
+        metadata: {
+          sessionId,
+          buyerId: session.buyerId,
+          sellerId: session.sellerId,
+          merchantId: session.merchantId,
+          userRole: user.role,
+        },
+      })
+
       return NextResponse.json(
         { error: 'Non autorizzato' },
         { status: 403 }

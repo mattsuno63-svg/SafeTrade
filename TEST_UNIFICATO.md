@@ -440,13 +440,52 @@
 ---
 
 ### **TEST #18: Logging Tentativi Non Autorizzati** 🔴
-**Priorità**: 🔴 ALTA (SECURITY #4)
+**Priorità**: 🔴 ALTA (SECURITY #4 / BUG #4)
 
-**Test**:
-- [ ] Tentativo scansione QR non autorizzato → Loggato
-- [ ] Tentativo accesso payment non autorizzato → Loggato
-- [ ] Alert admin se > 5 tentativi falliti in 10 minuti
-- [ ] Dashboard admin mostra tentativi sospetti
+**Test Endpoint `/api/merchant/verify/scan`**:
+- [ ] Utente non-MERCHANT tenta scansione → Loggato come `ROLE_ACCESS_DENIED`
+- [ ] Merchant non autorizzato scansiona QR di altro negozio → Loggato come `QR_SCAN_UNAUTHORIZED`
+- [ ] QR code scaduto scansionato → Loggato come `QR_SCAN_EXPIRED`
+- [ ] Merchant non autorizzato accede a Vault slot → Loggato come `VAULT_ACCESS_UNAUTHORIZED`
+- [ ] Log contiene: userId, endpoint, resourceId, IP address, user-agent, reason
+- [ ] Log salvato in tabella `SecurityAuditLog`
+- [ ] Severity corretta: `MEDIUM` per role denied, `HIGH` per unauthorized access, `LOW` per expired
+
+**Test Endpoint `/api/merchant/verify/[qrCode]`**:
+- [ ] Utente non-MERCHANT tenta accesso → Loggato come `ROLE_ACCESS_DENIED`
+- [ ] Merchant non autorizzato accede a QR code → Loggato come `QR_SCAN_UNAUTHORIZED`
+- [ ] QR code scaduto → Loggato come `QR_SCAN_EXPIRED`
+- [ ] Log contiene tutti i dettagli necessari
+
+**Test Endpoint `/api/escrow/sessions/[sessionId]/qr`**:
+- [ ] Utente non autorizzato genera QR → Loggato come `ESCROW_SESSION_ACCESS_UNAUTHORIZED`
+- [ ] Solo buyer/seller/merchant/admin possono generare QR
+- [ ] Log contiene metadata con sessionId, buyerId, sellerId, merchantId
+
+**Test Alert Admin**:
+- [ ] > 5 tentativi falliti in 10 minuti da stesso IP → Alert admin creato
+- [ ] > 5 tentativi falliti in 10 minuti da stesso utente → Alert admin creato
+- [ ] Alert ha tipo `URGENT_ACTION` e priority `URGENT`
+- [ ] Alert contiene dettagli: eventType, IP, userId, numero tentativi
+
+**Test Database**:
+- [ ] Tabella `SecurityAuditLog` esiste
+- [ ] Relazione con `User` funziona
+- [ ] Indexes su `eventType`, `attemptedById`, `endpoint`, `createdAt` funzionano
+- [ ] Query per ottenere log funziona (`getSecurityAuditLogs`)
+
+**Test Utility `logSecurityEvent`**:
+- [ ] Funzione non lancia errori anche se database fallisce
+- [ ] Logging a console funziona sempre
+- [ ] Sanitizzazione request body (rimuove password, token, secret)
+- [ ] IP address estratto correttamente da headers
+
+**File da testare**:
+- `src/lib/security/audit.ts`
+- `src/app/api/merchant/verify/scan/route.ts`
+- `src/app/api/merchant/verify/[qrCode]/route.ts`
+- `src/app/api/escrow/sessions/[sessionId]/qr/route.ts`
+- `prisma/schema.prisma` (modello SecurityAuditLog)
 
 ---
 
