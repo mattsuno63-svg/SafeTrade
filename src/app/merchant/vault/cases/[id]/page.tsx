@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Loader2 } from 'lucide-react'
 import { useUser } from '@/hooks/use-user'
 
@@ -44,6 +45,8 @@ export default function VaultCaseDetailPage() {
   const [case_, setCase] = useState<VaultCase | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [loading, setLoading] = useState(true)
+  const [filterStatus, setFilterStatus] = useState<'all' | 'FREE' | 'OCCUPIED'>('all')
+  const [filterGame, setFilterGame] = useState<string | null>(null)
 
   const fetchCase = useCallback(async () => {
     try {
@@ -95,6 +98,32 @@ export default function VaultCaseDetailPage() {
     const slotCode = `S${String(i + 1).padStart(2, '0')}`
     return case_.slots.find((s) => s.slotCode === slotCode) || null
   })
+
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const occupied = allSlots.filter((s) => s && s.status === 'OCCUPIED').length
+    const free = 30 - occupied
+    const totalValue = allSlots.reduce((sum, slot) => {
+      return sum + (slot?.item?.priceFinal || 0)
+    }, 0)
+    const games = allSlots.reduce((acc, slot) => {
+      if (slot?.item?.game) {
+        acc[slot.item.game] = (acc[slot.item.game] || 0) + 1
+      }
+      return acc
+    }, {} as Record<string, number>)
+    return { occupied, free, totalValue, games }
+  }, [allSlots])
+
+  // Filter slots
+  const filteredSlots = useMemo(() => {
+    return allSlots.filter((slot) => {
+      if (filterStatus === 'FREE' && slot) return false
+      if (filterStatus === 'OCCUPIED' && !slot) return false
+      if (filterGame && (!slot?.item || slot.item.game !== filterGame)) return false
+      return true
+    })
+  }, [allSlots, filterStatus, filterGame])
 
   const handleSlotClick = (slot: Slot | null, slotCode: string) => {
     if (slot) {
@@ -221,11 +250,109 @@ export default function VaultCaseDetailPage() {
             </div>
           </div>
 
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card className="glass-tile border-white/10">
+              <CardContent className="p-4">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Slot Occupati</p>
+                <p className="text-3xl font-black text-primary">{stats.occupied}/30</p>
+                <p className="text-xs text-white/60 mt-1">{stats.free} liberi</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-tile border-white/10">
+              <CardContent className="p-4">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Valore Totale</p>
+                <p className="text-3xl font-black text-accent-orange">
+                  €{stats.totalValue.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-white/60 mt-1">Carte in teca</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-tile border-white/10">
+              <CardContent className="p-4">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Carte per Game</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {Object.entries(stats.games).map(([game, count]) => (
+                    <Badge key={game} className="bg-primary/20 text-primary border-primary/30 text-xs">
+                      {game}: {count}
+                    </Badge>
+                  ))}
+                  {Object.keys(stats.games).length === 0 && (
+                    <span className="text-xs text-white/40">Nessuna carta</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="glass-tile border-white/10">
+              <CardContent className="p-4">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Occupazione</p>
+                <div className="mt-2">
+                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{ width: `${(stats.occupied / 30) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-white/60 mt-1">{Math.round((stats.occupied / 30) * 100)}% utilizzata</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <Button
+              onClick={() => setFilterStatus('all')}
+              className={`px-4 py-2 glass-tile rounded-xl text-sm font-bold transition-all ${
+                filterStatus === 'all' ? 'bg-primary/10 border-primary/20 border' : 'hover:bg-white/10'
+              }`}
+            >
+              Tutti
+            </Button>
+            <Button
+              onClick={() => setFilterStatus('OCCUPIED')}
+              className={`px-4 py-2 glass-tile rounded-xl text-sm font-bold transition-all ${
+                filterStatus === 'OCCUPIED' ? 'bg-primary/10 border-primary/20 border' : 'hover:bg-white/10'
+              }`}
+            >
+              Occupati ({stats.occupied})
+            </Button>
+            <Button
+              onClick={() => setFilterStatus('FREE')}
+              className={`px-4 py-2 glass-tile rounded-xl text-sm font-bold transition-all ${
+                filterStatus === 'FREE' ? 'bg-primary/10 border-primary/20 border' : 'hover:bg-white/10'
+              }`}
+            >
+              Liberi ({stats.free})
+            </Button>
+            <Button
+              onClick={() => setFilterGame(filterGame === 'Pokemon' ? null : 'Pokemon')}
+              className={`px-4 py-2 glass-tile rounded-xl text-sm font-bold transition-all ${
+                filterGame === 'Pokemon' ? 'bg-primary/10 border-primary/20 border' : 'hover:bg-white/10'
+              }`}
+            >
+              Pokémon {filterGame === 'Pokemon' && '✕'}
+            </Button>
+            <Button
+              onClick={() => setFilterGame(filterGame === 'Magic' ? null : 'Magic')}
+              className={`px-4 py-2 glass-tile rounded-xl text-sm font-bold transition-all ${
+                filterGame === 'Magic' ? 'bg-primary/10 border-primary/20 border' : 'hover:bg-white/10'
+              }`}
+            >
+              Magic {filterGame === 'Magic' && '✕'}
+            </Button>
+          </div>
+
           {/* 6x5 Matrix Grid */}
           <div className="grid grid-cols-6 gap-4 pb-20">
             {allSlots.map((slot, idx) => {
               const slotCode = `S${String(idx + 1).padStart(2, '0')}`
               const isActive = selectedSlot?.id === slot?.id
+              
+              // Apply filters - hide slot if filtered out
+              if (filterStatus === 'FREE' && slot) return null
+              if (filterStatus === 'OCCUPIED' && !slot) return null
+              if (filterGame && (!slot?.item || slot.item.game !== filterGame)) return null
               return (
                 <div
                   key={slotCode}
