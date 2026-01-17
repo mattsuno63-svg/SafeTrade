@@ -81,7 +81,7 @@ export default function MerchantVaultScanPage() {
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
-  const [activeTab, setActiveTab] = useState<'posiziona' | 'sposta' | 'vendi' | 'fulfillment'>('posiziona')
+  const [activeTab, setActiveTab] = useState<'posiziona' | 'sposta' | 'vendi' | 'list-online' | 'fulfillment'>('posiziona')
   
   // Tab "Sposta" state
   const [originSlot, setOriginSlot] = useState<SlotInfo | null>(null)
@@ -94,6 +94,9 @@ export default function MerchantVaultScanPage() {
   const [notes, setNotes] = useState<string>('')
   const [requiresConfirmation, setRequiresConfirmation] = useState(false)
   const [selling, setSelling] = useState(false)
+
+  // Tab "Lista Online" state
+  const [listingOnline, setListingOnline] = useState(false)
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -299,6 +302,17 @@ export default function MerchantVaultScanPage() {
                   <span className="text-white text-sm font-bold tracking-wider uppercase">Vendi</span>
                   <span className="text-[10px] font-medium uppercase tracking-tighter" style={{ color: activeTab === 'vendi' ? '#00bbcc' : 'rgba(255,255,255,0.5)' }}>
                     Listing
+                  </span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('list-online')}
+                  className={`flex flex-col items-center pt-4 pb-4 border-b-4 transition-all ${
+                    activeTab === 'list-online' ? 'border-primary' : 'border-transparent hover:border-white/20 opacity-40 hover:opacity-100'
+                  }`}
+                >
+                  <span className="text-white text-sm font-bold tracking-wider uppercase">Lista Online</span>
+                  <span className="text-[10px] font-medium uppercase tracking-tighter" style={{ color: activeTab === 'list-online' ? '#00bbcc' : 'rgba(255,255,255,0.5)' }}>
+                    Publish
                   </span>
                 </button>
                 <button
@@ -1108,6 +1122,306 @@ export default function MerchantVaultScanPage() {
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                         <AlertDescription className="text-green-400">{success}</AlertDescription>
                       </Alert>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Tab Content: Lista Online */}
+            {activeTab === 'list-online' && (
+              <>
+                {/* Step Indicator */}
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="size-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center">
+                    <span className="text-purple-500 text-2xl">🌐</span>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white tracking-tight">
+                      {!slotInfo || !slotInfo.item ? 'Passo 1: Scansiona Slot con Carta' : 'Passo 2: Pubblica Online'}
+                    </h3>
+                    <p className="text-white/40 text-sm leading-relaxed">
+                      {!slotInfo || !slotInfo.item
+                        ? 'Scansiona lo slot della teca che contiene la carta da pubblicare online.'
+                        : 'Pubblica la carta sul marketplace per la vendita online.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Scan Area */}
+                {!slotInfo || !slotInfo.item ? (
+                  <>
+                    {showScanner ? (
+                      <div className="mb-8">
+                        <QRScanner
+                          onScanSuccess={(decodedText) => {
+                            try {
+                              const data = JSON.parse(decodedText)
+                              if (data.qrToken) {
+                                setQrToken(data.qrToken)
+                                setShowScanner(false)
+                                handleScanQR()
+                              } else if (data.scanUrl) {
+                                const token = data.scanUrl.split('/scan/')[1]
+                                if (token) {
+                                  setQrToken(token)
+                                  setShowScanner(false)
+                                  handleScanQR()
+                                }
+                              }
+                            } catch {
+                              if (decodedText.includes('/scan/')) {
+                                const token = decodedText.split('/scan/')[1]?.split('?')[0]
+                                if (token) {
+                                  setQrToken(token)
+                                  setShowScanner(false)
+                                  handleScanQR()
+                                }
+                              } else {
+                                setQrToken(decodedText)
+                                setShowScanner(false)
+                                handleScanQR()
+                              }
+                            }
+                          }}
+                          onScanError={(error) => setError(error)}
+                          onClose={() => setShowScanner(false)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-inner group mb-8">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Button
+                            onClick={() => setShowScanner(true)}
+                            className="bg-primary/20 hover:bg-primary/40 text-primary border border-primary/30 px-8 py-4 rounded-2xl backdrop-blur-xl transition-all flex items-center gap-3"
+                          >
+                            <Scan className="h-5 w-5" />
+                            <span className="font-bold">Avvia Scanner QR</span>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Manual Input */}
+                    <div className="flex flex-col gap-4 mb-8">
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-white/10"></div>
+                        <span className="text-xs font-bold text-white/30 uppercase tracking-[0.3em]">
+                          oppure inserimento manuale
+                        </span>
+                        <div className="h-px flex-1 bg-white/10"></div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="relative flex-1">
+                          <div className="absolute inset-y-0 left-4 flex items-center text-white/40">
+                            <span>🔑</span>
+                          </div>
+                          <input
+                            type="text"
+                            value={qrToken}
+                            onChange={(e) => setQrToken(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleScanQR()}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-white/20 focus:ring-2 focus:ring-primary focus:border-transparent transition-all liquid-glass"
+                            placeholder="ID Token o Serial Number Vault..."
+                          />
+                        </div>
+                        <Button
+                          onClick={handleScanQR}
+                          disabled={scanning}
+                          className="bg-primary text-background-dark px-8 rounded-2xl font-black text-sm uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_0_20px_rgba(0,187,204,0.3)]"
+                        >
+                          {scanning ? <Loader2 className="animate-spin" size={16} /> : 'Elabora'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Error/Success Messages */}
+                    {error && (
+                      <Alert variant="destructive" className="mb-4">
+                        <XCircle className="h-4 w-4" />
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {success && (
+                      <Alert className="mb-4 border-green-500 bg-green-500/10">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <AlertDescription className="text-green-400">{success}</AlertDescription>
+                      </Alert>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* Validation: Slot must be occupied and item must be IN_CASE */}
+                    {slotInfo.status === 'FREE' && (
+                      <Alert variant="destructive" className="mb-4">
+                        <XCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Questo slot è vuoto. Puoi pubblicare online solo carte presenti nella teca.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {slotInfo.item && slotInfo.item.status !== 'IN_CASE' && (
+                      <Alert variant="destructive" className="mb-4">
+                        <XCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          La carta deve essere nella teca (stato: IN_CASE) per essere pubblicata online. Stato corrente: {slotInfo.item.status}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {/* Item Info */}
+                    {slotInfo.item && slotInfo.status === 'OCCUPIED' && slotInfo.item.status === 'IN_CASE' && (
+                      <>
+                        <Card className="bg-white/5 border-white/10 mb-6">
+                          <CardContent className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-white font-bold">Slot: {slotInfo.slotCode}</h4>
+                              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Occupato</Badge>
+                            </div>
+                            <div className="space-y-3 mb-4">
+                              <div>
+                                <p className="text-white/60 text-sm mb-1">Carta:</p>
+                                <p className="text-white font-bold text-lg">{slotInfo.item.name}</p>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-white/60 text-sm mb-1">Game:</p>
+                                  <p className="text-white font-medium">{slotInfo.item.game}</p>
+                                </div>
+                                {slotInfo.item.set && (
+                                  <div>
+                                    <p className="text-white/60 text-sm mb-1">Set:</p>
+                                    <p className="text-white font-medium">{slotInfo.item.set}</p>
+                                  </div>
+                                )}
+                              </div>
+                              {slotInfo.item.priceFinal && (
+                                <div>
+                                  <p className="text-white/60 text-sm mb-1">Valore Stimato:</p>
+                                  <p className="text-primary font-bold text-xl">
+                                    €{slotInfo.item.priceFinal.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* List Online Form */}
+                        <Card className="bg-white/5 border-white/10 mb-6">
+                          <CardContent className="p-6 space-y-6">
+                            <h4 className="text-white font-bold text-lg">Pubblica Online</h4>
+                            
+                            <div className="space-y-4">
+                              <Alert className="border-purple-500/20 bg-purple-500/10">
+                                <AlertDescription className="text-purple-400">
+                                  💡 La carta sarà pubblicata sul marketplace con il prezzo stimato ({slotInfo.item.priceFinal ? `€${slotInfo.item.priceFinal.toLocaleString('it-IT', { minimumFractionDigits: 2 })}` : 'N/D'}). 
+                                  Gli utenti potranno acquistarla online.
+                                </AlertDescription>
+                              </Alert>
+
+                              <div className="p-4 glass rounded-xl bg-primary/5 border border-primary/20">
+                                <p className="text-white/60 text-sm mb-2">Cosa succede:</p>
+                                <ul className="text-white/80 text-sm space-y-1 list-disc list-inside">
+                                  <li>La carta rimarrà fisicamente nella teca</li>
+                                  <li>Lo status passerà da IN_CASE a LISTED_ONLINE</li>
+                                  <li>Diventerà visibile sul marketplace</li>
+                                  <li>Quando venduta online, verrà gestita tramite il tab "Fulfillment"</li>
+                                </ul>
+                              </div>
+                            </div>
+
+                            {/* Action Button */}
+                            <Button
+                              onClick={async () => {
+                                if (!slotInfo?.item) {
+                                  setError('Nessuna carta selezionata')
+                                  return
+                                }
+
+                                if (slotInfo.item.status !== 'IN_CASE') {
+                                  setError(`La carta deve essere nella teca (IN_CASE) per essere pubblicata online. Stato corrente: ${slotInfo.item.status}`)
+                                  return
+                                }
+
+                                setListingOnline(true)
+                                setError('')
+                                setSuccess('')
+
+                                try {
+                                  const res = await fetch(`/api/vault/merchant/items/${slotInfo.item.id}/list-online`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                  })
+
+                                  const data = await res.json()
+
+                                  if (!res.ok) {
+                                    throw new Error(data.error || 'Errore nella pubblicazione online')
+                                  }
+
+                                  setSuccess(`Carta "${slotInfo.item.name}" pubblicata online con successo!`)
+                                  
+                                  // Reset form
+                                  setTimeout(() => {
+                                    setSlotInfo(null)
+                                    setQrToken('')
+                                    setSuccess('')
+                                  }, 3000)
+                                } catch (err: any) {
+                                  setError(err.message || 'Errore nella pubblicazione online')
+                                } finally {
+                                  setListingOnline(false)
+                                }
+                              }}
+                              disabled={listingOnline || !slotInfo?.item || slotInfo.item.status !== 'IN_CASE'}
+                              className="w-full bg-purple-500 text-white hover:bg-purple-600 h-12 rounded-xl font-bold"
+                            >
+                              {listingOnline ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Pubblicazione...
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                                  Pubblica Online
+                                </>
+                              )}
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setSlotInfo(null)
+                                setQrToken('')
+                                setError('')
+                                setSuccess('')
+                              }}
+                              className="w-full h-12 rounded-xl"
+                            >
+                              Reset
+                            </Button>
+                          </CardContent>
+                        </Card>
+
+                        {/* Error/Success Messages */}
+                        {error && (
+                          <Alert variant="destructive" className="mb-4">
+                            <XCircle className="h-4 w-4" />
+                            <AlertDescription>{error}</AlertDescription>
+                          </Alert>
+                        )}
+
+                        {success && (
+                          <Alert className="mb-4 border-green-500 bg-green-500/10">
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            <AlertDescription className="text-green-400">{success}</AlertDescription>
+                          </Alert>
+                        )}
+                      </>
                     )}
                   </>
                 )}
