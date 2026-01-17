@@ -23,6 +23,14 @@ interface SlotInfo {
     photos: string[]
     status: string
   } | null
+  shop: {
+    id: string
+    name: string
+    address: string | null
+    city: string | null
+    postalCode: string | null
+    slug: string | null
+  } | null
 }
 
 export default function PublicScanPage() {
@@ -210,15 +218,49 @@ export default function PublicScanPage() {
                   </div>
                   <div className="h-[1px] w-full bg-white/5"></div>
 
+                  {/* Shop Info */}
+                  {slotInfo.shop && (
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                      <p className="text-white/40 text-[10px] uppercase font-bold mb-1">Disponibile presso</p>
+                      <p className="text-white font-bold text-lg">{slotInfo.shop.name}</p>
+                      {slotInfo.shop.address && (
+                        <p className="text-white/60 text-sm mt-1">
+                          {slotInfo.shop.address}
+                          {slotInfo.shop.city && `, ${slotInfo.shop.city}`}
+                          {slotInfo.shop.postalCode && ` ${slotInfo.shop.postalCode}`}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* CTAs */}
                   <div className="flex flex-col gap-4">
-                    <Button
-                      onClick={() => router.push('/login')}
-                      className="w-full flex items-center justify-center gap-3 rounded-2xl h-16 bg-primary hover:bg-primary/90 text-white text-lg font-bold transition-all shadow-xl shadow-primary/20"
-                    >
-                      <span>🔓</span>
-                      <span>Accedi per gestire questo slot</span>
-                    </Button>
+                    {slotInfo.item && slotInfo.item.status === 'LISTED_ONLINE' ? (
+                      <Button
+                        onClick={() => slotInfo.item && router.push(`/vault/item/${slotInfo.item.id}`)}
+                        className="w-full flex items-center justify-center gap-3 rounded-2xl h-16 bg-accent-orange hover:bg-accent-orange/90 text-white text-lg font-bold transition-all shadow-xl shadow-accent-orange/20"
+                      >
+                        <span>🛒</span>
+                        <span>Acquista Online</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => router.push('/login')}
+                        className="w-full flex items-center justify-center gap-3 rounded-2xl h-16 bg-primary hover:bg-primary/90 text-white text-lg font-bold transition-all shadow-xl shadow-primary/20"
+                      >
+                        <span>🔓</span>
+                        <span>Accedi per gestire questo slot</span>
+                      </Button>
+                    )}
+                    {slotInfo.shop && slotInfo.shop.slug && (
+                      <Button
+                        onClick={() => slotInfo.shop && slotInfo.shop.slug && router.push(`/shops/${slotInfo.shop.slug}`)}
+                        className="w-full flex items-center justify-center gap-3 rounded-2xl h-12 bg-white/5 hover:bg-white/10 text-white border border-white/10 text-base font-semibold transition-all"
+                      >
+                        <span>🏪</span>
+                        <span>Visita Negozio</span>
+                      </Button>
+                    )}
                     <Button
                       onClick={() => router.push('/')}
                       className="w-full flex items-center justify-center h-12 text-white/40 hover:text-white text-base font-semibold transition-colors"

@@ -21,6 +21,16 @@ export async function GET(
             id: true,
             label: true,
             status: true,
+            authorizedShop: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                city: true,
+                postalCode: true,
+                slug: true,
+              },
+            },
           },
         },
         item: {
@@ -48,6 +58,7 @@ export async function GET(
         slotCode: slot.slotCode,
         case: slot.case,
         item: slot.item,
+        shop: slot.case.authorizedShop, // Shop info for display
       },
     })
   } catch (error: any) {
