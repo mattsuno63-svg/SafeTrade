@@ -2,17 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/vault/cases/[id]
  * Get case details with slots
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = params
+    const resolvedParams = 'then' in params ? await params : params
+    const { id } = resolvedParams
 
     const case_ = await prisma.vaultCase.findUnique({
       where: { id },
@@ -30,7 +33,10 @@ export async function GET(
                 id: true,
                 name: true,
                 game: true,
+                set: true,
                 status: true,
+                priceFinal: true,
+                photos: true,
                 owner: {
                   select: { id: true, name: true },
                 },

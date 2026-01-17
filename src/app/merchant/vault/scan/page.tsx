@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Loader2, QrCode, CheckCircle2, XCircle, Package, Scan } from 'lucide-react'
 import { useUser } from '@/hooks/use-user'
 import { QRScanner } from '@/components/qr/QRScanner'
@@ -28,7 +29,10 @@ interface SlotInfo {
     id: string
     name: string
     game: string
+    set: string | null
     status: string
+    priceFinal: number | null
+    photos: string[]
   } | null
 }
 
@@ -78,6 +82,18 @@ export default function MerchantVaultScanPage() {
   const [success, setSuccess] = useState<string>('')
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
   const [activeTab, setActiveTab] = useState<'posiziona' | 'sposta' | 'vendi' | 'fulfillment'>('posiziona')
+  
+  // Tab "Sposta" state
+  const [originSlot, setOriginSlot] = useState<SlotInfo | null>(null)
+  const [destinationSlot, setDestinationSlot] = useState<SlotInfo | null>(null)
+  const [moving, setMoving] = useState(false)
+
+  // Tab "Vendi" state
+  const [soldPrice, setSoldPrice] = useState<string>('')
+  const [proofImage, setProofImage] = useState<string>('')
+  const [notes, setNotes] = useState<string>('')
+  const [requiresConfirmation, setRequiresConfirmation] = useState(false)
+  const [selling, setSelling] = useState(false)
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -299,18 +315,21 @@ export default function MerchantVaultScanPage() {
               </div>
 
               <div className="p-8">
-                {/* Step Indicator */}
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="size-12 rounded-2xl bg-accent-orange/20 border border-accent-orange/40 flex items-center justify-center">
-                    <QrCode className="text-accent-orange font-bold" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-white tracking-tight">Passo 1: Scansiona lo SLOT</h3>
-                    <p className="text-white/40 text-sm leading-relaxed">
-                      Posiziona il QR code dello slot della teca nell'area di scansione sottostante.
-                    </p>
-                  </div>
-                </div>
+                {/* Tab Content: Posiziona */}
+                {activeTab === 'posiziona' && (
+                  <>
+                    {/* Step Indicator */}
+                    <div className="flex items-center gap-4 mb-8">
+                      <div className="size-12 rounded-2xl bg-accent-orange/20 border border-accent-orange/40 flex items-center justify-center">
+                        <QrCode className="text-accent-orange font-bold" size={24} />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold text-white tracking-tight">Passo 1: Scansiona lo SLOT</h3>
+                        <p className="text-white/40 text-sm leading-relaxed">
+                          Posiziona il QR code dello slot della teca nell'area di scansione sottostante.
+                        </p>
+                      </div>
+                    </div>
 
                 {/* Scan Area / Viewfinder */}
                 {showScanner ? (
@@ -491,6 +510,616 @@ export default function MerchantVaultScanPage() {
                     )}
                   </div>
                 )}
+              </>
+            )}
+
+            {/* Tab Content: Sposta */}
+            {activeTab === 'sposta' && (
+              <>
+                {/* Step Indicator */}
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="size-12 rounded-2xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-blue-500 text-2xl">swap_horiz</span>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white tracking-tight">
+                      {!originSlot ? 'Passo 1: Scansiona Slot ORIGINE' : !destinationSlot ? 'Passo 2: Scansiona Slot DESTINAZIONE' : 'Conferma Spostamento'}
+                    </h3>
+                    <p className="text-white/40 text-sm leading-relaxed">
+                      {!originSlot 
+                        ? 'Scansiona lo slot da cui vuoi spostare la carta (deve essere occupato).'
+                        : !destinationSlot
+                        ? 'Scansiona lo slot di destinazione (deve essere libero).'
+                        : 'Verifica le informazioni e conferma lo spostamento.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Scan Area */}
+                {showScanner ? (
+                  <div className="mb-8">
+                    <QRScanner
+                      onScanSuccess={(decodedText) => {
+                        try {
+                          const data = JSON.parse(decodedText)
+                          if (data.qrToken) {
+                            setQrToken(data.qrToken)
+                            setShowScanner(false)
+                            handleScanQR()
+                          } else if (data.scanUrl) {
+                            const token = data.scanUrl.split('/scan/')[1]
+                            if (token) {
+                              setQrToken(token)
+                              setShowScanner(false)
+                              handleScanQR()
+                            }
+                          }
+                        } catch {
+                          if (decodedText.includes('/scan/')) {
+                            const token = decodedText.split('/scan/')[1]?.split('?')[0]
+                            if (token) {
+                              setQrToken(token)
+                              setShowScanner(false)
+                              handleScanQR()
+                            }
+                          } else {
+                            setQrToken(decodedText)
+                            setShowScanner(false)
+                            handleScanQR()
+                          }
+                        }
+                      }}
+                      onScanError={(error) => setError(error)}
+                      onClose={() => setShowScanner(false)}
+                    />
+                  </div>
+                ) : (
+                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-inner group mb-8">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Button
+                        onClick={() => setShowScanner(true)}
+                        className="bg-primary/20 hover:bg-primary/40 text-primary border border-primary/30 px-8 py-4 rounded-2xl backdrop-blur-xl transition-all flex items-center gap-3"
+                      >
+                        <Scan className="h-5 w-5" />
+                        <span className="font-bold">Avvia Scanner QR</span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual Input */}
+                <div className="flex flex-col gap-4 mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-white/10"></div>
+                    <span className="text-xs font-bold text-white/30 uppercase tracking-[0.3em]">
+                      oppure inserimento manuale
+                    </span>
+                    <div className="h-px flex-1 bg-white/10"></div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="relative flex-1">
+                      <div className="absolute inset-y-0 left-4 flex items-center text-white/40">
+                        <span>🔑</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={qrToken}
+                        onChange={(e) => setQrToken(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleScanQR()}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-white/20 focus:ring-2 focus:ring-primary focus:border-transparent transition-all liquid-glass"
+                        placeholder="ID Token o Serial Number Vault..."
+                      />
+                    </div>
+                    <Button
+                      onClick={handleScanQR}
+                      disabled={scanning}
+                      className="bg-primary text-background-dark px-8 rounded-2xl font-black text-sm uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_0_20px_rgba(0,187,204,0.3)]"
+                    >
+                      {scanning ? <Loader2 className="animate-spin" size={16} /> : 'Elabora'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Origin Slot Info */}
+                {slotInfo && !originSlot && slotInfo.status === 'OCCUPIED' && slotInfo.item && (
+                  <Card className="bg-white/5 border-white/10 mb-4">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-white font-bold">Slot Origine: {slotInfo.slotCode}</h4>
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Occupato</Badge>
+                      </div>
+                      <div className="space-y-2 mb-4">
+                        <p className="text-white/80"><strong>Carta:</strong> {slotInfo.item.name}</p>
+                        <p className="text-white/60"><strong>Game:</strong> {slotInfo.item.game}</p>
+                        <p className="text-white/60"><strong>Status:</strong> {slotInfo.item.status}</p>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          setOriginSlot(slotInfo)
+                          setSlotInfo(null)
+                          setQrToken('')
+                          setSuccess('Slot origine selezionato. Ora scansiona lo slot destinazione.')
+                        }}
+                        className="w-full bg-primary text-white"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Conferma Slot Origine
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Destination Slot Info */}
+                {slotInfo && originSlot && slotInfo.status === 'FREE' && (
+                  <Card className="bg-white/5 border-white/10 mb-4">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-white font-bold">Slot Destinazione: {slotInfo.slotCode}</h4>
+                        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Libero</Badge>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="bg-white/5 p-4 rounded-lg">
+                          <p className="text-white/60 text-sm mb-2">Da spostare:</p>
+                          <p className="text-white font-bold">{originSlot.item?.name}</p>
+                          <p className="text-white/60 text-sm">Slot {originSlot.slotCode} → Slot {slotInfo.slotCode}</p>
+                        </div>
+                        <Button
+                          onClick={async () => {
+                            if (!originSlot.item) return
+                            setMoving(true)
+                            setError('')
+                            try {
+                              const res = await fetch(`/api/vault/merchant/items/${originSlot.item.id}/move-slot`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ slotId: slotInfo.id }),
+                              })
+                              const data = await res.json()
+                              if (!res.ok) throw new Error(data.error || 'Errore nello spostamento')
+                              setSuccess(`Carta spostata con successo da ${originSlot.slotCode} a ${slotInfo.slotCode}!`)
+                              setOriginSlot(null)
+                              setSlotInfo(null)
+                              setQrToken('')
+                              setTimeout(() => {
+                                setSuccess('')
+                              }, 3000)
+                            } catch (err: any) {
+                              setError(err.message || 'Errore nello spostamento')
+                            } finally {
+                              setMoving(false)
+                            }
+                          }}
+                          disabled={moving}
+                          className="w-full bg-primary text-white"
+                        >
+                          {moving ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Spostamento...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              Conferma Spostamento
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Error Messages */}
+                {error && (
+                  <Alert variant="destructive" className="mb-4">
+                    <XCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                {success && (
+                  <Alert className="mb-4 border-green-500 bg-green-500/10">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <AlertDescription className="text-green-400">{success}</AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Reset Button */}
+                {originSlot && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setOriginSlot(null)
+                      setDestinationSlot(null)
+                      setSlotInfo(null)
+                      setQrToken('')
+                      setError('')
+                      setSuccess('')
+                    }}
+                    className="w-full mt-4"
+                  >
+                    Reset
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* Tab Content: Vendi */}
+            {activeTab === 'vendi' && (
+              <>
+                {/* Step Indicator */}
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="size-12 rounded-2xl bg-green-500/20 border border-green-500/40 flex items-center justify-center">
+                    <span className="text-green-500 text-2xl">💰</span>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white tracking-tight">
+                      {!slotInfo || !slotInfo.item ? 'Passo 1: Scansiona Slot con Carta' : 'Passo 2: Registra Vendita'}
+                    </h3>
+                    <p className="text-white/40 text-sm leading-relaxed">
+                      {!slotInfo || !slotInfo.item
+                        ? 'Scansiona lo slot della teca che contiene la carta venduta.'
+                        : 'Inserisci i dettagli della vendita e conferma.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Scan Area */}
+                {!slotInfo || !slotInfo.item ? (
+                  <>
+                    {showScanner ? (
+                      <div className="mb-8">
+                        <QRScanner
+                          onScanSuccess={(decodedText) => {
+                            try {
+                              const data = JSON.parse(decodedText)
+                              if (data.qrToken) {
+                                setQrToken(data.qrToken)
+                                setShowScanner(false)
+                                handleScanQR()
+                              } else if (data.scanUrl) {
+                                const token = data.scanUrl.split('/scan/')[1]
+                                if (token) {
+                                  setQrToken(token)
+                                  setShowScanner(false)
+                                  handleScanQR()
+                                }
+                              }
+                            } catch {
+                              if (decodedText.includes('/scan/')) {
+                                const token = decodedText.split('/scan/')[1]?.split('?')[0]
+                                if (token) {
+                                  setQrToken(token)
+                                  setShowScanner(false)
+                                  handleScanQR()
+                                }
+                              } else {
+                                setQrToken(decodedText)
+                                setShowScanner(false)
+                                handleScanQR()
+                              }
+                            }
+                          }}
+                          onScanError={(error) => setError(error)}
+                          onClose={() => setShowScanner(false)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-inner group mb-8">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Button
+                            onClick={() => setShowScanner(true)}
+                            className="bg-primary/20 hover:bg-primary/40 text-primary border border-primary/30 px-8 py-4 rounded-2xl backdrop-blur-xl transition-all flex items-center gap-3"
+                          >
+                            <Scan className="h-5 w-5" />
+                            <span className="font-bold">Avvia Scanner QR</span>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Manual Input */}
+                    <div className="flex flex-col gap-4 mb-8">
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-white/10"></div>
+                        <span className="text-xs font-bold text-white/30 uppercase tracking-[0.3em]">
+                          oppure inserimento manuale
+                        </span>
+                        <div className="h-px flex-1 bg-white/10"></div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="relative flex-1">
+                          <div className="absolute inset-y-0 left-4 flex items-center text-white/40">
+                            <span>🔑</span>
+                          </div>
+                          <input
+                            type="text"
+                            value={qrToken}
+                            onChange={(e) => setQrToken(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleScanQR()}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-white/20 focus:ring-2 focus:ring-primary focus:border-transparent transition-all liquid-glass"
+                            placeholder="ID Token o Serial Number Vault..."
+                          />
+                        </div>
+                        <Button
+                          onClick={handleScanQR}
+                          disabled={scanning}
+                          className="bg-primary text-background-dark px-8 rounded-2xl font-black text-sm uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_0_20px_rgba(0,187,204,0.3)]"
+                        >
+                          {scanning ? <Loader2 className="animate-spin" size={16} /> : 'Elabora'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Error Messages */}
+                    {error && (
+                      <Alert variant="destructive" className="mb-4">
+                        <XCircle className="h-4 w-4" />
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {success && (
+                      <Alert className="mb-4 border-green-500 bg-green-500/10">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <AlertDescription className="text-green-400">{success}</AlertDescription>
+                      </Alert>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* Validation: Slot must be occupied */}
+                    {slotInfo.status === 'FREE' && (
+                      <Alert variant="destructive" className="mb-4">
+                        <XCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Questo slot è vuoto. Puoi vendere solo carte presenti nella teca.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {/* Item Info */}
+                    {slotInfo.item && slotInfo.status === 'OCCUPIED' && (
+                      <Card className="bg-white/5 border-white/10 mb-6">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-white font-bold">Slot: {slotInfo.slotCode}</h4>
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Occupato</Badge>
+                          </div>
+                          <div className="space-y-3 mb-4">
+                            <div>
+                              <p className="text-white/60 text-sm mb-1">Carta:</p>
+                              <p className="text-white font-bold text-lg">{slotInfo.item.name}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-white/60 text-sm mb-1">Game:</p>
+                                <p className="text-white font-medium">{slotInfo.item.game}</p>
+                              </div>
+                              {slotInfo.item.set && (
+                                <div>
+                                  <p className="text-white/60 text-sm mb-1">Set:</p>
+                                  <p className="text-white font-medium">{slotInfo.item.set}</p>
+                                </div>
+                              )}
+                            </div>
+                            {slotInfo.item.priceFinal && (
+                              <div>
+                                <p className="text-white/60 text-sm mb-1">Valore Stimato:</p>
+                                <p className="text-primary font-bold text-xl">
+                                  €{slotInfo.item.priceFinal.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Sale Form */}
+                    <Card className="bg-white/5 border-white/10 mb-6">
+                      <CardContent className="p-6 space-y-6">
+                        <h4 className="text-white font-bold text-lg">Dettagli Vendita</h4>
+
+                        {/* Price Input */}
+                        <div>
+                          <label className="text-white/60 text-sm font-medium mb-2 block">
+                            Prezzo Vendita (€) *
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            max="100000"
+                            value={soldPrice}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setSoldPrice(val)
+                              // Auto-set requiresConfirmation if price > 500
+                              if (parseFloat(val) > 500) {
+                                setRequiresConfirmation(false) // Reset, user will need to confirm
+                              }
+                            }}
+                            placeholder={slotInfo.item?.priceFinal?.toFixed(2) || '0.00'}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/20 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                          />
+                          {slotInfo.item?.priceFinal && (
+                            <p className="text-white/40 text-xs mt-1">
+                              Valore stimato: €{slotInfo.item.priceFinal.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Proof Image (Optional) */}
+                        <div>
+                          <label className="text-white/60 text-sm font-medium mb-2 block">
+                            Foto Prova Vendita (opzionale)
+                          </label>
+                          <input
+                            type="text"
+                            value={proofImage}
+                            onChange={(e) => setProofImage(e.target.value)}
+                            placeholder="URL immagine..."
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/20 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                          />
+                          <p className="text-white/40 text-xs mt-1">Inserisci l'URL di un'immagine di prova (opzionale)</p>
+                        </div>
+
+                        {/* Notes (Optional) */}
+                        <div>
+                          <label className="text-white/60 text-sm font-medium mb-2 block">Note (opzionale)</label>
+                          <textarea
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="Note aggiuntive sulla vendita..."
+                            rows={3}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/20 focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
+                          />
+                        </div>
+
+                        {/* Confirmation Checkbox for high-value sales */}
+                        {parseFloat(soldPrice) > 500 && (
+                          <div className="flex items-start gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+                            <input
+                              type="checkbox"
+                              id="confirmHighValue"
+                              checked={requiresConfirmation}
+                              onChange={(e) => setRequiresConfirmation(e.target.checked)}
+                              className="mt-1 size-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary"
+                            />
+                            <label htmlFor="confirmHighValue" className="text-yellow-400 text-sm cursor-pointer">
+                              ⚠️ Confermo che il prezzo di vendita (€{parseFloat(soldPrice).toLocaleString('it-IT', { minimumFractionDigits: 2 })}) è corretto per questa carta.
+                            </label>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-4">
+                          <Button
+                            onClick={async () => {
+                              if (!slotInfo?.item) {
+                                setError('Nessuna carta selezionata')
+                                return
+                              }
+
+                              const price = parseFloat(soldPrice)
+                              if (!price || price < 0.01 || price > 100000) {
+                                setError('Inserisci un prezzo valido (€0.01 - €100,000)')
+                                return
+                              }
+
+                              // Check if confirmation required
+                              if (price > 500 && !requiresConfirmation) {
+                                setError('Conferma esplicita richiesta per vendite superiori a €500')
+                                return
+                              }
+
+                              setSelling(true)
+                              setError('')
+                              setSuccess('')
+
+                              try {
+                                const res = await fetch('/api/vault/merchant/sales', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    itemId: slotInfo.item.id,
+                                    soldPrice: price,
+                                    proofImage: proofImage || undefined,
+                                    requiresConfirmation: price > 500 ? requiresConfirmation : undefined,
+                                  }),
+                                })
+
+                                const data = await res.json()
+
+                                if (!res.ok) {
+                                  // If requires confirmation, show it
+                                  if (data.requiresConfirmation) {
+                                    setRequiresConfirmation(true)
+                                    setError(data.error || 'Conferma richiesta')
+                                    return
+                                  }
+                                  throw new Error(data.error || 'Errore nella registrazione della vendita')
+                                }
+
+                                setSuccess(`Vendita registrata con successo! Prezzo: €${price.toFixed(2)}`)
+                                
+                                // Reset form
+                                setTimeout(() => {
+                                  setSlotInfo(null)
+                                  setSoldPrice('')
+                                  setProofImage('')
+                                  setNotes('')
+                                  setRequiresConfirmation(false)
+                                  setQrToken('')
+                                  setSuccess('')
+                                }, 3000)
+                              } catch (err: any) {
+                                setError(err.message || 'Errore nella registrazione della vendita')
+                              } finally {
+                                setSelling(false)
+                              }
+                            }}
+                            disabled={selling || !soldPrice || parseFloat(soldPrice) < 0.01}
+                            className="flex-1 bg-primary text-white hover:bg-primary/90 h-12 rounded-xl font-bold"
+                          >
+                            {selling ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Registrazione...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                Registra Vendita
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setSlotInfo(null)
+                              setSoldPrice('')
+                              setProofImage('')
+                              setNotes('')
+                              setRequiresConfirmation(false)
+                              setQrToken('')
+                              setError('')
+                              setSuccess('')
+                            }}
+                            className="h-12 rounded-xl"
+                          >
+                            Reset
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Error/Success Messages */}
+                    {error && (
+                      <Alert variant="destructive" className="mb-4">
+                        <XCircle className="h-4 w-4" />
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {success && (
+                      <Alert className="mb-4 border-green-500 bg-green-500/10">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <AlertDescription className="text-green-400">{success}</AlertDescription>
+                      </Alert>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Tab Content: Fulfillment (placeholder) */}
+            {activeTab === 'fulfillment' && (
+              <div className="p-8 text-center text-white/40">
+                <p>Funzionalità fulfillment in sviluppo...</p>
+              </div>
+            )}
               </div>
             </div>
           </div>

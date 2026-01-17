@@ -204,13 +204,19 @@ export default function VaultCaseDetailPage() {
               </h2>
             </div>
             <div className="flex gap-4">
-              <Button className="px-6 h-12 glass-tile rounded-xl flex items-center gap-2 text-sm font-bold border-white/10">
+              <Button 
+                onClick={() => router.push(`/merchant/vault/cases/${params.id}/qr-print`)}
+                className="px-6 h-12 glass-tile rounded-xl flex items-center gap-2 text-sm font-bold border-white/10 hover:bg-white/10 transition-colors"
+              >
                 <span>🖨️</span>
-                Print Labels
+                Genera QR
               </Button>
-              <Button className="px-6 h-12 bg-primary rounded-xl flex items-center gap-2 text-sm font-bold text-white shadow-lg shadow-primary/20">
-                <span>⚙️</span>
-                Case Settings
+              <Button 
+                onClick={() => router.push('/merchant/vault/scan')}
+                className="px-6 h-12 glass-tile rounded-xl flex items-center gap-2 text-sm font-bold border-white/10 hover:bg-white/10 transition-colors"
+              >
+                <span>📷</span>
+                Scan Hub
               </Button>
             </div>
           </div>

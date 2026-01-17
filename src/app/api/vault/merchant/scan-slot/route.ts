@@ -66,7 +66,10 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             game: true,
+            set: true,
             status: true,
+            priceFinal: true,
+            photos: true,
             owner: {
               select: { id: true, name: true },
             },

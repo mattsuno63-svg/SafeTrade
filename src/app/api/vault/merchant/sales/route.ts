@@ -295,3 +295,134 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * GET /api/vault/merchant/sales
+ * Get merchant's sales list - MERCHANT only
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const user = await requireAuth()
+
+    // Get merchant's shop
+    const shop = await prisma.shop.findUnique({
+      where: { merchantId: user.id },
+    })
+
+    if (!shop) {
+      return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
+    }
+
+    const searchParams = request.nextUrl.searchParams
+    const status = searchParams.get('status') // Filter by split status (optional)
+    const game = searchParams.get('game') // Filter by game (optional)
+    const startDate = searchParams.get('startDate') // Filter by date range (optional)
+    const endDate = searchParams.get('endDate') // Filter by date range (optional)
+
+    // Build where clause
+    const where: any = {
+      shopId: shop.id,
+    }
+
+    // Get sales with related data
+    const sales = await prisma.vaultSale.findMany({
+      where,
+      include: {
+        item: {
+          select: {
+            id: true,
+            name: true,
+            game: true,
+            set: true,
+            photos: true,
+            owner: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+      },
+      orderBy: { soldAt: 'desc' },
+    })
+
+    // Get splits for all sales
+    const saleIds = sales.map((s) => s.id)
+    const splits = await prisma.vaultSplit.findMany({
+      where: {
+        sourceType: 'SALE',
+        sourceId: { in: saleIds },
+      },
+      select: {
+        id: true,
+        sourceId: true,
+        grossAmount: true,
+        ownerAmount: true,
+        merchantAmount: true,
+        platformAmount: true,
+        status: true,
+        eligibleAt: true,
+      },
+    })
+
+    // Map splits to sales
+    const salesWithSplits = sales.map((sale) => ({
+      ...sale,
+      splits: splits.filter((split) => split.sourceId === sale.id),
+    }))
+
+    // Filter by date range if provided
+    let filteredSales = salesWithSplits
+    if (startDate || endDate) {
+      filteredSales = salesWithSplits.filter((sale) => {
+        const saleDate = new Date(sale.soldAt)
+        if (startDate && saleDate < new Date(startDate)) return false
+        if (endDate && saleDate > new Date(endDate)) return false
+        return true
+      })
+    }
+
+    // Filter by game if provided
+    if (game) {
+      filteredSales = filteredSales.filter((sale) => sale.item.game === game)
+    }
+
+    // Filter by split status if provided
+    if (status) {
+      filteredSales = filteredSales.filter((sale) => {
+        const latestSplit = sale.splits[sale.splits.length - 1]
+        return latestSplit?.status === status
+      })
+    }
+
+    // Calculate statistics
+    const stats = {
+      totalSales: filteredSales.length,
+      totalRevenue: filteredSales.reduce((sum, sale) => sum + sale.soldPrice, 0),
+      totalOwnerAmount: filteredSales.reduce(
+        (sum, sale) => sum + (sale.splits[sale.splits.length - 1]?.ownerAmount || 0),
+        0
+      ),
+      totalMerchantAmount: filteredSales.reduce(
+        (sum, sale) => sum + (sale.splits[sale.splits.length - 1]?.merchantAmount || 0),
+        0
+      ),
+      totalPlatformAmount: filteredSales.reduce(
+        (sum, sale) => sum + (sale.splits[sale.splits.length - 1]?.platformAmount || 0),
+        0
+      ),
+    }
+
+    return NextResponse.json(
+      {
+        data: filteredSales,
+        stats,
+      },
+      { status: 200 }
+    )
+  } catch (error: any) {
+    console.error('[GET /api/vault/merchant/sales] Error:', error)
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
