@@ -17,37 +17,86 @@ function Show-Header {
 Show-Header
 Write-Host "Starting processes..." -ForegroundColor Green
 
-# Start Next.js
-$nextjs = Start-Job -ScriptBlock { 
-    Set-Location "c:\Users\ragaz\Desktop\3SafeTrade"
-    npm run dev 
-} -Name "SafeTrade_NextJS"
+# Crea cartella logs se non esiste
+$logsDir = Join-Path $PSScriptRoot "logs"
+if (-not (Test-Path $logsDir)) {
+    New-Item -ItemType Directory -Path $logsDir | Out-Null
+}
 
-# Start Prisma Studio
+# Genera nome file log con timestamp
+$timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$nextjsLogFile = Join-Path $logsDir "nextjs_$timestamp.log"
+$prismaLogFile = Join-Path $logsDir "prisma_$timestamp.log"
+$mainLogFile = Join-Path $logsDir "main_$timestamp.log"
+
+Write-Host "Log files:" -ForegroundColor Cyan
+Write-Host "  Next.js: $nextjsLogFile" -ForegroundColor Gray
+Write-Host "  Prisma:  $prismaLogFile" -ForegroundColor Gray
+Write-Host "  Main:    $mainLogFile" -ForegroundColor Gray
+Write-Host ""
+
+# Start Next.js con output reindirizzato a file
+$nextjs = Start-Job -ScriptBlock { 
+    param($logFile, $workDir)
+    Set-Location $workDir
+    npm run dev *>&1 | Tee-Object -FilePath $logFile -Append
+} -ArgumentList $nextjsLogFile, "c:\Users\ragaz\Desktop\3SafeTrade" -Name "SafeTrade_NextJS"
+
+# Start Prisma Studio con output reindirizzato a file
 $studio = Start-Job -ScriptBlock { 
-    Set-Location "c:\Users\ragaz\Desktop\3SafeTrade"
-    npx prisma studio 
-} -Name "SafeTrade_PrismaStudio"
+    param($logFile, $workDir)
+    Set-Location $workDir
+    npx prisma studio *>&1 | Tee-Object -FilePath $logFile -Append
+} -ArgumentList $prismaLogFile, "c:\Users\ragaz\Desktop\3SafeTrade" -Name "SafeTrade_PrismaStudio"
 
 Write-Host "Processes started in background." -ForegroundColor Green
 Write-Host ""
 
 try {
+    # Apri file di log principale per append
+    $mainLogStream = [System.IO.StreamWriter]::new($mainLogFile, $true)
+    $mainLogStream.AutoFlush = $true
+    
     while ($true) {
         Show-Header
         
         $nStatus = Get-Job -Name "SafeTrade_NextJS"
         $sStatus = Get-Job -Name "SafeTrade_PrismaStudio"
 
-        Write-Host " [1] Next.js Server (Port 3000): " -NoNewline
-        if ($nStatus.State -eq 'Running') { Write-Host "RUNNING" -ForegroundColor Green } else { Write-Host "STOPPED" -ForegroundColor Red }
+        $statusLine1 = " [1] Next.js Server (Port 3000): "
+        $statusLine2 = " [2] Prisma Studio  (Port 5555): "
+        
+        Write-Host $statusLine1 -NoNewline
+        if ($nStatus.State -eq 'Running') { 
+            Write-Host "RUNNING" -ForegroundColor Green
+            $statusLine1 += "RUNNING"
+        } else { 
+            Write-Host "STOPPED" -ForegroundColor Red
+            $statusLine1 += "STOPPED"
+        }
 
-        Write-Host " [2] Prisma Studio  (Port 5555): " -NoNewline
-        if ($sStatus.State -eq 'Running') { Write-Host "RUNNING" -ForegroundColor Green } else { Write-Host "STOPPED" -ForegroundColor Red }
+        Write-Host $statusLine2 -NoNewline
+        if ($sStatus.State -eq 'Running') { 
+            Write-Host "RUNNING" -ForegroundColor Green
+            $statusLine2 += "RUNNING"
+        } else { 
+            Write-Host "STOPPED" -ForegroundColor Red
+            $statusLine2 += "STOPPED"
+        }
 
-        # Check for output from jobs
+        # Check for output from jobs e salva nel log
         $nOut = Receive-Job -Job $nextjs -Keep -ErrorAction SilentlyContinue
         $sOut = Receive-Job -Job $studio -Keep -ErrorAction SilentlyContinue
+        
+        # Salva output nel log principale
+        if ($nOut) {
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $mainLogStream.WriteLine("[$timestamp] [Next.js] $nOut")
+        }
+        if ($sOut) {
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $mainLogStream.WriteLine("[$timestamp] [Prisma] $sOut")
+        }
         
         # Simple dashboard info
         Write-Host ""
@@ -55,7 +104,9 @@ try {
         Write-Host " COMMANDS:" -ForegroundColor White
         Write-Host " [Q] Quit and Stop All" -ForegroundColor Yellow
         Write-Host " [R] Restart Next.js" -ForegroundColor Gray
+        Write-Host " [L] Open Logs Folder" -ForegroundColor Cyan
         Write-Host "----------------------------------------------------------------" -ForegroundColor DarkGray
+        Write-Host " Logs saved to: $logsDir" -ForegroundColor DarkGray
         
         # Non-blocking key read
         if ([Console]::KeyAvailable) {
@@ -70,12 +121,18 @@ try {
             }
             if ($key.Key -eq 'R') {
                 Write-Host "Restarting Next.js..." -ForegroundColor Yellow
+                $mainLogStream.WriteLine("$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [SYSTEM] Restarting Next.js...")
                 Stop-Job -Name "SafeTrade_NextJS"
                 Remove-Job -Name "SafeTrade_NextJS"
                 $nextjs = Start-Job -ScriptBlock { 
-                    Set-Location "c:\Users\ragaz\Desktop\3SafeTrade"
-                    npm run dev 
-                } -Name "SafeTrade_NextJS"
+                    param($logFile, $workDir)
+                    Set-Location $workDir
+                    npm run dev *>&1 | Tee-Object -FilePath $logFile -Append
+                } -ArgumentList $nextjsLogFile, "c:\Users\ragaz\Desktop\3SafeTrade" -Name "SafeTrade_NextJS"
+            }
+            if ($key.Key -eq 'L') {
+                Write-Host "Opening logs folder..." -ForegroundColor Cyan
+                Start-Process explorer.exe -ArgumentList $logsDir
             }
         }
         
@@ -84,6 +141,11 @@ try {
 }
 finally {
     # Ensure cleanup on exit
+    if ($mainLogStream) {
+        $mainLogStream.WriteLine("$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [SYSTEM] Development environment stopped.")
+        $mainLogStream.Close()
+    }
     Get-Job | Stop-Job -PassThru | Remove-Job
     Write-Host "Development environment stopped." -ForegroundColor Cyan
+    Write-Host "Logs saved in: $logsDir" -ForegroundColor Cyan
 }

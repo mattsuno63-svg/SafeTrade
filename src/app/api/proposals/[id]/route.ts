@@ -153,16 +153,27 @@ export async function PATCH(
     // If accepted, redirect to store selection
     // SafeTrade transaction will be created when store is selected
     if (status === 'ACCEPTED') {
-      // Note: Transaction will be created after store selection
+      // Note: Transaction will be created after store selection by the seller (receiver)
 
-      // Create notification for proposer
+      // Create notification for buyer (proposer) - they will wait for seller to select store
       await prisma.notification.create({
         data: {
           userId: proposal.proposerId,
           type: 'PROPOSAL_ACCEPTED',
-          title: 'Proposal Accepted!',
-          message: `Your proposal for "${proposal.listing.title}" has been accepted. Please select a store to complete the transaction.`,
-          link: `/select-store?proposalId=${id}`,
+          title: '🎉 Proposta Accettata!',
+          message: `La tua proposta per "${proposal.listing.title}" è stata accettata! Il venditore selezionerà il negozio per completare la transazione.`,
+          link: `/dashboard/proposals/sent`,
+        },
+      })
+      
+      // Create notification for seller (receiver) - they need to select escrow method
+      await prisma.notification.create({
+        data: {
+          userId: proposal.receiverId,
+          type: 'PROPOSAL_ACCEPTED',
+          title: 'Proposta Accettata - Seleziona Metodo Escrow',
+          message: `Hai accettato la proposta per "${proposal.listing.title}". Seleziona il metodo di escrow (Locale o Verified) per completare la transazione.`,
+          link: `/select-escrow-method?proposalId=${id}`,
         },
       })
     } else if (status === 'REJECTED') {

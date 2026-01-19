@@ -131,22 +131,39 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Notify admins (in a real app, you'd send emails)
-    const admins = await prisma.user.findMany({
-      where: { role: 'ADMIN' },
-      select: { id: true },
-    })
-
-    for (const admin of admins) {
-      await prisma.notification.create({
+    // Notify admins using AdminNotification (for AdminNotificationBell)
+    try {
+      await prisma.adminNotification.create({
         data: {
-          userId: admin.id,
-          type: 'NEW_MERCHANT_APPLICATION',
-          title: 'New Merchant Application',
-          message: `${shopName} has applied to become a SafeTrade partner.`,
-          link: '/admin/applications',
+          type: 'MERCHANT_APPLICATION',
+          referenceType: 'MERCHANT_APPLICATION',
+          referenceId: application.id,
+          title: 'Nuova Richiesta Commerciante',
+          message: `${shopName} ha richiesto di diventare un partner SafeTrade.`,
+          priority: 'NORMAL',
+          targetRoles: ['ADMIN', 'MODERATOR'],
         },
       })
+      console.log('✅ Admin notification created for merchant application')
+    } catch (notifError) {
+      console.error('Error creating admin notification:', notifError)
+      // Fallback: create regular notification for admins
+      const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true },
+      })
+
+      for (const admin of admins) {
+        await prisma.notification.create({
+          data: {
+            userId: admin.id,
+            type: 'NEW_MERCHANT_APPLICATION',
+            title: 'New Merchant Application',
+            message: `${shopName} has applied to become a SafeTrade partner.`,
+            link: '/admin/applications',
+          },
+        })
+      }
     }
 
     return NextResponse.json(application, { status: 201 })

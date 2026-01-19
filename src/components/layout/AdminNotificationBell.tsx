@@ -74,6 +74,16 @@ export function AdminNotificationBell() {
       router.push('/admin/pending-releases')
     } else if (notif.referenceType === 'DISPUTE') {
       router.push('/admin/reports')
+    } else if (notif.referenceType === 'MERCHANT_APPLICATION') {
+      router.push('/admin/applications')
+    } else if (notif.referenceType === 'LISTING') {
+      router.push('/admin/listings?filter=PENDING')
+    } else if (notif.referenceType === 'TRANSACTION') {
+      // Per transazioni Verified Escrow, porta alla pagina hub packages o dettaglio transazione
+      router.push(`/admin/hub/packages/${notif.referenceId}`)
+    } else if (notif.referenceType === 'VAULT_CASE_REQUEST') {
+      // Per richieste teche Vault, porta alla pagina admin vault requests
+      router.push('/admin/vault/requests')
     }
     
     setOpen(false)
@@ -102,6 +112,10 @@ export function AdminNotificationBell() {
         return 'account_balance_wallet'
       case 'HUB_VERIFICATION':
         return 'verified_user'
+      case 'VAULT_CASE_REQUEST':
+        return 'inventory_2' // Icona per teche/inventario
+      case 'MERCHANT_APPLICATION':
+        return 'store'
       default:
         return 'notifications'
     }

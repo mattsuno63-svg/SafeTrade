@@ -21,6 +21,30 @@ export async function GET(
             role: true,
           },
         },
+        vaultItem: {
+          include: {
+            shop: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                city: true,
+              },
+            },
+            case: {
+              select: {
+                id: true,
+                label: true,
+              },
+            },
+            slot: {
+              select: {
+                id: true,
+                slotCode: true,
+              },
+            },
+          },
+        },
         proposals: {
           include: {
             proposer: {

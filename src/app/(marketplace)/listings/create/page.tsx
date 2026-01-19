@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,8 +15,12 @@ import { useUser } from '@/hooks/use-user'
 
 export default function CreateListingPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const { user, loading: userLoading } = useUser()
+  
+  // Get escrowType from URL params
+  const escrowType = searchParams.get('escrowType') // 'LOCAL' or 'VERIFIED'
   
   const [formData, setFormData] = useState({
     title: '',
@@ -34,6 +38,23 @@ export default function CreateListingPage() {
   const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [previewImages, setPreviewImages] = useState<string[]>([])
+  const [isVaultListing, setIsVaultListing] = useState(false)
+  const [vaultTermsAccepted, setVaultTermsAccepted] = useState(false)
+  
+  // Show info message if escrowType is set
+  useEffect(() => {
+    if (escrowType === 'LOCAL') {
+      toast({
+        title: 'Escrow Locale Selezionato',
+        description: 'Questo listing utilizzerà l\'escrow locale. Selezionerai il negozio dopo la creazione.',
+      })
+    } else if (escrowType === 'VERIFIED') {
+      toast({
+        title: 'Escrow Centralizzato Selezionato',
+        description: 'Questo listing utilizzerà l\'escrow centralizzato SafeTrade.',
+      })
+    }
+  }, [escrowType, toast])
 
   // Redirect if not authenticated
   if (!userLoading && !user) {
@@ -177,6 +198,39 @@ export default function CreateListingPage() {
       return
     }
 
+    // Validation for SafeVault
+    if (isVaultListing && !vaultTermsAccepted) {
+      toast({
+        title: 'Error',
+        description: 'Devi accettare i termini del servizio SafeVault per continuare',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // SafeVault requires at least one image (already validated above)
+    if (isVaultListing && images.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Almeno una foto è obbligatoria per le vendite SafeVault',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // SafeVault requires minimum price of 40€
+    if (isVaultListing && formData.price) {
+      const priceValue = parseFloat(formData.price)
+      if (priceValue < 40) {
+        toast({
+          title: 'Error',
+          description: 'SafeVault è disponibile solo per carte con valore minimo di 40€. Il prezzo attuale è troppo basso.',
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+
     setSubmitting(true)
 
     try {
@@ -187,6 +241,7 @@ export default function CreateListingPage() {
           ...formData,
           price: formData.type === 'SALE' || formData.type === 'BOTH' ? parseFloat(formData.price) : null,
           images,
+          isVaultListing,
         }),
       })
 
@@ -312,6 +367,92 @@ export default function CreateListingPage() {
                     )}
                   </div>
 
+                  {/* Sale Mode Selection */}
+                  {(formData.type === 'SALE' || formData.type === 'BOTH') && (
+                    <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                      <Label className="text-base font-semibold">Modalità di Vendita *</Label>
+                      <div className="space-y-3">
+                        <label className="flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer hover:border-primary/50 transition-colors bg-white dark:bg-gray-900">
+                          <input
+                            type="radio"
+                            name="saleMode"
+                            checked={!isVaultListing}
+                            onChange={() => {
+                              setIsVaultListing(false)
+                              setVaultTermsAccepted(false)
+                            }}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="font-semibold">Vendita Diretta P2P</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              Vendi direttamente all'acquirente. Gestisci tu la spedizione e il pagamento.
+                            </div>
+                          </div>
+                        </label>
+                        
+                        <label className="flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer hover:border-primary/50 transition-colors bg-white dark:bg-gray-900">
+                          <input
+                            type="radio"
+                            name="saleMode"
+                            checked={isVaultListing}
+                            onChange={() => setIsVaultListing(true)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="font-semibold flex items-center gap-2">
+                              Vendita in Contovendita SafeVault
+                              <span className="px-2 py-0.5 text-xs bg-purple-500 text-white rounded">NUOVO</span>
+                            </div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              Le tue carte verranno inviate all'hub SafeTrade per verifica professionale e vendita multicanale (online e nei negozi fisici).
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+
+                      {isVaultListing && (
+                        <div className="mt-4 space-y-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-purple-800 dark:text-purple-200">
+                              <span className="material-symbols-outlined text-lg">info</span>
+                              Come Funziona SafeVault
+                            </div>
+                            <div className="mb-2 p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg border border-yellow-300 dark:border-yellow-700">
+                              <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-200 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-sm">warning</span>
+                                <strong>Requisito minimo:</strong> Solo per carte con valore ≥ 40€
+                              </p>
+                            </div>
+                            <ul className="space-y-1 text-sm text-purple-700 dark:text-purple-300 ml-6 list-disc">
+                              <li>Invia la carta all'hub SafeTrade (indirizzo fornito dopo la creazione)</li>
+                              <li>Verifica professionale della condizione e autenticità</li>
+                              <li>Pricing ottimizzato basato sul mercato</li>
+                              <li>Vendita multicanale: online e nei negozi fisici</li>
+                              <li>Ricevi il <strong>70% del prezzo di vendita finale</strong></li>
+                              <li>Split automatico: 70% a te, 20% al negoziante, 10% a SafeTrade</li>
+                            </ul>
+                          </div>
+                          
+                          <div className="pt-2 border-t border-purple-200 dark:border-purple-800">
+                            <label className="flex items-start gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={vaultTermsAccepted}
+                                onChange={(e) => setVaultTermsAccepted(e.target.checked)}
+                                className="mt-1"
+                                required
+                              />
+                              <span className="text-sm text-purple-800 dark:text-purple-200">
+                                Ho letto e accetto i <a href="/terms/vault" target="_blank" className="underline hover:text-purple-600">termini del servizio SafeVault</a> *
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Title */}
                   <div className="space-y-2">
                     <Label htmlFor="title">Card Name *</Label>
@@ -346,18 +487,41 @@ export default function CreateListingPage() {
                   {/* Price (if sale or both) */}
                   {(formData.type === 'SALE' || formData.type === 'BOTH') && (
                     <div className="space-y-2">
-                      <Label htmlFor="price">Price (€) *</Label>
+                      <Label htmlFor="price">
+                        Price (€) *
+                        {isVaultListing && (
+                          <span className="ml-2 text-xs text-yellow-600 dark:text-yellow-400 font-semibold">
+                            (Minimo 40€ per SafeVault)
+                          </span>
+                        )}
+                      </Label>
                       <Input
                         id="price"
                         type="number"
                         step="0.01"
-                        min="0"
+                        min={isVaultListing ? "40" : "0"}
                         value={formData.price}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        placeholder="0.00"
+                        onChange={(e) => {
+                          const value = e.target.value
+                          // If SafeVault, validate minimum
+                          if (isVaultListing && value && parseFloat(value) < 40) {
+                            toast({
+                              title: 'Prezzo troppo basso',
+                              description: 'SafeVault richiede un prezzo minimo di 40€',
+                              variant: 'destructive',
+                            })
+                          }
+                          setFormData({ ...formData, price: value })
+                        }}
+                        placeholder={isVaultListing ? "40.00 (minimo)" : "0.00"}
                         required
                         className="h-12"
                       />
+                      {isVaultListing && formData.price && parseFloat(formData.price) < 40 && (
+                        <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+                          ⚠️ Il prezzo deve essere almeno 40€ per utilizzare SafeVault
+                        </p>
+                      )}
                     </div>
                   )}
 

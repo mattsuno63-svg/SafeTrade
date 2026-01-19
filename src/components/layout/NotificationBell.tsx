@@ -62,7 +62,11 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                       }`}
                       onClick={() => {
                         if (!notif.read) handleMarkRead(notif.id)
-                        if (notif.link) window.location.href = notif.link
+                        if (notif.link) {
+                          // Usa router.push invece di window.location.href per navigazione più fluida
+                          window.location.href = notif.link
+                        }
+                        setOpen(false)
                       }}
                     >
                       <div className="font-bold text-sm mb-1">{notif.title}</div>

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -30,6 +31,7 @@ interface Listing {
   set: string | null
   images: string[]
   createdAt: string
+  isVaultListing?: boolean
   user: {
     id: string
     name: string | null
@@ -99,6 +101,7 @@ export default function ListingsPage() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000])
   const [city, setCity] = useState(searchParams.get('city') || '')
   const [sellerType, setSellerType] = useState(searchParams.get('sellerType') || 'all')
+  const [isVault, setIsVault] = useState(searchParams.get('isVault') || 'all')
   const [showFilters, setShowFilters] = useState(false)
 
   // Fetch listings
@@ -115,6 +118,7 @@ export default function ListingsPage() {
       if (priceRange[1] < 1000) params.set('maxPrice', priceRange[1].toString())
       if (city) params.set('city', city)
       if (sellerType !== 'all') params.set('sellerType', sellerType)
+      if (isVault !== 'all') params.set('isVault', isVault)
       params.set('page', page.toString())
       params.set('sort', sortBy)
       
@@ -130,7 +134,7 @@ export default function ListingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, game, condition, type, priceRange, page, sortBy, city, sellerType])
+  }, [searchQuery, game, condition, type, priceRange, page, sortBy, city, sellerType, isVault])
 
   useEffect(() => {
     fetchListings()
@@ -164,6 +168,7 @@ export default function ListingsPage() {
     setPriceRange([0, 1000])
     setCity('')
     setSellerType('all')
+    setIsVault('all')
     setSortBy('newest')
     setPage(1)
   }
@@ -588,6 +593,21 @@ export default function ListingsPage() {
                     </Select>
                   </div>
 
+                  {/* SafeVault Filter */}
+                  <div className="space-y-2 mb-6">
+                    <Label>Sale Mode</Label>
+                    <Select value={isVault} onValueChange={setIsVault}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select sale mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Modes</SelectItem>
+                        <SelectItem value="false">Direct P2P</SelectItem>
+                        <SelectItem value="true">SafeVault</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {/* Price Range */}
                   <div className="space-y-3 mb-6">
                     <Label>Price Range (€)</Label>
@@ -708,6 +728,12 @@ export default function ListingsPage() {
                               
                               {/* Badges */}
                               <div className="absolute top-3 left-3 flex flex-col gap-2">
+                                {listing.isVaultListing && (
+                                  <Badge className="bg-purple-600 text-white backdrop-blur-sm text-xs font-bold">
+                                    <span className="material-symbols-outlined text-xs mr-1">inventory_2</span>
+                                    SafeVault
+                                  </Badge>
+                                )}
                                 <span className={`px-2 py-1 rounded-full text-xs font-bold text-white ${
                                   listing.type === 'SALE' ? 'bg-green-500' :
                                   listing.type === 'TRADE' ? 'bg-blue-500' :

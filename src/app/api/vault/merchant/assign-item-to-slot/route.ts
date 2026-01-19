@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { createVaultAuditLog } from '@/lib/vault/audit'
 import { canTransitionItemStatus } from '@/lib/vault/state-machine'
+import { assignItemToSlotAtomic } from '@/lib/vault/transactions'
 import { z } from 'zod'
 
 /**
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Validazione 7: Verifica transizione stato
+    // Validazione 7: Verifica transizione stato (pre-check, ma verrà ricontrollato nella transazione)
     const transition = canTransitionItemStatus(item.status, 'IN_CASE')
     if (!transition.valid) {
       return NextResponse.json(
@@ -124,33 +125,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Tutte le validazioni passate - procedi con l'assegnazione
+    // Tutte le validazioni preliminari passate - procedi con assegnazione atomica
+    // Le validazioni critiche vengono rifatte dentro la transazione con lock pessimistico
     const result = await prisma.$transaction(async (tx) => {
-      // Free old slot se esiste (non dovrebbe, ma sicurezza)
-      if (item.slotId) {
-        await tx.vaultCaseSlot.update({
-          where: { id: item.slotId },
-          data: { status: 'FREE' },
+      try {
+        return await assignItemToSlotAtomic(tx, {
+          itemId,
+          slotId,
+          shopId: shop.id,
         })
+      } catch (error: any) {
+        // Rilancia l'errore per gestirlo fuori dalla transazione
+        throw error
       }
-
-      // Update item
-      const updatedItem = await tx.vaultItem.update({
-        where: { id: itemId },
-        data: {
-          status: 'IN_CASE',
-          caseId: slot.caseId,
-          slotId: slotId,
-        },
-      })
-
-      // Mark slot as occupied
-      await tx.vaultCaseSlot.update({
-        where: { id: slotId },
-        data: { status: 'OCCUPIED' },
-      })
-
-      return updatedItem
     })
 
     // Audit log
@@ -167,9 +154,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       data: {
-        item: result,
+        item: result.item,
         slot: {
-          id: slot.id,
+          id: result.slot.id,
           slotCode: slot.slotCode,
           status: 'OCCUPIED',
         },

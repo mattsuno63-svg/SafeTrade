@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q') || ''
     const city = searchParams.get('city') || ''
     const sellerType = searchParams.get('sellerType') || ''
+    const isVault = searchParams.get('isVault') // 'true' or 'false' or null
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const skip = (page - 1) * limit
@@ -64,6 +65,8 @@ export async function GET(request: NextRequest) {
     if (game) where.game = game
     if (condition) where.condition = condition
     if (listingType) where.type = listingType
+    if (isVault === 'true') where.isVaultListing = true
+    if (isVault === 'false') where.isVaultListing = false
     // Filter by seller's city and/or role
     if (city || sellerType) {
       where.user = {}
@@ -193,6 +196,7 @@ export async function POST(request: NextRequest) {
       cardNumber,
       images,
       wants,
+      isVaultListing,
     } = body
 
     // Validation
@@ -247,6 +251,58 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Auto-approve listings for verified/trusted users
+    // Admin can still reject if needed via /admin/listings
+    let userRecord: any = null
+    try {
+      userRecord = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          createdAt: true,
+          karma: {
+            select: {
+              karma: true,
+            },
+          },
+          _count: {
+            select: {
+              listings: true,
+            },
+          },
+        },
+      })
+    } catch (error) {
+      console.error('Error fetching user record:', error)
+      // Continue with default values if query fails
+    }
+
+    // Check email verification via Supabase session
+    let isEmailVerified = false
+    try {
+      const session = await getSession()
+      isEmailVerified = session?.user?.email_confirmed_at ? true : false
+    } catch (error) {
+      console.error('Error checking email verification:', error)
+      // Default to false if check fails
+    }
+
+    // Auto-approve if:
+    // - User has verified email OR
+    // - User account is older than 7 days OR
+    // - User has positive karma OR
+    // - User has created listings before (trusted seller)
+    const accountAge = userRecord?.createdAt 
+      ? (Date.now() - new Date(userRecord.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+      : 0
+    const hasPositiveKarma = (userRecord?.karma?.karma || 0) > 0
+    const hasPreviousListings = (userRecord?._count?.listings || 0) > 0
+
+    const shouldAutoApprove = isEmailVerified || 
+                              accountAge >= 7 || 
+                              hasPositiveKarma || 
+                              hasPreviousListings
+
+    // Create listing first
     const listing = await prisma.listingP2P.create({
       data: {
         title,
@@ -262,6 +318,8 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         visibility,
         earlyAccessEnd,
+        isApproved: shouldAutoApprove, // Auto-approve for trusted users
+        isVaultListing: isVaultListing || false,
       },
       include: {
         user: {
@@ -275,16 +333,123 @@ export async function POST(request: NextRequest) {
         },
       },
     })
+
+    // If SafeVault listing, create deposit and item, then link them
+    if (isVaultListing) {
+      try {
+        const { createVaultAuditLog } = await import('@/lib/vault/audit')
+        
+        // Create VaultDeposit with VaultItem linked to listing
+        const deposit = await prisma.vaultDeposit.create({
+          data: {
+            depositorUserId: user.id,
+            status: 'CREATED',
+            notes: `Deposito creato automaticamente da listing: "${title}"`,
+            items: {
+              create: {
+                ownerUserId: user.id,
+                game: game as any,
+                name: title,
+                set: set || null,
+                conditionDeclared: condition as any,
+                photos: images,
+                status: 'PENDING_REVIEW',
+                listingId: listing.id, // Link to listing
+              },
+            },
+          },
+          include: {
+            items: true,
+          },
+        })
+
+        const vaultItem = deposit.items[0]
+
+        if (vaultItem) {
+          // Update listing with vaultItemId and vaultDepositId
+          await prisma.listingP2P.update({
+            where: { id: listing.id },
+            data: {
+              vaultItemId: vaultItem.id,
+              vaultDepositId: deposit.id,
+            },
+          })
+
+          // Audit log
+          await createVaultAuditLog({
+            actionType: 'DEPOSIT_CREATED',
+            performedBy: user,
+            depositId: deposit.id,
+            newValue: { itemCount: 1, fromListing: true, listingId: listing.id },
+          }).catch(console.error)
+
+          // Notify admins about new Vault deposit
+          const admins = await prisma.user.findMany({
+            where: { role: { in: ['ADMIN', 'HUB_STAFF'] } },
+            select: { id: true },
+          })
+
+          for (const admin of admins) {
+            await prisma.adminNotification.create({
+              data: {
+                type: 'VAULT_CASE_REQUEST', // Reuse this type for now
+                referenceType: 'VAULT_DEPOSIT',
+                referenceId: deposit.id,
+                title: 'Nuovo Deposito Vault da Listing',
+                message: `Nuovo deposito Vault creato da listing "${title}". Verifica richiesta.`,
+                priority: 'NORMAL',
+                targetRoles: ['ADMIN', 'HUB_STAFF'],
+              },
+            }).catch(console.error)
+          }
+        }
+      } catch (vaultError: any) {
+        console.error('Error creating Vault deposit:', vaultError)
+        // Non bloccare la creazione del listing se il deposito fallisce
+        // L'utente può creare il deposito manualmente dopo
+      }
+    }
     
     // Trigger price alerts check (async, don't wait)
     checkPriceAlerts(listing).catch(console.error)
 
+    // Notify admins if listing needs manual approval
+    if (!shouldAutoApprove) {
+      const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true },
+      })
+
+      for (const admin of admins) {
+        await prisma.adminNotification.create({
+          data: {
+            type: 'LISTING_PENDING',
+            referenceType: 'LISTING',
+            referenceId: listing.id,
+            title: 'Nuovo Listing da Approvare',
+            message: `Nuovo listing "${listing.title}" richiede approvazione manuale.`,
+            priority: 'NORMAL',
+            targetRoles: ['ADMIN', 'MODERATOR'],
+          },
+        }).catch(console.error) // Non bloccare se la notifica fallisce
+      }
+    }
+
     return NextResponse.json({
       ...listing,
       isEarlyAccess: visibility === 'EARLY_ACCESS',
+      isApproved: shouldAutoApprove,
+      requiresApproval: !shouldAutoApprove,
     }, { status: 201 })
   } catch (error: any) {
     console.error('Error creating listing:', error)
+    console.error('Error stack:', error.stack)
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+    })
+    
     if (error.message === 'Unauthorized') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -297,8 +462,17 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
+    
+    // Return more detailed error in development
+    const isDevelopment = process.env.NODE_ENV === 'development'
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        ...(isDevelopment && {
+          details: error.message,
+          code: error.code,
+        }),
+      },
       { status: 500 }
     )
   }

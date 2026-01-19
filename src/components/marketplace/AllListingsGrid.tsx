@@ -19,6 +19,7 @@ interface Listing {
   set: string | null
   images: string[]
   createdAt: string
+  isVaultListing?: boolean
   user: {
     id: string
     name: string | null
@@ -113,7 +114,13 @@ export function AllListingsGrid() {
                   </Badge>
                 </div>
                 {/* Type Badge */}
-                <div className="absolute top-3 right-3">
+                <div className="absolute top-3 right-3 flex flex-col gap-2">
+                  {listing.isVaultListing && (
+                    <Badge className="bg-purple-600 text-white backdrop-blur-sm text-xs font-bold">
+                      <span className="material-symbols-outlined text-xs mr-1">inventory_2</span>
+                      SafeVault
+                    </Badge>
+                  )}
                   <Badge className="bg-black/50 text-white backdrop-blur-sm text-xs">
                     {listing.type === 'SALE' ? 'Vendita' : listing.type === 'TRADE' ? 'Scambio' : 'Vendita/Scambio'}
                   </Badge>

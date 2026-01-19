@@ -278,12 +278,9 @@ export default function ProposalsSentPage() {
                           )}
                           
                           {proposal.status === 'ACCEPTED' && (
-                            <Link href={`/select-store?proposalId=${proposal.id}`}>
-                              <Button className="bg-green-600 hover:bg-green-700">
-                                <span className="material-symbols-outlined mr-2">store</span>
-                                Select Store for SafeTrade
-                              </Button>
-                            </Link>
+                            <div className="text-sm text-gray-600 dark:text-gray-400 italic">
+                              Il venditore selezionerà il negozio. Riceverai una notifica quando la transazione sarà creata.
+                            </div>
                           )}
 
                           <Link href={`/listings/${proposal.listing.id}`}>

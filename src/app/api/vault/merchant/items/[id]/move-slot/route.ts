@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { createVaultAuditLog } from '@/lib/vault/audit'
 import { canTransitionItemStatus } from '@/lib/vault/state-machine'
+import { moveItemBetweenSlotsAtomic, removeItemFromSlotAtomic, assignItemToSlotAtomic } from '@/lib/vault/transactions'
 import { z } from 'zod'
 
 /**
@@ -61,20 +62,13 @@ export async function POST(
         )
       }
 
-      // Free the slot
-      await prisma.vaultCaseSlot.update({
-        where: { id: item.slotId },
-        data: { status: 'FREE' },
-      })
-
-      // Update item
-      const updated = await prisma.vaultItem.update({
-        where: { id: itemId },
-        data: {
-          status: 'ASSIGNED_TO_SHOP',
-          slotId: null,
-          caseId: null,
-        },
+      // Rimozione atomica con lock pessimistico
+      const result = await prisma.$transaction(async (tx) => {
+        return await removeItemFromSlotAtomic(tx, {
+          itemId,
+          slotId: item.slotId!,
+          shopId: shop.id,
+        })
       })
 
       await createVaultAuditLog({
@@ -86,7 +80,7 @@ export async function POST(
         newValue: { slotId: null, status: 'ASSIGNED_TO_SHOP' },
       })
 
-      return NextResponse.json({ data: updated }, { status: 200 })
+      return NextResponse.json({ data: result.item }, { status: 200 })
     }
 
     // If moving to slot
@@ -116,7 +110,7 @@ export async function POST(
       )
     }
 
-    // Validate transition
+    // Validate transition (pre-check)
     const newStatus = 'IN_CASE'
     const transition = canTransitionItemStatus(item.status, newStatus)
     if (!transition.valid) {
@@ -126,28 +120,26 @@ export async function POST(
       )
     }
 
-    // Free old slot if exists
-    if (item.slotId) {
-      await prisma.vaultCaseSlot.update({
-        where: { id: item.slotId },
-        data: { status: 'FREE' },
-      })
-    }
-
-    // Update item
-    const updated = await prisma.vaultItem.update({
-      where: { id: itemId },
-      data: {
-        status: newStatus,
-        caseId: slot.caseId,
-        slotId: slotId,
-      },
-    })
-
-    // Mark slot as occupied
-    await prisma.vaultCaseSlot.update({
-      where: { id: slotId },
-      data: { status: 'OCCUPIED' },
+    // Spostamento atomico con lock pessimistico
+    // Se item è già in uno slot, usa moveItemBetweenSlotsAtomic
+    // Altrimenti usa assignItemToSlotAtomic
+    const result = await prisma.$transaction(async (tx) => {
+      if (item.slotId && item.slotId !== slotId) {
+        // Spostamento tra slot diversi
+        return await moveItemBetweenSlotsAtomic(tx, {
+          itemId,
+          fromSlotId: item.slotId,
+          toSlotId: slotId,
+          shopId: shop.id,
+        })
+      } else {
+        // Assegnazione a nuovo slot (o stesso slot, ma non dovrebbe succedere)
+        return await assignItemToSlotAtomic(tx, {
+          itemId,
+          slotId,
+          shopId: shop.id,
+        })
+      }
     })
 
     await createVaultAuditLog({
@@ -160,7 +152,7 @@ export async function POST(
       newValue: { slotId: slotId, status: newStatus },
     })
 
-    return NextResponse.json({ data: updated }, { status: 200 })
+    return NextResponse.json({ data: result.item }, { status: 200 })
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

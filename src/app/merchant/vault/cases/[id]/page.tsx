@@ -74,30 +74,14 @@ export default function VaultCaseDetailPage() {
     }
   }, [params.id, user, userLoading, router, fetchCase])
 
-  if (userLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background-dark text-white flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
-  if (!case_) {
-    return (
-      <div className="min-h-screen bg-background-dark text-white flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Teca non trovata</h2>
-          <Button onClick={() => router.push('/merchant/vault')}>Torna alla Dashboard</Button>
-        </div>
-      </div>
-    )
-  }
-
-  // Generate all 30 slots (S01-S30)
-  const allSlots: (Slot | null)[] = Array.from({ length: 30 }, (_, i) => {
-    const slotCode = `S${String(i + 1).padStart(2, '0')}`
-    return case_.slots.find((s) => s.slotCode === slotCode) || null
-  })
+  // Generate all 30 slots (S01-S30) - must be before early returns
+  const allSlots: (Slot | null)[] = useMemo(() => {
+    if (!case_) return Array(30).fill(null)
+    return Array.from({ length: 30 }, (_, i) => {
+      const slotCode = `S${String(i + 1).padStart(2, '0')}`
+      return case_.slots.find((s) => s.slotCode === slotCode) || null
+    })
+  }, [case_])
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -124,6 +108,25 @@ export default function VaultCaseDetailPage() {
       return true
     })
   }, [allSlots, filterStatus, filterGame])
+
+  if (userLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background-dark text-white flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!case_) {
+    return (
+      <div className="min-h-screen bg-background-dark text-white flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Teca non trovata</h2>
+          <Button onClick={() => router.push('/merchant/vault')}>Torna alla Dashboard</Button>
+        </div>
+      </div>
+    )
+  }
 
   const handleSlotClick = (slot: Slot | null, slotCode: string) => {
     if (slot) {

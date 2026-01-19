@@ -85,22 +85,52 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
+      // Call API logout endpoint to clear server-side cookies
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
+
+      if (!res.ok) {
+        console.error('Logout API error:', await res.text())
+      }
+
+      // Clear client-side Supabase session
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
       
       const { error } = await supabase.auth.signOut()
       
       if (error) {
-        console.error('Logout error:', error)
-        return
+        console.error('Logout client error:', error)
       }
       
-      // Clear any local state
-      // The onAuthStateChange in useUser will update the state automatically
+      // Clear localStorage (Supabase stores tokens here)
+      try {
+        const keys = Object.keys(localStorage)
+        keys.forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            localStorage.removeItem(key)
+          }
+        })
+      } catch (e) {
+        console.error('Error clearing localStorage:', e)
+      }
+
+      // Clear sessionStorage
+      try {
+        sessionStorage.clear()
+      } catch (e) {
+        console.error('Error clearing sessionStorage:', e)
+      }
+      
       // Force a full page reload to clear all state and cookies
-      window.location.href = '/'
+      // Use window.location.replace to prevent back button issues
+      window.location.replace('/')
     } catch (error) {
       console.error('Logout error:', error)
+      // Even if there's an error, try to redirect
+      window.location.replace('/')
     }
   }
 

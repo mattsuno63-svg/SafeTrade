@@ -5,10 +5,12 @@ import { requireAuth } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const { id } = params
+    // Handle both Promise and non-Promise params (Next.js 14 vs 15)
+    const resolvedParams = 'then' in params ? await params : params
+    const { id } = resolvedParams
 
     // Verify authentication
     const user = await requireAuth()
@@ -30,6 +32,8 @@ export async function GET(
             name: true,
             email: true,
             avatar: true,
+            city: true, // Necessario per verificare indirizzo seller per Verified Escrow
+            province: true, // Necessario per indirizzo seller
           },
         },
         shop: {
@@ -54,6 +58,20 @@ export async function GET(
                 price: true,
               },
             },
+          },
+        },
+        shippingLabel: {
+          select: {
+            id: true,
+            shippoTrackingNumber: true,
+            labelUrl: true,
+            costAmount: true,
+            chargedAmount: true,
+            marginAmount: true,
+            status: true,
+            courier: true,
+            provider: true,
+            shippoTransactionId: true,
           },
         },
       },
@@ -90,6 +108,8 @@ export async function GET(
     return NextResponse.json(transaction)
   } catch (error: any) {
     console.error('Error fetching transaction:', error)
+    console.error('Error stack:', error.stack)
+    console.error('Error message:', error.message)
     if (error.message === 'Unauthorized') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -97,7 +117,11 @@ export async function GET(
       )
     }
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? (error.message || String(error)) : undefined,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     )
   }
@@ -105,10 +129,12 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const { id } = params
+    // Handle both Promise and non-Promise params (Next.js 14 vs 15)
+    const resolvedParams = 'then' in params ? await params : params
+    const { id } = resolvedParams
     const body = await request.json()
     const { status, notes } = body
 

@@ -89,6 +89,13 @@ export default function SignupPage() {
       return
     }
 
+    // City is required for all users
+    if (!formData.city || formData.city.trim() === '') {
+      setError('La città è obbligatoria')
+      setLoading(false)
+      return
+    }
+
     // Merchant validation
     if (formData.role === 'MERCHANT') {
       if (!formData.shopName || !formData.companyName || !formData.vatNumber || !formData.address || !formData.city || !formData.phone) {
@@ -324,7 +331,7 @@ export default function SignupPage() {
                 {/* Location Fields - For all users */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city">Città</Label>
+                    <Label htmlFor="city">Città *</Label>
                     <Input
                       id="city"
                       type="text"
@@ -332,7 +339,9 @@ export default function SignupPage() {
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       className="h-12"
+                      required
                     />
+                    <p className="text-xs text-gray-500">La città è obbligatoria per filtrare i negozi nella tua zona</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="province">Provincia</Label>

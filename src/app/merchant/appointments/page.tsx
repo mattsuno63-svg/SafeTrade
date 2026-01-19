@@ -402,12 +402,26 @@ export default function MerchantAppointmentsPage() {
                 <input
                   type="text"
                   value={verifyCode}
-                  onChange={(e) => setVerifyCode(e.target.value.toUpperCase())}
-                  placeholder="Enter code..."
-                  className="w-full h-12 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-center text-2xl tracking-widest font-mono"
-                  maxLength={8}
+                  onChange={(e) => setVerifyCode(e.target.value)}
+                  placeholder="Enter code or scan QR..."
+                  className="w-full h-12 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-mono"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Inserisci il codice completo mostrato sul telefono del cliente
+                </p>
               </div>
+
+              <Button
+                variant="outline"
+                className="w-full border-primary text-primary hover:bg-primary/10"
+                onClick={() => {
+                  setShowVerifyModal(false)
+                  router.push('/merchant/verify/scan')
+                }}
+              >
+                <span className="material-symbols-outlined mr-2">qr_code_scanner</span>
+                Scan QR Code
+              </Button>
 
               <div className="flex gap-3">
                 <Button

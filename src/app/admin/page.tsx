@@ -313,6 +313,22 @@ export default function AdminDashboardPage() {
                   </div>
                 </Card>
               </Link>
+
+              <Link href="/admin/vault/requests">
+                <Card className="glass-panel p-6 hover:shadow-lg transition-all cursor-pointer group border-2 border-cyan-500/30">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center group-hover:bg-cyan-500/30 transition-colors">
+                      <span className="material-symbols-outlined text-cyan-500">inventory_2</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Richieste Teche Vault</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Rivedi e approva richieste teche dai merchant
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
             </div>
 
             {/* Recent Activity */}

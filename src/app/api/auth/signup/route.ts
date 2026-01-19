@@ -10,6 +10,9 @@ const signupSchema = z.object({
   password: z.string().min(8),
   name: z.string().optional(),
   role: z.enum(['USER', 'MERCHANT']).default('USER'),
+  city: z.string().min(1, 'La città è obbligatoria'),
+  province: z.string().optional(),
+  maxDistance: z.number().int().min(10).max(200).default(50).optional(),
   merchantData: z.object({
     shopName: z.string(),
     companyName: z.string(),
@@ -60,6 +63,17 @@ export async function POST(request: NextRequest) {
     // If merchant, create user as USER and create MerchantApplication
     const finalRole = role === 'MERCHANT' ? 'USER' : (role as UserRole)
 
+    // Validate city is provided
+    const body = await request.json()
+    const { city, province, maxDistance } = body
+    
+    if (!city || city.trim() === '') {
+      return NextResponse.json(
+        { error: 'La città è obbligatoria' },
+        { status: 400 }
+      )
+    }
+
     // Create user in Prisma database
     const user = await prisma.user.create({
       data: {
@@ -68,6 +82,9 @@ export async function POST(request: NextRequest) {
         passwordHash: '', // Supabase handles password
         name: name || null,
         role: finalRole,
+        city: city.trim(),
+        province: province?.trim() || null,
+        maxDistance: maxDistance || 50, // Default 50km
       },
     })
 
@@ -141,7 +158,23 @@ export async function POST(request: NextRequest) {
         console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set - cannot auto-confirm merchant email')
       }
 
-      // Notify admins
+      // Notify admins using AdminNotification (for AdminNotificationBell)
+      try {
+        await prisma.adminNotification.create({
+          data: {
+            type: 'MERCHANT_APPLICATION',
+            referenceType: 'MERCHANT_APPLICATION',
+            referenceId: application.id,
+            title: 'Nuova Richiesta Commerciante',
+            message: `${merchantData.shopName} ha richiesto di diventare un partner SafeTrade.`,
+            priority: 'NORMAL',
+            targetRoles: ['ADMIN', 'MODERATOR'],
+          },
+        })
+        console.log('✅ Admin notification created for merchant application')
+      } catch (notifError) {
+        console.error('Error creating admin notification:', notifError)
+        // Fallback: create regular notification for admins
       const admins = await prisma.user.findMany({
         where: { role: 'ADMIN' },
         select: { id: true },
@@ -157,6 +190,7 @@ export async function POST(request: NextRequest) {
             link: `/admin/applications`,
           },
         })
+        }
       }
     }
 

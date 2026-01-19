@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useUser } from '@/hooks/use-user'
 import { 
   QrCode, 
   Package, 
@@ -31,51 +32,107 @@ interface VaultStats {
 
 export default function MerchantVaultPage() {
   const router = useRouter()
+  const { user } = useUser()
   const [stats, setStats] = useState<VaultStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [authorized, setAuthorized] = useState(false)
   const [error, setError] = useState<string>('')
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
+    if (user) {
+      setIsAdmin(user.role === 'ADMIN' || user.role === 'HUB_STAFF')
+    }
     fetchVaultData()
-  }, [])
+  }, [user])
 
   const fetchVaultData = async () => {
     setLoading(true)
     try {
-      // Check authorization
-      const shopRes = await fetch('/api/merchant/shop')
-      if (shopRes.ok) {
-        const shopData = await shopRes.json()
-        setAuthorized(shopData.data?.vaultCaseAuthorized || false)
-      }
-
-      // Fetch inventory for stats
-      const invRes = await fetch('/api/vault/merchant/inventory')
-      if (invRes.ok) {
-        const invData = await invRes.json()
-        const items = invData.data || []
-
-        const stats: VaultStats = {
-          totalItems: items.length,
-          itemsInCase: items.filter((i: any) => i.status === 'IN_CASE').length,
-          itemsListedOnline: items.filter((i: any) => i.status === 'LISTED_ONLINE').length,
-          itemsReserved: items.filter((i: any) => i.status === 'RESERVED').length,
-          itemsSold: items.filter((i: any) => i.status === 'SOLD').length,
-          totalRevenue: items
-            .filter((i: any) => i.sale || i.order)
-            .reduce((sum: number, i: any) => {
-              if (i.sale) return sum + i.sale.soldPrice
-              if (i.order) {
-                const totals = i.order.totals as any
-                return sum + (totals?.total || 0)
+      let isAuthorized = false
+      
+      // Se l'utente è ADMIN, permette sempre l'accesso
+      if (user && (user.role === 'ADMIN' || user.role === 'HUB_STAFF')) {
+        isAuthorized = true
+      } else {
+        // Check authorization per merchant
+        const shopRes = await fetch('/api/merchant/shop')
+        if (shopRes.ok) {
+          const shopData = await shopRes.json()
+          // L'API restituisce direttamente lo shop, non { data: shop }
+          isAuthorized = shopData?.vaultCaseAuthorized === true
+          
+          // Se non autorizzato, verifica se c'è una richiesta PAID o COMPLETED
+          if (!isAuthorized) {
+            try {
+              const requestsRes = await fetch('/api/vault/requests')
+              if (requestsRes.ok) {
+                const requestsData = await requestsRes.json()
+                const requests = requestsData.data || []
+                // Se c'è una richiesta PAID o COMPLETED, autorizza comunque
+                const hasPaidOrCompleted = requests.some((r: any) => 
+                  r.status === 'PAID' || r.status === 'COMPLETED'
+                )
+                if (hasPaidOrCompleted) {
+                  isAuthorized = true
+                }
               }
-              return sum
-            }, 0),
-          pendingPayout: 0, // TODO: calculate from splits
+            } catch (err) {
+              console.error('Error checking vault requests:', err)
+            }
+          }
+          
+          // Verifica anche se esiste una teca autorizzata per questo shop
+          if (!isAuthorized && shopData?.id) {
+            try {
+              const casesRes = await fetch(`/api/vault/cases?shopId=${shopData.id}`)
+              if (casesRes.ok) {
+                const casesData = await casesRes.json()
+                const cases = casesData.data || []
+                const hasAuthorizedCase = cases.some((c: any) => 
+                  c.authorizedShopId === shopData.id && c.status === 'IN_SHOP_ACTIVE'
+                )
+                if (hasAuthorizedCase) {
+                  isAuthorized = true
+                }
+              }
+            } catch (err) {
+              console.error('Error checking vault cases:', err)
+            }
+          }
         }
+      }
+      
+      setAuthorized(isAuthorized)
 
-        setStats(stats)
+      // Fetch inventory for stats (solo se autorizzato o admin)
+      if (isAuthorized || (user && (user.role === 'ADMIN' || user.role === 'HUB_STAFF'))) {
+        const invRes = await fetch('/api/vault/merchant/inventory')
+        if (invRes.ok) {
+          const invData = await invRes.json()
+          const items = invData.data || []
+
+          const stats: VaultStats = {
+            totalItems: items.length,
+            itemsInCase: items.filter((i: any) => i.status === 'IN_CASE').length,
+            itemsListedOnline: items.filter((i: any) => i.status === 'LISTED_ONLINE').length,
+            itemsReserved: items.filter((i: any) => i.status === 'RESERVED').length,
+            itemsSold: items.filter((i: any) => i.status === 'SOLD').length,
+            totalRevenue: items
+              .filter((i: any) => i.sale || i.order)
+              .reduce((sum: number, i: any) => {
+                if (i.sale) return sum + i.sale.soldPrice
+                if (i.order) {
+                  const totals = i.order.totals as any
+                  return sum + (totals?.total || 0)
+                }
+                return sum
+              }, 0),
+            pendingPayout: 0, // TODO: calculate from splits
+          }
+
+          setStats(stats)
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Errore nel caricamento dati')
@@ -119,12 +176,22 @@ export default function MerchantVaultPage() {
               </p>
             </div>
 
-            {!authorized && (
+            {!authorized && !isAdmin && (
               <Alert className="mb-6 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
                 <AlertCircle className="h-4 w-4 text-yellow-600" />
                 <AlertDescription className="text-yellow-800 dark:text-yellow-200">
                   Il tuo negozio non è autorizzato ad utilizzare le teche Vault. 
                   Contatta l'amministratore per abilitare questa funzionalità.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {isAdmin && (
+              <Alert className="mb-6 border-blue-500 bg-blue-50 dark:bg-blue-900/20">
+                <AlertCircle className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800 dark:text-blue-200">
+                  <strong>Modalità Admin:</strong> Stai visualizzando la dashboard Vault come amministratore. 
+                  Puoi vedere tutte le funzionalità ma alcune azioni potrebbero richiedere un account merchant.
                 </AlertDescription>
               </Alert>
             )}
@@ -137,7 +204,7 @@ export default function MerchantVaultPage() {
             )}
 
             {/* Quick Actions */}
-            {authorized && (
+            {(authorized || isAdmin) && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <Card className="glass-panel">
                   <CardHeader className="pb-3">

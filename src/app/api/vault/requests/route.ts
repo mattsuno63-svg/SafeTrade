@@ -163,7 +163,18 @@ export async function GET(request: NextRequest) {
 
     const requests = await prisma.vaultCaseRequest.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        shopId: true,
+        requestedBy: true,
+        status: true,
+        notes: true,
+        adminNotes: true,
+        paymentStatus: true,
+        createdAt: true,
+        approvedAt: true,
+        rejectedAt: true,
+        paidAt: true,
         shop: {
           select: {
             id: true,

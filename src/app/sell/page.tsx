@@ -80,26 +80,124 @@ export default function SellPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {/* Show only "Sell as Collector" for USER role */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {/* Show 3 options for USER role: Local Escrow, Verified Escrow, SafeVault */}
               {userRole === 'USER' && (
-                <Card className="glass-panel p-8 flex flex-col md:col-span-2 max-w-2xl mx-auto">
-                  <div className="mb-4">
-                    <span className="material-symbols-outlined text-4xl text-primary mb-4 inline-block">
-                      person
-                    </span>
-                  </div>
-                  <h2 className="text-2xl font-bold mb-4">{t('sell.asCollector')}</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6 flex-grow">
-                    {t('sell.asCollectorDesc')}
-                  </p>
-                  <Button 
-                    className="w-full bg-primary hover:bg-primary-dark mt-auto"
-                    onClick={() => router.push('/listings/create')}
-                  >
-                    {t('sell.createListing')}
-                  </Button>
-                </Card>
+                <>
+                  {/* Opzione 1: Escrow Locale */}
+                  <Card className="glass-panel p-6 flex flex-col hover:shadow-xl transition-all hover:-translate-y-1">
+                    <div className="mb-4">
+                      <div className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center mb-4">
+                        <span className="material-symbols-outlined text-3xl text-blue-500">
+                          store
+                        </span>
+                      </div>
+                    </div>
+                    <h2 className="text-xl font-bold mb-2">Escrow Locale</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex-grow">
+                      Incontra l'acquirente in un negozio verificato. Scambio sicuro e immediato con verifica professionale.
+                    </p>
+                    <ul className="text-xs text-gray-600 dark:text-gray-400 mb-4 space-y-1">
+                      <li className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                        Scambio in negozio fisico
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                        Verifica immediata
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                        Pagamento sicuro
+                      </li>
+                    </ul>
+                    <Button 
+                      className="w-full bg-blue-500 hover:bg-blue-600 mt-auto"
+                      onClick={() => router.push('/listings/create?escrowType=LOCAL')}
+                    >
+                      Vendi con Escrow Locale
+                    </Button>
+                  </Card>
+
+                  {/* Opzione 2: Escrow Centralizzato */}
+                  <Card className="glass-panel p-6 flex flex-col hover:shadow-xl transition-all hover:-translate-y-1">
+                    <div className="mb-4">
+                      <div className="w-16 h-16 rounded-2xl bg-green-500/20 flex items-center justify-center mb-4">
+                        <span className="material-symbols-outlined text-3xl text-green-500">
+                          local_shipping
+                        </span>
+                      </div>
+                    </div>
+                    <h2 className="text-xl font-bold mb-2">Escrow Centralizzato</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex-grow">
+                      Spedisci a SafeTrade Hub. Verifica professionale e rispedizione all'acquirente. Massima sicurezza.
+                    </p>
+                    <ul className="text-xs text-gray-600 dark:text-gray-400 mb-4 space-y-1">
+                      <li className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                        Verifica professionale
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                        Spedizione gestita
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                        Protezione completa
+                      </li>
+                    </ul>
+                    <Button 
+                      className="w-full bg-green-500 hover:bg-green-600 mt-auto"
+                      onClick={() => router.push('/listings/create?escrowType=VERIFIED')}
+                    >
+                      Vendi con Escrow Centralizzato
+                    </Button>
+                  </Card>
+
+                  {/* Opzione 3: SafeVault (Contovendita) */}
+                  <Card className="glass-panel p-6 flex flex-col hover:shadow-xl transition-all hover:-translate-y-1 border-2 border-purple-500/30 bg-gradient-to-br from-purple-50/50 to-purple-100/30 dark:from-purple-900/20 dark:to-purple-800/10">
+                    <div className="mb-4">
+                      <div className="w-16 h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center mb-4">
+                        <span className="material-symbols-outlined text-3xl text-purple-500">
+                          inventory_2
+                        </span>
+                      </div>
+                      <div className="inline-block px-2 py-1 bg-purple-600 text-white text-xs font-bold rounded mb-2">
+                        NUOVO
+                      </div>
+                    </div>
+                    <h2 className="text-xl font-bold mb-2">SafeVault - Contovendita</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex-grow">
+                      Vendita in contovendita multicanale. Verifica professionale, vendita online e nei negozi. Ricevi il 70% del prezzo finale.
+                    </p>
+                    <div className="mb-3 p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg border border-yellow-300 dark:border-yellow-700">
+                      <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-200 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm">info</span>
+                        Solo per carte con valore ≥ 40€
+                      </p>
+                    </div>
+                    <ul className="text-xs text-gray-600 dark:text-gray-400 mb-4 space-y-1">
+                      <li className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                        Verifica professionale
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                        Vendita multicanale
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                        Split 70/20/10
+                      </li>
+                    </ul>
+                    <Button 
+                      className="w-full bg-purple-600 hover:bg-purple-700 mt-auto"
+                      onClick={() => router.push('/vault/deposit/new')}
+                    >
+                      Vendi in Contovendita
+                    </Button>
+                  </Card>
+                </>
               )}
 
               {/* Show only "Sell as Merchant" for MERCHANT role */}

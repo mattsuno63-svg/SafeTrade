@@ -12,20 +12,34 @@ export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth()
 
-    // Get merchant's shop
-    const shop = await prisma.shop.findUnique({
-      where: { merchantId: user.id },
+    // Verifica se l'utente è ADMIN o HUB_STAFF
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true },
     })
 
-    if (!shop) {
-      return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
-    }
+    const isAdmin = dbUser?.role === 'ADMIN' || dbUser?.role === 'HUB_STAFF'
 
-    if (!shop.vaultEnabled) {
-      return NextResponse.json(
-        { error: 'Shop is not enrolled in Vault program' },
-        { status: 400 }
-      )
+    let shopId: string | null = null
+
+    if (!isAdmin) {
+      // Get merchant's shop
+      const shop = await prisma.shop.findUnique({
+        where: { merchantId: user.id },
+      })
+
+      if (!shop) {
+        return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
+      }
+
+      if (!shop.vaultEnabled) {
+        return NextResponse.json(
+          { error: 'Shop is not enrolled in Vault program' },
+          { status: 400 }
+        )
+      }
+
+      shopId = shop.id
     }
 
     const searchParams = request.nextUrl.searchParams
@@ -34,7 +48,8 @@ export async function GET(request: NextRequest) {
 
     const items = await prisma.vaultItem.findMany({
       where: {
-        shopIdCurrent: shop.id,
+        // Se admin, mostra tutti gli item. Altrimenti solo quelli del negozio
+        ...(shopId ? { shopIdCurrent: shopId } : {}),
         ...(status ? { status: status as any } : {}),
         ...(caseId ? { caseId } : {}),
       },

@@ -41,21 +41,48 @@ enum ProposalStatus {
   CANCELLED
 }
 
+enum EscrowType {
+  LOCAL // Escrow locale (negozio fisico)
+  VERIFIED // Verified Escrow (hub centrale SafeTrade)
+}
+
 enum SafeTradeStatus {
   PENDING
   CONFIRMED
   COMPLETED
   CANCELLED
+  // Verified Escrow specific statuses
+  PENDING_ESCROW_SETUP
+  ESCROW_ACTIVE
+  AWAITING_HUB_RECEIPT
+  HUB_RECEIVED
+  VERIFICATION_IN_PROGRESS
+  VERIFICATION_PASSED
+  VERIFICATION_FAILED
+  SHIPPED_TO_BUYER
+  IN_TRANSIT_TO_BUYER
+  DELIVERED_TO_BUYER
+  CONFIRMED_BY_BUYER
+  RELEASE_REQUESTED
+  RELEASE_APPROVED
+  RETURNED_TO_SELLER
+  REFUND_PENDING
+  REFUNDED
 }
 
 enum HubPackageStatus {
-  PENDING // Package not yet sent
-  IN_TRANSIT // Package sent to hub
-  RECEIVED // Package received at hub
-  VERIFIED // Contents verified
-  SHIPPED // Package shipped to buyer
-  DELIVERED // Package delivered to buyer
-  RETURNED // Package returned to seller
+  PENDING // In attesa di spedizione seller
+  IN_TRANSIT_TO_HUB // Seller ha spedito, in transito verso hub
+  RECEIVED_AT_HUB // Ricevuto all'hub (marcato da HUB_STAFF)
+  VERIFICATION_IN_PROGRESS // Team sta verificando
+  VERIFICATION_PASSED // Verifica OK, carta conforme
+  VERIFICATION_FAILED // Verifica fallita (danni, non conforme)
+  SHIPPED_TO_BUYER // Rispedito a buyer
+  IN_TRANSIT_TO_BUYER // In transito verso buyer
+  DELIVERED_TO_BUYER // Consegnato a buyer (tracking conferma)
+  CONFIRMED_BY_BUYER // Buyer ha confermato ricezione
+  RETURNED_TO_SELLER // Restituito a seller (verifica fallita)
+  LOST_IN_TRANSIT // Perso in transito (disputa)
 }
 
 enum CardGame {
@@ -74,8 +101,9 @@ model User {
   name            String?
   avatar          String?
   role            UserRole @default(USER)
-  city            String? // User's city for geographic filtering
+  city            String // User's city for geographic filtering (REQUIRED)
   province        String? // Province/region
+  maxDistance     Int      @default(50) // Maximum distance in km for shop filtering (default 50km)
   bio             String? // User's passion description (Onboarding)
   preferredShopId String? // Preferred SafeTrade store
   createdAt       DateTime @default(now())
@@ -97,21 +125,23 @@ model User {
   merchantApplication      MerchantApplication?
 
   // Escrow relations
-  escrowSessionsAsBuyer    EscrowSession[]   @relation("EscrowBuyer")
-  escrowSessionsAsSeller   EscrowSession[]   @relation("EscrowSeller")
-  escrowSessionsAsMerchant EscrowSession[]   @relation("EscrowMerchant")
-  escrowMessagesSent       EscrowMessage[]   @relation("EscrowMessageSender")
-  escrowWallet             EscrowWallet?     @relation("EscrowWallet")
-  escrowHub                EscrowHub?        @relation("EscrowHubProvider")
-  escrowHubReviews         EscrowHubReview[] @relation("EscrowHubReviewer")
+  escrowSessionsAsBuyer       EscrowSession[]      @relation("EscrowBuyer")
+  escrowSessionsAsSeller      EscrowSession[]      @relation("EscrowSeller")
+  escrowSessionsAsMerchant    EscrowSession[]      @relation("EscrowMerchant")
+  escrowMessagesSent          EscrowMessage[]      @relation("EscrowMessageSender")
+  escrowWallet                EscrowWallet?        @relation("EscrowWallet")
+  escrowHub                   EscrowHub?           @relation("EscrowHubProvider")
+  escrowHubReviews            EscrowHubReview[]    @relation("EscrowHubReviewer")
+  verificationReportsVerified VerificationReport[] @relation("VerificationReportVerifier")
+  escrowAuditLogsPerformed    EscrowAuditLog[]     @relation("EscrowAuditLogPerformer")
 
   // Community Relations
   posts         Post[]
   comments      Comment[]
   badges        UserBadge[]
-  postVotes     PostVote[]       @relation("PostVotes")
-  commentVotes  CommentVote[]     @relation("CommentVotes")
-  createdTopics Topic[]           @relation("SubredditCreator")
+  postVotes     PostVote[]    @relation("PostVotes")
+  commentVotes  CommentVote[] @relation("CommentVotes")
+  createdTopics Topic[]       @relation("SubredditCreator")
 
   // Premium & Subscription
   subscription       UserSubscription?
@@ -159,6 +189,8 @@ model Shop {
   images      String[] // Array of additional shop images for gallery
   address     String?
   city        String?
+  latitude    Float? // Latitude for geolocation
+  longitude   Float? // Longitude for geolocation
   postalCode  String?
   phone       String?
   email       String? // Shop email
@@ -350,6 +382,12 @@ model ListingP2P {
   visibility     ListingVisibility @default(PUBLIC)
   earlyAccessEnd DateTime? // Timestamp fine early access (24h dopo creazione)
 
+  // SafeVault Integration
+  isVaultListing  Boolean   @default(false) // Se true, vendita in contovendita SafeVault
+  vaultItemId     String?   @unique // Collegamento a VaultItem
+  vaultItem       VaultItem? @relation("ListingVaultItem", fields: [vaultItemId], references: [id], onDelete: SetNull)
+  vaultDepositId  String? // ID deposito da cui proviene (se da listing)
+
   proposals        Proposal[]
   featuredListings FeaturedListing[]
   alertTriggers    AlertTrigger[]
@@ -365,6 +403,8 @@ model ListingP2P {
   @@index([createdAt])
   @@index([visibility])
   @@index([earlyAccessEnd])
+  @@index([isVaultListing])
+  @@index([vaultItemId])
 }
 
 model Proposal {
@@ -408,14 +448,17 @@ model SafeTradeTransaction {
   userBId    String
   userB      User      @relation("UserB", fields: [userBId], references: [id], onDelete: Cascade)
 
+  // Escrow Type
+  escrowType EscrowType @default(LOCAL) // LOCAL o VERIFIED
+
   // Support for both Shop-based and Hub-based escrow
-  shopId String? // Optional - for shop-based escrow
+  shopId String? // Optional - for shop-based escrow (LOCAL)
   shop   Shop?      @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  hubId  String? // Optional - for hub-based escrow
+  hubId  String? // Optional - for hub-based escrow (VERIFIED - uses central hub)
   hub    EscrowHub? @relation(fields: [hubId], references: [id], onDelete: Restrict)
 
   scheduledDate    DateTime?
-  scheduledTime    String? // Time slot (e.g., "10:00-11:00")
+  scheduledTime    String? // Time slot (e.g., "10:00-11:00") - only for LOCAL
   status           SafeTradeStatus @default(PENDING)
   notes            String? // Notes from shop/hub or users
   verificationCode String? // Code for verification at store/hub
@@ -427,7 +470,7 @@ model SafeTradeTransaction {
   priorityTier PriorityTier @default(STANDARD)
   priorityPaid Boolean      @default(false) // Se ha pagato per priority (pay-per-use)
 
-  // Hub Package Tracking (only for hub-based transactions)
+  // Hub Package Tracking (only for VERIFIED escrow)
   packageStatus        HubPackageStatus? // Status of package in hub
   trackingNumber       String? // Shipping tracking number (to hub)
   returnTrackingNumber String? // Return tracking number (to buyer)
@@ -435,12 +478,18 @@ model SafeTradeTransaction {
   packageVerifiedAt    DateTime? // When package verified at hub
   packageShippedAt     DateTime? // When package shipped to buyer
   packageDeliveredAt   DateTime? // When package delivered to buyer
+  confirmedReceivedAt  DateTime? // When buyer confirmed receipt
+  autoReleaseAt        DateTime? // When to auto-release funds (72h after delivery)
   verificationPhotos   String[] // Photos of package contents for verification
+  verificationNotes    String?           @db.Text // Notes from hub staff verification
+  conditionVerified    CardCondition? // Condition verified by hub staff
+  priceFinal           Float? // Final price (if different from listing)
 
   // Relations
   escrowSession   EscrowSession?
   escrowPayment   EscrowPayment?
   pendingReleases PendingRelease[] @relation("PendingReleases")
+  shippingLabel   ShippingLabel?   @relation("TransactionShippingLabel")
 
   // Insurance, Disputes, Packages
   insurance      PackageInsurance?      @relation("PackageInsurance")
@@ -637,10 +686,19 @@ model MerchantApplication {
 // ============= ESCROW SYSTEM =============
 
 enum EscrowSessionStatus {
-  ACTIVE
-  COMPLETED
-  CANCELLED
-  DISPUTED
+  CREATED // Sessione creata, non ancora prenotata
+  BOOKED // Slot prenotato, in attesa data appuntamento
+  CHECKIN_PENDING // Data appuntamento arrivata, in attesa check-in
+  CHECKED_IN // Merchant ha confermato presenza buyer+seller
+  VERIFICATION_IN_PROGRESS // Verifica merchant in corso
+  VERIFICATION_PASSED // Verifica superata
+  VERIFICATION_FAILED // Verifica fallita
+  RELEASE_REQUESTED // Rilascio fondi richiesto
+  RELEASE_APPROVED // Rilascio fondi approvato (doppia conferma)
+  COMPLETED // Sessione completata con successo
+  DISPUTED // Dispute aperta (da vari stati)
+  CANCELLED // Sessione cancellata (da CREATED/BOOKED)
+  EXPIRED // Check-in non avvenuto entro 1 ora (da BOOKED/CHECKIN_PENDING)
 }
 
 enum FeePaidBy {
@@ -677,7 +735,14 @@ model EscrowSession {
   merchantId String // Shop owner
   merchant   User   @relation("EscrowMerchant", fields: [merchantId], references: [id], onDelete: Cascade)
 
-  status EscrowSessionStatus @default(ACTIVE)
+  status EscrowSessionStatus @default(CREATED)
+
+  // Appointment & Check-in
+  appointmentSlot DateTime? // Slot prenotato (DateTime combinato da scheduledDate + scheduledTime)
+  expiredAt       DateTime? // Scadenza per check-in (1 ora dopo appointmentSlot)
+  checkInAt       DateTime? // Quando merchant ha fatto check-in
+  buyerPresent    Boolean   @default(false) // Presenza buyer confermata da merchant
+  sellerPresent   Boolean   @default(false) // Presenza seller confermata da merchant
 
   // Payment & Fee Management
   totalAmount   Float               @default(0) // Prezzo totale concordato
@@ -688,10 +753,13 @@ model EscrowSession {
   paymentMethod EscrowPaymentMethod @default(CASH) // Solo CASH per ora
 
   // QR Code for in-store verification
-  qrCode          String?   @unique // Codice univoco per QR (nullable per record esistenti)
-  qrCodeExpiresAt DateTime? // Scadenza QR code (7 giorni dalla creazione)
-  qrScannedAt     DateTime? // Timestamp quando il QR è stato scannerizzato
-  qrScannedBy     String? // ID del merchant che ha scannerizzato
+  qrToken          String?   @unique // Token opaco per QR check-in
+  qrTokenExpiresAt DateTime? // Scadenza token QR (7 giorni dalla creazione)
+  qrScannedAt      DateTime? // Timestamp quando il QR è stato scannerizzato
+  qrScannedBy      String? // ID del merchant che ha scannerizzato
+  // Deprecated: qrCode (mantenuto per compatibilità)
+  qrCode           String?   @unique // Deprecated - usare qrToken
+  qrCodeExpiresAt  DateTime? // Deprecated
 
   // Session metadata
   lastActivity DateTime @default(now())
@@ -699,7 +767,9 @@ model EscrowSession {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  messages EscrowMessage[]
+  messages           EscrowMessage[]
+  verificationReport VerificationReport?
+  auditEvents        EscrowAuditLog[]
 
   @@index([transactionId])
   @@index([buyerId])
@@ -707,6 +777,9 @@ model EscrowSession {
   @@index([merchantId])
   @@index([status])
   @@index([qrCode])
+  @@index([qrToken])
+  @@index([appointmentSlot])
+  @@index([expiredAt])
   @@index([lastActivity])
 }
 
@@ -725,6 +798,71 @@ model EscrowMessage {
   @@index([sessionId])
   @@index([senderId])
   @@index([createdAt])
+}
+
+// Verification Report - Report di verifica merchant con foto e note
+enum VerificationStatus {
+  IN_PROGRESS
+  PASSED
+  FAILED
+}
+
+model VerificationReport {
+  id        String        @id @default(cuid())
+  sessionId String        @unique
+  session   EscrowSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  status VerificationStatus @default(IN_PROGRESS)
+
+  // Photos (minimo 3 obbligatorie)
+  verificationPhotos String[] // Array path foto in Supabase Storage
+  photosMetadata     Json? // Metadata foto (dimensione, hash, width, height)
+
+  // Notes
+  notes String? @db.Text // Note merchant
+
+  // Timestamps
+  verifiedAt   DateTime?
+  verifiedById String? // ID merchant che ha eseguito verifica
+  verifiedBy   User?     @relation("VerificationReportVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([status])
+  @@index([verifiedById])
+}
+
+// Escrow Audit Log - Audit trail completo tutte le azioni
+model EscrowAuditLog {
+  id        String        @id @default(cuid())
+  sessionId String
+  session   EscrowSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Action details
+  actionType      String // 'CHECK_IN', 'VERIFICATION_STARTED', 'VERIFICATION_PASSED', 'VERIFICATION_FAILED', 'RELEASE_REQUESTED', 'RELEASE_APPROVED', 'SESSION_EXPIRED', 'SESSION_EXTENDED', 'SESSION_CLOSED_MANUAL'
+  performedById   String // ID utente che ha eseguito azione (può essere 'SYSTEM' per azioni automatiche)
+  performedBy     User?  @relation("EscrowAuditLogPerformer", fields: [performedById], references: [id], onDelete: SetNull)
+  performedByRole String // 'BUYER', 'SELLER', 'MERCHANT', 'ADMIN', 'MODERATOR', 'SYSTEM'
+
+  // State transition
+  oldStatus EscrowSessionStatus? // Stato prima della transizione
+  newStatus EscrowSessionStatus? // Stato dopo la transizione
+
+  // Metadata
+  metadata  Json? // Dati aggiuntivi (es. { expiredAt: ..., extendedBy: ... })
+  ipAddress String?
+  userAgent String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([actionType])
+  @@index([performedById])
+  @@index([createdAt])
+  @@index([oldStatus])
+  @@index([newStatus])
 }
 
 // Escrow Payment - Manages funds in escrow
@@ -865,15 +1003,15 @@ model Topic {
   // Premium Community (Insider Circle)
   isPremiumOnly Boolean @default(false)
   requiredTier  String? // "PREMIUM", "PRO", null = public
-  
+
   // Subreddit-style features
   creatorId   String? // User who created this subreddit
-  creator    User?    @relation("SubredditCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  creator     User?   @relation("SubredditCreator", fields: [creatorId], references: [id], onDelete: SetNull)
   memberCount Int     @default(0) // Number of members
   rules       String? @db.Text // Subreddit rules
   bannerImage String? // Banner image URL
   isNSFW      Boolean @default(false) // Not Safe For Work flag
-  
+
   @@index([creatorId])
   @@index([slug])
 }
@@ -901,7 +1039,7 @@ model Post {
   isFlagged      Boolean @default(false)
   flagReason     String?
   karmaChange    Int     @default(0) // Karma gained/lost from this post
-  
+
   // Voting system
   votes PostVote[]
 
@@ -924,10 +1062,10 @@ model Comment {
   replies   Comment[] @relation("CommentReplies")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  
+
   // Voting system
-  upvotes   Int       @default(0)
-  downvotes Int       @default(0)
+  upvotes   Int           @default(0)
+  downvotes Int           @default(0)
   votes     CommentVote[]
 
   @@index([postId])
@@ -937,12 +1075,12 @@ model Comment {
 
 // Voting models
 model PostVote {
-  id     String @id @default(cuid())
-  postId String
-  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId String
-  user   User   @relation("PostVotes", fields: [userId], references: [id], onDelete: Cascade)
-  vote   Int    // 1 for upvote, -1 for downvote
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("PostVotes", fields: [userId], references: [id], onDelete: Cascade)
+  vote      Int // 1 for upvote, -1 for downvote
   createdAt DateTime @default(now())
 
   @@unique([postId, userId])
@@ -956,7 +1094,7 @@ model CommentVote {
   comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
   userId    String
   user      User     @relation("CommentVotes", fields: [userId], references: [id], onDelete: Cascade)
-  vote      Int      // 1 for upvote, -1 for downvote
+  vote      Int // 1 for upvote, -1 for downvote
   createdAt DateTime @default(now())
 
   @@unique([commentId, userId])
@@ -1388,6 +1526,8 @@ enum AdminNotificationType {
   URGENT_ACTION // Azione urgente richiesta
   INSURANCE_CLAIM // Nuovo sinistro assicurativo
   VAULT_CASE_REQUEST // Richiesta teca Vault da merchant
+  MERCHANT_APPLICATION // Nuova richiesta merchant application
+  LISTING_PENDING // Listing richiede approvazione manuale
 }
 
 enum NotificationPriority {
@@ -1770,6 +1910,10 @@ model VaultItem {
 
   photos String[] // Foto item
 
+  // SafeVault Integration - Collegamento a Listing
+  listingId String? @unique // Collegamento a ListingP2P (se creato da listing)
+  listing   ListingP2P? @relation("ListingVaultItem")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1786,6 +1930,7 @@ model VaultItem {
   @@index([caseId])
   @@index([slotId])
   @@index([game])
+  @@index([listingId])
 }
 
 // Teca fisica brandizzata
@@ -2089,4 +2234,71 @@ model SecurityAuditLog {
   @@index([resourceId])
   @@index([createdAt])
   @@index([severity])
+}
+
+// ============= SHIPPING LABEL SYSTEM (SHIPPO) =============
+
+enum ShippingLabelStatus {
+  CREATED       // Etichetta generata, non ancora stampata
+  PRINTED       // Etichetta stampata dal seller
+  SHIPPED       // Pacco spedito dal seller
+  IN_TRANSIT    // In transito verso hub
+  DELIVERED     // Consegnato all'hub
+  CANCELLED     // Etichetta cancellata
+}
+
+model ShippingLabel {
+  id            String   @id @default(cuid())
+  transactionId String   @unique
+  transaction   SafeTradeTransaction @relation("TransactionShippingLabel", fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  // Provider info
+  courier       String   // "dhl_express", "ups", "fedex", etc.
+  provider      String   @default("SHIPPO") // "SHIPPO", "SHIPPYPRO", etc.
+  
+  // Shippo-specific data
+  shippoTransactionId String? // ID transazione Shippo
+  shippoRateId        String? // ID tariffa Shippo
+  shippoTrackingNumber String? // Tracking number generato da Shippo
+  
+  // Label data
+  labelUrl      String?  // URL PDF etichetta generata (da Shippo)
+  labelPdfBase64 String? @db.Text // Base64 PDF etichetta (per download)
+  
+  // Shipping details
+  weight        Float    // Peso pacco (kg)
+  weightUnit    String   @default("kg") // "kg" o "lb"
+  dimensions    Json?    // {length, width, height} in cm
+  
+  // Addresses (JSON per flessibilità)
+  fromAddress   Json     // Indirizzo mittente (seller/hub)
+  toAddress     Json     // Indirizzo destinatario (hub/buyer)
+  
+  // Service type
+  service       String?  // "STANDARD", "EXPRESS", etc.
+  
+  // Costs
+  costAmount    Float    // Costo reale corriere (in EUR)
+  chargedAmount Float    // Importo addebitato al buyer/seller (in EUR)
+  marginAmount  Float    @default(0) // Margine guadagnato (chargedAmount - costAmount)
+  
+  // Status
+  status        ShippingLabelStatus @default(CREATED)
+  generatedAt   DateTime @default(now())
+  printedAt     DateTime?
+  shippedAt     DateTime?
+  deliveredAt   DateTime?
+  cancelledAt   DateTime?
+  
+  // Metadata
+  notes         String?  @db.Text
+  metadata      Json?    // Dati aggiuntivi
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([transactionId])
+  @@index([status])
+  @@index([courier])
+  @@index([generatedAt])
 }

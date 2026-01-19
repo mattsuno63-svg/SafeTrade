@@ -15,6 +15,32 @@ export default function MerchantVerifyScanPage() {
   const { toast } = useToast()
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string>('')
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [checkingRole, setCheckingRole] = useState(true)
+
+  // Check user role from database
+  useEffect(() => {
+    const checkRole = async () => {
+      if (!user) {
+        setCheckingRole(false)
+        return
+      }
+      
+      try {
+        const res = await fetch('/api/user/role')
+        if (res.ok) {
+          const data = await res.json()
+          setUserRole(data.role)
+        }
+      } catch (error) {
+        console.error('Error checking role:', error)
+      } finally {
+        setCheckingRole(false)
+      }
+    }
+    
+    checkRole()
+  }, [user])
 
   const handleScanSuccess = async (decodedText: string) => {
     try {
@@ -73,7 +99,7 @@ export default function MerchantVerifyScanPage() {
     }
   }
 
-  if (userLoading) {
+  if (userLoading || checkingRole) {
     return (
       <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -81,7 +107,7 @@ export default function MerchantVerifyScanPage() {
     )
   }
 
-  if (!user || (user.role !== 'MERCHANT' && user.role !== 'ADMIN')) {
+  if (!user || (userRole !== 'MERCHANT' && userRole !== 'ADMIN')) {
     return (
       <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center p-4">
         <Card className="max-w-md w-full">

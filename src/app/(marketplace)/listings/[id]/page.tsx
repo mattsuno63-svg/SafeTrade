@@ -25,6 +25,7 @@ interface Listing {
   images: string[]
   wants: string | null
   isActive: boolean
+  isVaultListing?: boolean
   createdAt: string
   user: {
     id: string
@@ -33,6 +34,26 @@ interface Listing {
     avatar: string | null
     role: string
   }
+  vaultItem?: {
+    id: string
+    status: string
+    conditionVerified: string | null
+    priceFinal: number | null
+    shop: {
+      id: string
+      name: string
+      address: string | null
+      city: string | null
+    } | null
+    case: {
+      id: string
+      label: string | null
+    } | null
+    slot: {
+      id: string
+      slotCode: string
+    } | null
+  } | null
 }
 
 export default function ListingDetailPage({ params }: { params: { id: string } }) {
@@ -446,6 +467,92 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
                   </div>
                 )}
 
+                {/* SafeVault Info */}
+                {listing.isVaultListing && listing.vaultItem && (
+                  <Card className="glass-panel p-6 border-2 border-purple-500/20 bg-gradient-to-br from-purple-50/50 to-purple-100/30 dark:from-purple-900/20 dark:to-purple-800/10">
+                    <div className="flex items-start gap-3 mb-4">
+                      <span className="material-symbols-outlined text-purple-600 dark:text-purple-400 text-3xl">inventory_2</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-bold text-purple-700 dark:text-purple-300 text-lg">SafeVault - Vendita in Contovendita</h4>
+                          <span className="px-2 py-0.5 bg-purple-600 text-white text-xs font-bold rounded">VERIFICATO</span>
+                        </div>
+                        <p className="text-sm text-purple-600 dark:text-purple-400 mb-4">
+                          Questa carta è gestita dal sistema SafeVault. Verifica professionale e vendita multicanale garantite.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Status */}
+                      <div className="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Status Carta:</span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          listing.vaultItem.status === 'PENDING_REVIEW' ? 'bg-yellow-500 text-white' :
+                          listing.vaultItem.status === 'ACCEPTED' ? 'bg-green-500 text-white' :
+                          listing.vaultItem.status === 'IN_CASE' ? 'bg-blue-500 text-white' :
+                          listing.vaultItem.status === 'LISTED_ONLINE' ? 'bg-purple-500 text-white' :
+                          'bg-gray-500 text-white'
+                        }`}>
+                          {listing.vaultItem.status.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+
+                      {/* Condition Verified */}
+                      {listing.vaultItem.conditionVerified && (
+                        <div className="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Condizione Verificata:</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`w-3 h-3 rounded-full ${getConditionColor(listing.vaultItem.conditionVerified)}`}></span>
+                            <span className="font-bold">{formatCondition(listing.vaultItem.conditionVerified)}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Price Final */}
+                      {listing.vaultItem.priceFinal && (
+                        <div className="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Prezzo Finale Verificato:</span>
+                          <span className="font-bold text-purple-700 dark:text-purple-300">
+                            €{formatPriceNumber(listing.vaultItem.priceFinal)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Shop Location */}
+                      {listing.vaultItem.shop && (
+                        <div className="p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                          <div className="flex items-start gap-2 mb-2">
+                            <span className="material-symbols-outlined text-purple-600 dark:text-purple-400 text-sm">store</span>
+                            <div className="flex-1">
+                              <span className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1">Disponibile in Negozio:</span>
+                              <span className="font-bold">{listing.vaultItem.shop.name}</span>
+                              {listing.vaultItem.shop.city && (
+                                <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
+                                  • {listing.vaultItem.shop.city}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {listing.vaultItem.case && listing.vaultItem.slot && (
+                            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                              Teca: {listing.vaultItem.case.label || 'N/A'} • Slot: {listing.vaultItem.slot.slotCode}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Info Box */}
+                      <div className="mt-4 p-3 bg-purple-100/50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <p className="text-xs text-purple-700 dark:text-purple-300">
+                          <strong>Come funziona:</strong> La carta è stata verificata professionalmente dall'hub SafeTrade. 
+                          Riceverai il <strong>70% del prezzo di vendita finale</strong> quando la carta verrà venduta.
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
                 {/* SafeTrade Badge */}
                 <div className="p-4 bg-primary/10 rounded-xl">
                   <div className="flex items-start gap-3">
@@ -535,10 +642,25 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
                               }),
                             })
                             if (res.ok) {
-                              router.push('/community')
+                              const conversation = await res.json()
+                              // Redirect to chat page (will be implemented later)
+                              // For now, redirect to dashboard with notification
+                              router.push(`/dashboard/messages?conversation=${conversation.id}`)
+                            } else {
+                              const error = await res.json()
+                              toast({
+                                title: 'Errore',
+                                description: error.error || 'Impossibile avviare la conversazione',
+                                variant: 'destructive',
+                              })
                             }
                           } catch (error) {
                             console.error('Error starting conversation:', error)
+                            toast({
+                              title: 'Errore',
+                              description: 'Impossibile avviare la conversazione',
+                              variant: 'destructive',
+                            })
                           }
                         }}
                       >

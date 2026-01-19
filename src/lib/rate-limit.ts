@@ -131,6 +131,15 @@ export const RATE_LIMITS = {
     maxRequests: 10,
     windowMs: 60 * 60 * 1000, // 1 hour
   },
+  // Chat messages
+  MESSAGE_SEND: {
+    maxRequests: 30,  // 30 messaggi
+    windowMs: 60 * 1000,  // per minuto
+  },
+  CONVERSATION_CREATE: {
+    maxRequests: 10,  // 10 nuove conversazioni
+    windowMs: 60 * 60 * 1000,  // per ora
+  },
 } as const
 
 /**

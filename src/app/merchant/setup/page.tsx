@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/button'
@@ -47,19 +47,13 @@ export default function ShopSetupPage() {
     galleryImages: [] as string[],
   })
   const [uploadingImages, setUploadingImages] = useState(false)
+  const hasFetchedRef = useRef(false)
+  const isFetchingRef = useRef(false)
 
-  useEffect(() => {
-    if (!user && !userLoading) {
-      router.push('/login')
-      return
-    }
-
-    if (user) {
-      checkExistingShop()
-    }
-  }, [user, userLoading])
-
-  const checkExistingShop = async () => {
+  const checkExistingShop = useCallback(async () => {
+    // Preveni fetch multipli simultanei
+    if (isFetchingRef.current) return
+    isFetchingRef.current = true
     try {
       setLoading(true)
       const res = await fetch('/api/merchant/shop')
@@ -129,8 +123,22 @@ export default function ShopSetupPage() {
       }
     } finally {
       setLoading(false)
+      isFetchingRef.current = false
+      hasFetchedRef.current = true
     }
-  }
+  }, [router, toast])
+
+  useEffect(() => {
+    if (!user && !userLoading) {
+      router.push('/login')
+      return
+    }
+
+    // Fetch solo una volta quando l'utente è disponibile
+    if (user && !userLoading && !hasFetchedRef.current) {
+      checkExistingShop()
+    }
+  }, [user, userLoading, checkExistingShop, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

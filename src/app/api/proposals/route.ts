@@ -130,7 +130,23 @@ export async function GET(request: NextRequest) {
 
     const proposals = await prisma.proposal.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        type: true,
+        offerPrice: true,
+        tradeItems: true,
+        message: true,
+        feePaidBy: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        transaction: {
+          select: {
+            id: true,
+            status: true,
+            escrowType: true,
+          },
+        },
         listing: {
           select: {
             id: true,
@@ -151,6 +167,23 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             avatar: true,
+          },
+        },
+        // SECURITY: Include transaction to check if it exists and escrowType
+        transaction: {
+          select: {
+            id: true,
+            escrowType: true,
+            status: true,
+            shippingLabel: {
+              select: {
+                id: true,
+                shippoTrackingNumber: true,
+                labelUrl: true,
+                status: true,
+                generatedAt: true,
+              },
+            },
           },
         },
       },

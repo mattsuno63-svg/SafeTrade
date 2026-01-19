@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
+import { useUser } from '@/hooks/use-user'
 
 interface Shop {
   id: string
@@ -24,14 +25,62 @@ export default function SelectStorePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
+  const { user, loading: userLoading } = useUser()
   const proposalId = searchParams.get('proposalId')
   
   const [shops, setShops] = useState<Shop[]>([])
   const [loading, setLoading] = useState(true)
+  const [authorized, setAuthorized] = useState<boolean | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStore, setSelectedStore] = useState<string | null>(null)
+  
+  // Check authorization if proposalId is present
+  useEffect(() => {
+    const checkAuthorization = async () => {
+      if (!proposalId) {
+        // No proposalId, allow access (for other use cases)
+        setAuthorized(true)
+        return
+      }
+      
+      if (userLoading) return
+      
+      if (!user) {
+        setAuthorized(false)
+        return
+      }
+      
+      try {
+        const res = await fetch(`/api/proposals/${proposalId}/check-seller`)
+        if (res.ok) {
+          const data = await res.json()
+          setAuthorized(data.authorized)
+          if (!data.authorized) {
+            toast({
+              title: 'Accesso Negato',
+              description: 'Solo il venditore può selezionare il negozio per questa proposta.',
+              variant: 'destructive',
+            })
+            router.push('/dashboard/proposals/received')
+          }
+        } else {
+          setAuthorized(false)
+        }
+      } catch (error) {
+        console.error('Error checking authorization:', error)
+        setAuthorized(false)
+      }
+    }
+    
+    checkAuthorization()
+  }, [proposalId, user, userLoading, router, toast])
 
   useEffect(() => {
+    // Only fetch shops if authorized (or no proposalId)
+    if (authorized === false || (proposalId && authorized === null)) {
+      return
+    }
+    
     const fetchShops = async () => {
       try {
         const params = new URLSearchParams()
@@ -55,7 +104,7 @@ export default function SelectStorePage() {
     }
 
     fetchShops()
-  }, [searchQuery, toast])
+  }, [searchQuery, toast, authorized, proposalId])
 
   const handleSelectStore = (shopId: string) => {
     setSelectedStore(shopId)
@@ -78,16 +127,49 @@ export default function SelectStorePage() {
 
         <main className="flex-1 py-8">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-            {/* Header */}
-            <div className="mb-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                <span className="material-symbols-outlined text-3xl text-primary">store</span>
-              </div>
-              <h1 className="text-3xl font-bold mb-2">Select a SafeTrade Store</h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Choose a verified partner store to complete your transaction safely
-              </p>
-            </div>
+            {/* Authorization Check */}
+            {proposalId && (authorized === null || userLoading) && (
+              <Card className="glass-panel p-6 text-center">
+                <div className="animate-pulse">Verifica autorizzazione...</div>
+              </Card>
+            )}
+            
+            {proposalId && authorized === false && (
+              <Card className="glass-panel p-6 text-center">
+                <span className="material-symbols-outlined text-6xl text-red-500 mb-4 inline-block">block</span>
+                <h2 className="text-2xl font-bold mb-2">Accesso Negato</h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Solo il venditore può selezionare il negozio per questa proposta.
+                </p>
+              </Card>
+            )}
+            
+            {(!proposalId || authorized === true) && (
+              <>
+                {/* Header */}
+                <div className="mb-8 text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                    <span className="material-symbols-outlined text-3xl text-primary">store</span>
+                  </div>
+                  <h1 className="text-3xl font-bold mb-2">Seleziona un Negozio SafeTrade</h1>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    Scegli un negozio partner verificato nella tua zona per completare la transazione in sicurezza
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (proposalId) {
+                        router.push(`/select-escrow-method?proposalId=${proposalId}`)
+                      } else {
+                        router.push('/select-escrow-method')
+                      }
+                    }}
+                    className="mt-2"
+                  >
+                    <span className="material-symbols-outlined mr-2">inventory_2</span>
+                    Oppure usa Verified Escrow
+                  </Button>
+                </div>
 
             {/* Search */}
             <div className="relative mb-8">
@@ -119,20 +201,35 @@ export default function SelectStorePage() {
               </div>
             ) : shops.length === 0 ? (
               <Card className="glass-panel p-12 text-center">
-                <span className="material-symbols-outlined text-6xl text-gray-400 mb-4 inline-block">
-                  store
+                <span className="material-symbols-outlined text-6xl text-primary mb-4 inline-block">
+                  inventory_2
                 </span>
-                <h2 className="text-2xl font-bold mb-2">No Stores Found</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                <h2 className="text-2xl font-bold mb-2">Nessun Negozio Fisico Disponibile</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
                   {searchQuery 
-                    ? 'No stores match your search. Try a different query.'
-                    : 'There are no partner stores available yet.'}
+                    ? 'Nessun negozio corrisponde alla tua ricerca nella tua zona. Prova con una ricerca diversa o utilizza il nostro servizio Verified Escrow.'
+                    : 'Al momento non ci sono negozi fisici disponibili nella tua zona. Utilizza il nostro sistema centralizzato di escrow per rendere la tua vendita sicura.'}
                 </p>
-                {searchQuery && (
-                  <Button onClick={() => setSearchQuery('')} variant="outline">
-                    Clear Search
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  {searchQuery && (
+                    <Button onClick={() => setSearchQuery('')} variant="outline">
+                      Cancella Ricerca
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={() => {
+                      if (proposalId) {
+                        router.push(`/select-escrow-method?proposalId=${proposalId}`)
+                      } else {
+                        router.push('/select-escrow-method')
+                      }
+                    }}
+                    className="bg-primary hover:bg-primary-dark"
+                  >
+                    <span className="material-symbols-outlined mr-2">verified</span>
+                    Usa Verified Escrow
                   </Button>
-                )}
+                </div>
               </Card>
             ) : (
               <div className="space-y-4">
@@ -228,6 +325,8 @@ export default function SelectStorePage() {
                 </div>
               </div>
             </Card>
+              </>
+            )}
           </div>
         </main>
       </div>

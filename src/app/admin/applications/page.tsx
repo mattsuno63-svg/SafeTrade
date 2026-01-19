@@ -43,8 +43,9 @@ export default function AdminApplicationsPage() {
   const hasFetchedRef = useRef(false)
   const isFetchingRef = useRef(false)
 
-  const fetchApplications = useCallback(async () => {
-    if (isFetchingRef.current || hasFetchedRef.current) return
+  const fetchApplications = useCallback(async (force = false) => {
+    // Se force=true, bypassa i guard per permettere refetch dopo update
+    if (!force && (isFetchingRef.current || hasFetchedRef.current)) return
     isFetchingRef.current = true
 
     try {
@@ -104,7 +105,9 @@ export default function AdminApplicationsPage() {
 
       setSelectedApp(null)
       setReviewNotes('')
-      fetchApplications()
+      // Force refetch per aggiornare la lista dopo l'approvazione
+      hasFetchedRef.current = false
+      await fetchApplications(true)
     } catch (error: any) {
       toast({
         title: 'Error',

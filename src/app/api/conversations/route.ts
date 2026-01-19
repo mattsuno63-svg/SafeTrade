@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 
 // Get all conversations for the current user
 export async function GET(request: NextRequest) {
@@ -85,6 +86,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { recipientId, listingId, message } = body
 
+    // SECURITY: Rate limiting for conversation creation
+    const rateLimitKey = getRateLimitKey(user.id, 'CONVERSATION_CREATE')
+    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.CONVERSATION_CREATE)
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Troppe conversazioni create. Limite di 10 conversazioni per ora raggiunto.',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimit.limit.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString(),
+            'Retry-After': Math.ceil((rateLimit.resetAt - Date.now()) / 1000).toString(),
+          },
+        }
+      )
+    }
+
     if (!recipientId) {
       return NextResponse.json(
         { error: 'Recipient ID is required' },
@@ -122,12 +145,23 @@ export async function POST(request: NextRequest) {
 
     // Create first message if provided
     if (message) {
+      // SECURITY: Sanitize and validate message
+      const { prepareMessageContent } = await import('@/lib/chat/message-utils')
+      const messagePrep = prepareMessageContent(message)
+      
+      if (!messagePrep.valid) {
+        return NextResponse.json(
+          { error: messagePrep.error || 'Messaggio iniziale non valido' },
+          { status: 400 }
+        )
+      }
+
       await prisma.message.create({
         data: {
           conversationId: conversation.id,
           senderId: user.id,
           receiverId: recipientId,
-          content: message,
+          content: messagePrep.sanitized,
         },
       })
 

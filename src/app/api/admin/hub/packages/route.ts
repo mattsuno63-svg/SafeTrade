@@ -1,124 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { getCurrentUser } from '@/lib/auth'
-
-export const dynamic = 'force-dynamic'
-
-const ADMIN_EMAIL = 'portelli.mattiaa@gmail.com'
+import { requireAuth } from '@/lib/auth'
+import { SafeTradeStatus, HubPackageStatus } from '@prisma/client'
 
 /**
  * GET /api/admin/hub/packages
- * Lista tutti i pacchi gestiti dall'Hub admin
+ * Lista pacchi per Hub Staff
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-    }
+    const user = await requireAuth()
 
-    if (user.role !== 'ADMIN' && user.email !== ADMIN_EMAIL) {
+    // SECURITY: Only HUB_STAFF and ADMIN can view packages
+    if (user.role !== 'HUB_STAFF' && user.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: 'Accesso negato. Solo Admin.' },
+        { error: 'Solo HUB_STAFF e ADMIN possono visualizzare i pacchi' },
         { status: 403 }
       )
     }
 
-    const searchParams = request.nextUrl.searchParams
+    const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const skip = (page - 1) * limit
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Trova l'hub dell'admin
-    const hub = await prisma.escrowHub.findUnique({
-      where: { providerId: user.id },
-    })
-
-    if (!hub) {
-      return NextResponse.json({
-        packages: [],
-        pagination: { total: 0, pages: 0, page, limit },
-        stats: {},
-        message: 'Hub non ancora creato. Vai a /api/admin/hub per crearlo.',
-      })
+    const where: any = {
+      escrowType: 'VERIFIED',
     }
 
-    // Query filtri
-    const where: Record<string, unknown> = {
-      hubId: hub.id,
+    if (status) {
+      where.status = status
     }
 
-    if (status && status !== 'ALL') {
-      where.packageStatus = status
-    }
-
-    const [packages, total, stats] = await Promise.all([
-      prisma.safeTradeTransaction.findMany({
-        where,
-        include: {
-          userA: {
-            select: { id: true, name: true, email: true, avatar: true },
+    const packages = await prisma.safeTradeTransaction.findMany({
+      where,
+      include: {
+        userA: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
           },
-          userB: {
-            select: { id: true, name: true, email: true, avatar: true },
+        },
+        userB: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
           },
-          proposal: {
-            include: {
-              listing: {
-                select: { id: true, title: true, price: true, images: true },
+        },
+        proposal: {
+          include: {
+            listing: {
+              select: {
+                id: true,
+                title: true,
+                images: true,
               },
             },
           },
-          escrowPayment: true,
         },
-        orderBy: [
-          { packageStatus: 'asc' }, // PENDING/IN_TRANSIT first
-          { createdAt: 'desc' },
-        ],
-        skip,
-        take: limit,
-      }),
-      prisma.safeTradeTransaction.count({ where }),
-      prisma.safeTradeTransaction.groupBy({
-        by: ['packageStatus'],
-        where: { hubId: hub.id },
-        _count: { id: true },
-      }),
-    ])
+        escrowPayment: {
+          select: {
+            id: true,
+            amount: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: limit,
+      skip: offset,
+    })
 
-    const statsMap = stats.reduce((acc, s) => {
-      if (s.packageStatus) {
-        acc[s.packageStatus] = s._count.id
-      }
-      return acc
-    }, {} as Record<string, number>)
+    const total = await prisma.safeTradeTransaction.count({ where })
 
     return NextResponse.json({
       packages,
-      pagination: {
-        total,
-        pages: Math.ceil(total / limit),
-        page,
-        limit,
-      },
-      stats: {
-        PENDING: statsMap['PENDING'] || 0,
-        IN_TRANSIT: statsMap['IN_TRANSIT'] || 0,
-        RECEIVED: statsMap['RECEIVED'] || 0,
-        VERIFIED: statsMap['VERIFIED'] || 0,
-        SHIPPED: statsMap['SHIPPED'] || 0,
-        DELIVERED: statsMap['DELIVERED'] || 0,
-        RETURNED: statsMap['RETURNED'] || 0,
-      },
+      total,
+      limit,
+      offset,
     })
-  } catch (error) {
-    console.error('Error fetching hub packages:', error)
+  } catch (error: any) {
+    console.error('Error fetching packages:', error)
     return NextResponse.json(
-      { error: 'Errore nel recupero dei pacchi' },
+      { error: 'Errore interno del server' },
       { status: 500 }
     )
   }
 }
-

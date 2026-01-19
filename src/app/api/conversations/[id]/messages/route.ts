@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
+import { prepareMessageContent } from '@/lib/chat/message-utils'
 
 // Get messages for a conversation
 export async function GET(
@@ -32,9 +34,15 @@ export async function GET(
       )
     }
 
+    // Improved cursor-based pagination using createdAt instead of id
+    const cursorDate = cursor ? new Date(cursor) : undefined
+    
     const messages = await prisma.message.findMany({
       where: {
         conversationId: id,
+        ...(cursorDate && {
+          createdAt: { lt: cursorDate },
+        }),
       },
       include: {
         sender: {
@@ -49,11 +57,7 @@ export async function GET(
       orderBy: {
         createdAt: 'desc',
       },
-      take: limit,
-      ...(cursor && {
-        skip: 1,
-        cursor: { id: cursor },
-      }),
+      take: Math.min(limit, 100),  // Max 100 messages per request
     })
 
     // Mark messages as read
@@ -68,9 +72,16 @@ export async function GET(
       },
     })
 
+    // Return in chronological order (oldest first)
+    const sortedMessages = messages.reverse()
+    const lastMessage = sortedMessages[sortedMessages.length - 1]
+    
     return NextResponse.json({
-      messages: messages.reverse(), // Return in chronological order
-      nextCursor: messages.length === limit ? messages[0]?.id : null,
+      messages: sortedMessages,
+      nextCursor: messages.length === limit && lastMessage 
+        ? lastMessage.createdAt.toISOString() 
+        : null,
+      hasMore: messages.length === limit,
     })
   } catch (error: any) {
     console.error('Error fetching messages:', error)
@@ -98,12 +109,45 @@ export async function POST(
     const body = await request.json()
     const { content } = body
 
-    if (!content?.trim()) {
+    // SECURITY: Rate limiting for message sending
+    const rateLimitKey = getRateLimitKey(user.id, 'MESSAGE_SEND')
+    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.MESSAGE_SEND)
+    
+    if (!rateLimit.allowed) {
       return NextResponse.json(
-        { error: 'Message content is required' },
+        {
+          error: 'Troppi messaggi inviati. Limite di 30 messaggi per minuto raggiunto.',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimit.limit.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString(),
+            'Retry-After': Math.ceil((rateLimit.resetAt - Date.now()) / 1000).toString(),
+          },
+        }
+      )
+    }
+
+    // SECURITY: Validate and sanitize message content
+    if (!content || typeof content !== 'string') {
+      return NextResponse.json(
+        { error: 'Il contenuto del messaggio è richiesto' },
         { status: 400 }
       )
     }
+
+    const messagePrep = prepareMessageContent(content)
+    if (!messagePrep.valid) {
+      return NextResponse.json(
+        { error: messagePrep.error || 'Contenuto del messaggio non valido' },
+        { status: 400 }
+      )
+    }
+
+    const sanitizedContent = messagePrep.sanitized
 
     // Verify user is part of conversation
     const conversation = await prisma.conversation.findFirst({
@@ -128,13 +172,19 @@ export async function POST(
       ? conversation.userBId
       : conversation.userAId
 
-    // Create message
+    // SECURITY: Get IP address for audit trail
+    const ipAddress = request.headers.get('x-forwarded-for') || 
+                     request.headers.get('x-real-ip') || 
+                     undefined
+    const userAgent = request.headers.get('user-agent') || undefined
+
+    // Create message with sanitized content
     const message = await prisma.message.create({
       data: {
         conversationId: id,
         senderId: user.id,
         receiverId,
-        content: content.trim(),
+        content: sanitizedContent,  // Use sanitized content
       },
       include: {
         sender: {
@@ -165,7 +215,7 @@ export async function POST(
         userId: receiverId,
         type: 'NEW_MESSAGE',
         title: 'New Message',
-        message: `${sender?.name || sender?.email}: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+        message: `${sender?.name || sender?.email}: ${sanitizedContent.substring(0, 50)}${sanitizedContent.length > 50 ? '...' : ''}`,
         data: {
           conversationId: id,
           messageId: message.id,

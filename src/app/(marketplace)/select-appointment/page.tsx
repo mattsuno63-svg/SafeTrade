@@ -146,6 +146,7 @@ export default function SelectAppointmentPage() {
         body: JSON.stringify({
           proposalId,
           shopId: storeId,
+          escrowType: 'LOCAL', // Explicitly set LOCAL for store-based escrow
           scheduledDate: selectedDate,
           scheduledTime: selectedTime,
         }),
