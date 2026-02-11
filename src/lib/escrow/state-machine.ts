@@ -4,7 +4,7 @@
 
 import { EscrowSessionStatus } from '@prisma/client'
 
-export type UserRole = 'BUYER' | 'SELLER' | 'MERCHANT' | 'ADMIN' | 'MODERATOR' | 'SYSTEM'
+export type UserRole = 'USER' | 'BUYER' | 'SELLER' | 'MERCHANT' | 'ADMIN' | 'MODERATOR' | 'HUB_STAFF' | 'SYSTEM'
 
 /**
  * Valid state transitions for EscrowSession

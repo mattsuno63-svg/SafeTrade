@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         transactions: {
           where: {
             packageStatus: {
-              in: ['PENDING', 'IN_TRANSIT', 'RECEIVED', 'VERIFIED'],
+              in: ['PENDING', 'IN_TRANSIT_TO_HUB', 'RECEIVED_AT_HUB', 'VERIFICATION_IN_PROGRESS', 'VERIFICATION_PASSED'],
             },
           },
           orderBy: { createdAt: 'desc' },
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
           transactions: {
             where: {
               packageStatus: {
-                in: ['PENDING', 'IN_TRANSIT', 'RECEIVED', 'VERIFIED'],
+                in: ['PENDING', 'IN_TRANSIT_TO_HUB', 'RECEIVED_AT_HUB', 'VERIFICATION_IN_PROGRESS', 'VERIFICATION_PASSED'],
               },
             },
             orderBy: { createdAt: 'desc' },
@@ -127,11 +127,11 @@ export async function GET(request: NextRequest) {
       hub,
       stats: {
         pending: statsMap['PENDING'] || 0,
-        inTransit: statsMap['IN_TRANSIT'] || 0,
-        received: statsMap['RECEIVED'] || 0,
-        verified: statsMap['VERIFIED'] || 0,
-        shipped: statsMap['SHIPPED'] || 0,
-        delivered: statsMap['DELIVERED'] || 0,
+        inTransit: statsMap['IN_TRANSIT_TO_HUB'] || 0,
+        received: statsMap['RECEIVED_AT_HUB'] || 0,
+        verified: statsMap['VERIFICATION_PASSED'] || 0,
+        shipped: statsMap['SHIPPED_TO_BUYER'] || 0,
+        delivered: statsMap['DELIVERED_TO_BUYER'] || 0,
         total: hub._count.transactions,
         reviews: hub._count.reviews,
       },

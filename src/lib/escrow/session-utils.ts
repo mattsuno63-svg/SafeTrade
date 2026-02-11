@@ -3,8 +3,8 @@
  */
 
 import { prisma } from '@/lib/db'
-import { EscrowSessionStatus, UserRole } from '@prisma/client'
-import { canTransitionStatus } from './state-machine'
+import { EscrowSessionStatus } from '@prisma/client'
+import { canTransitionStatus, type UserRole as EscrowUserRole } from './state-machine'
 
 /**
  * Transition session status with validation and audit logging
@@ -13,7 +13,7 @@ export async function transitionSessionStatus(
   sessionId: string,
   newStatus: EscrowSessionStatus,
   performedById: string,
-  performedByRole: UserRole,
+  performedByRole: EscrowUserRole,
   options?: {
     metadata?: Record<string, any>
     ipAddress?: string
@@ -79,7 +79,7 @@ export async function createAuditEvent(
   sessionId: string,
   actionType: string,
   performedById: string,
-  performedByRole: UserRole,
+  performedByRole: EscrowUserRole,
   options?: {
     oldStatus?: EscrowSessionStatus
     newStatus?: EscrowSessionStatus
@@ -171,10 +171,10 @@ export async function generateUniqueQRToken(
 }
 
 /**
- * Parse user role from Prisma UserRole enum
+ * Parse user role for escrow (accepts Prisma role string or escrow role)
  */
-export function parseUserRole(role: string): UserRole | null {
-  const validRoles: UserRole[] = ['BUYER', 'SELLER', 'MERCHANT', 'ADMIN', 'MODERATOR', 'SYSTEM']
-  return validRoles.includes(role as UserRole) ? (role as UserRole) : null
+export function parseUserRole(role: string): EscrowUserRole | null {
+  const validRoles: EscrowUserRole[] = ['USER', 'BUYER', 'SELLER', 'MERCHANT', 'ADMIN', 'MODERATOR', 'HUB_STAFF', 'SYSTEM']
+  return validRoles.includes(role as EscrowUserRole) ? (role as EscrowUserRole) : null
 }
 

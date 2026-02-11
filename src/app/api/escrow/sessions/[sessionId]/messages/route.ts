@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { EscrowSessionStatus } from '@prisma/client'
 
 // GET - Fetch messages in session
 export async function GET(
@@ -91,7 +92,8 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    if (session.status !== 'ACTIVE') {
+    const terminalStatuses: EscrowSessionStatus[] = ['COMPLETED', 'CANCELLED', 'EXPIRED']
+    if (terminalStatuses.includes(session.status)) {
       return NextResponse.json(
         { error: 'Cannot send messages in inactive session' },
         { status: 400 }

@@ -60,7 +60,7 @@ export async function POST(
     }
 
     // Verify current status
-    if (transaction.packageStatus !== 'VERIFIED') {
+    if (transaction.packageStatus !== 'VERIFICATION_PASSED') {
       return NextResponse.json(
         { error: `Package must be verified before shipping. Current status: ${transaction.packageStatus}` },
         { status: 400 }
@@ -71,7 +71,7 @@ export async function POST(
     const updatedTransaction = await prisma.safeTradeTransaction.update({
       where: { id: transactionId },
       data: {
-        packageStatus: 'SHIPPED',
+        packageStatus: 'SHIPPED_TO_BUYER',
         packageShippedAt: new Date(),
         returnTrackingNumber: returnTrackingNumber,
       },

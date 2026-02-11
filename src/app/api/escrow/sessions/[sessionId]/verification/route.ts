@@ -4,7 +4,6 @@ import { requireAuth } from '@/lib/auth'
 import { canPerformAction, canCompleteVerification } from '@/lib/escrow/state-machine'
 import { transitionSessionStatus, createAuditEvent, parseUserRole } from '@/lib/escrow/session-utils'
 import { optimizeImage } from '@/lib/image-optimization'
-import { uploadToSupabase } from '@/lib/storage'
 
 /**
  * POST /api/escrow/sessions/[sessionId]/verification

@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
         buyerId: transaction.userAId,
         sellerId: transaction.userBId,
         merchantId: transaction.shop.merchantId,
-        status: 'ACTIVE',
+        status: 'CREATED',
       },
       include: {
         transaction: {

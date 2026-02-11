@@ -136,7 +136,7 @@ export async function PATCH(
       case 'receive':
         // Pacco ricevuto all'hub
         updateData = {
-          packageStatus: 'RECEIVED' as HubPackageStatus,
+          packageStatus: 'RECEIVED_AT_HUB',
           packageReceivedAt: now,
         }
         notificationTitle = 'Pacco ricevuto all\'Hub! 📦'
@@ -152,7 +152,7 @@ export async function PATCH(
           )
         }
         updateData = {
-          packageStatus: 'VERIFIED' as HubPackageStatus,
+          packageStatus: 'VERIFICATION_PASSED',
           packageVerifiedAt: now,
           verificationPhotos: verificationPhotos,
         }
@@ -199,7 +199,7 @@ export async function PATCH(
           )
         }
         updateData = {
-          packageStatus: 'SHIPPED' as HubPackageStatus,
+          packageStatus: 'SHIPPED_TO_BUYER',
           packageShippedAt: now,
           returnTrackingNumber: returnTrackingNumber,
         }
@@ -210,7 +210,7 @@ export async function PATCH(
       case 'deliver':
         // Conferma consegna finale
         updateData = {
-          packageStatus: 'DELIVERED' as HubPackageStatus,
+          packageStatus: 'DELIVERED_TO_BUYER',
           packageDeliveredAt: now,
           status: 'COMPLETED',
           completedAt: now,

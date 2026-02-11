@@ -60,7 +60,7 @@ export async function POST(
       where: { id },
       include: {
         userA: { select: { id: true, name: true, email: true } },
-        userB: { select: { id: true, name: true, email: true } },
+        userB: { select: { id: true, name: true, email: true, province: true } },
         escrowPayment: { select: { id: true, amount: true, status: true } },
         proposal: {
           include: {
@@ -210,7 +210,7 @@ export async function POST(
     const sellerCity = sellerAddress.city.trim()
     const sellerZip = sellerAddress.zip.trim()
     const sellerState = sellerAddress.province?.trim() || seller.province || ''
-    const sellerPhone = sellerAddress.phone?.trim() || seller.phone || '+39 000 0000000'
+    const sellerPhone = sellerAddress.phone?.trim() || '+39 000 0000000'
     
     // Se houseNumber è separato, usa quello, altrimenti estrai da street
     let sellerStreet = sellerStreetFull
@@ -234,6 +234,17 @@ export async function POST(
     // #endregion
     
     console.log('[GENERATE-LABEL] Extracted seller address:', { sellerStreet, sellerHouseNum, sellerCity, sellerZip, sellerState, sellerPhone })
+
+    const fromAddress = {
+      name: seller.name || seller.email || 'Seller',
+      street1: [sellerStreet, sellerHouseNum].filter(Boolean).join(' ').trim() || sellerStreetFull,
+      city: sellerCity,
+      state: sellerState,
+      zip: sellerZip,
+      country: 'IT',
+      phone: sellerPhone,
+      email: seller.email,
+    }
 
     // Generate label using Sendcloud
     // SELLER = from (mittente), HUB = to (destinatario)

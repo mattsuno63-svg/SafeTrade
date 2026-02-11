@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { QRScanner } from '@/components/qr/QRScanner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

@@ -46,22 +46,22 @@ export async function POST(
       )
     }
 
-    // SECURITY: Verify status allows confirmation
-    const allowedStatuses = [
-      SafeTradeStatus.DELIVERED_TO_BUYER,
-      SafeTradeStatus.IN_TRANSIT_TO_BUYER,
-      SafeTradeStatus.SHIPPED_TO_BUYER,
+    // SECURITY: Verify packageStatus allows confirmation
+    const allowedPackageStatuses: HubPackageStatus[] = [
+      HubPackageStatus.DELIVERED_TO_BUYER,
+      HubPackageStatus.IN_TRANSIT_TO_BUYER,
+      HubPackageStatus.SHIPPED_TO_BUYER,
     ]
     
-    if (!allowedStatuses.includes(transaction.status)) {
+    if (!transaction.packageStatus || !allowedPackageStatuses.includes(transaction.packageStatus)) {
       return NextResponse.json(
-        { error: `Stato transazione non valido per conferma. Stato attuale: ${transaction.status}` },
+        { error: `Stato pacco non valido per conferma. Stato attuale: ${transaction.packageStatus ?? 'N/A'}` },
         { status: 400 }
       )
     }
 
     // SECURITY: Check if already confirmed
-    if (transaction.status === SafeTradeStatus.CONFIRMED_BY_BUYER) {
+    if (transaction.packageStatus === HubPackageStatus.CONFIRMED_BY_BUYER) {
       return NextResponse.json(
         { error: 'Ricezione già confermata' },
         { status: 400 }

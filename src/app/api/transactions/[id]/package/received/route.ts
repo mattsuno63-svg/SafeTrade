@@ -53,7 +53,7 @@ export async function POST(
     }
 
     // Verify current status
-    if (transaction.packageStatus && transaction.packageStatus !== 'IN_TRANSIT' && transaction.packageStatus !== 'PENDING') {
+    if (transaction.packageStatus && transaction.packageStatus !== 'IN_TRANSIT_TO_HUB' && transaction.packageStatus !== 'PENDING') {
       return NextResponse.json(
         { error: `Package cannot be marked as received. Current status: ${transaction.packageStatus}` },
         { status: 400 }
@@ -64,7 +64,7 @@ export async function POST(
     const updatedTransaction = await prisma.safeTradeTransaction.update({
       where: { id: transactionId },
       data: {
-        packageStatus: 'RECEIVED',
+        packageStatus: 'RECEIVED_AT_HUB',
         packageReceivedAt: new Date(),
         trackingNumber: trackingNumber || transaction.trackingNumber,
       },

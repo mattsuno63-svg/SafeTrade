@@ -145,6 +145,15 @@ export async function GET(request: NextRequest) {
             id: true,
             status: true,
             escrowType: true,
+            shippingLabel: {
+              select: {
+                id: true,
+                shippoTrackingNumber: true,
+                labelUrl: true,
+                status: true,
+                generatedAt: true,
+              },
+            },
           },
         },
         listing: {
@@ -167,23 +176,6 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             avatar: true,
-          },
-        },
-        // SECURITY: Include transaction to check if it exists and escrowType
-        transaction: {
-          select: {
-            id: true,
-            escrowType: true,
-            status: true,
-            shippingLabel: {
-              select: {
-                id: true,
-                shippoTrackingNumber: true,
-                labelUrl: true,
-                status: true,
-                generatedAt: true,
-              },
-            },
           },
         },
       },

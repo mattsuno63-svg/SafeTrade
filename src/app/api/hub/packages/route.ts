@@ -42,10 +42,10 @@ export async function GET(request: NextRequest) {
       where.packageStatus = {
         in: [
           'PENDING',
-          'IN_TRANSIT',
-          'RECEIVED',
-          'VERIFIED',
-          'SHIPPED',
+          'IN_TRANSIT_TO_HUB',
+          'RECEIVED_AT_HUB',
+          'VERIFICATION_PASSED',
+          'SHIPPED_TO_BUYER',
         ],
       }
     }
@@ -111,19 +111,19 @@ export async function GET(request: NextRequest) {
           where: { hubId: hub.id, packageStatus: 'PENDING' },
         }),
         inTransit: await prisma.safeTradeTransaction.count({
-          where: { hubId: hub.id, packageStatus: 'IN_TRANSIT' },
+          where: { hubId: hub.id, packageStatus: 'IN_TRANSIT_TO_HUB' },
         }),
         received: await prisma.safeTradeTransaction.count({
-          where: { hubId: hub.id, packageStatus: 'RECEIVED' },
+          where: { hubId: hub.id, packageStatus: 'RECEIVED_AT_HUB' },
         }),
         verified: await prisma.safeTradeTransaction.count({
-          where: { hubId: hub.id, packageStatus: 'VERIFIED' },
+          where: { hubId: hub.id, packageStatus: 'VERIFICATION_PASSED' },
         }),
         shipped: await prisma.safeTradeTransaction.count({
-          where: { hubId: hub.id, packageStatus: 'SHIPPED' },
+          where: { hubId: hub.id, packageStatus: 'SHIPPED_TO_BUYER' },
         }),
         delivered: await prisma.safeTradeTransaction.count({
-          where: { hubId: hub.id, packageStatus: 'DELIVERED' },
+          where: { hubId: hub.id, packageStatus: 'DELIVERED_TO_BUYER' },
         }),
       },
     })

@@ -17,6 +17,7 @@ export async function getSession() {
       user: {
         id: session.user.id,
         email: session.user.email,
+        email_confirmed_at: (session.user as { email_confirmed_at?: string }).email_confirmed_at,
       },
       accessToken: session.access_token,
       expiresAt: session.expires_at,

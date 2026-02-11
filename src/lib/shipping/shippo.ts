@@ -305,7 +305,7 @@ export async function generateShippingLabel(
     }
 
     // Estrai tracking number (usando la sintassi corretta)
-    const trackingNumber = createdTransaction.trackingNumber || selectedRate.trackingNumber || undefined
+    const trackingNumber = createdTransaction.trackingNumber || (selectedRate as { trackingNumber?: string }).trackingNumber || undefined
 
     // Estrai label URL (PDF) - potrebbe essere labelUrl o label_url
     const labelUrl = createdTransaction.labelUrl || (createdTransaction as any).label_url || undefined
