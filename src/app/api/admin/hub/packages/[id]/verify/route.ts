@@ -73,6 +73,7 @@ export async function POST(
       include: {
         userA: { select: { id: true, name: true, email: true } },
         userB: { select: { id: true, name: true, email: true } },
+        escrowPayment: true,
       },
     })
 
