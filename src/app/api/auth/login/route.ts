@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (error) {
+      console.error('[API /auth/login] Supabase signIn error:', error.message, error.status)
       return NextResponse.json(
         { error: error.message },
         { status: 401 }

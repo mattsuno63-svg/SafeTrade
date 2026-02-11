@@ -1,9 +1,0 @@
-_iub.csRC = { consApiKey: 'zSlH0EyyrH6GqaxI8DtKbYFM80BNQ2hI', consentDatabasePublicKey: 'N82Vi0knUC8DxGTyZwoOrTIlJZxE0sSc', publicId: '9f040398-5811-456e-ac66-27bc003bdbed', floatingGroup: false };
-_iub.csEnabled = true;
-_iub.csPurposes = [1,5,4];
-_iub.cpUpd = 1757420673;
-_iub.csFeatures = {"geolocation_setting":true,"cookie_solution_white_labeling":2,"rejection_recovery":true,"full_customization":true,"multiple_languages":true,"mobile_app_integration":true};
-_iub.csT = null;
-_iub.googleConsentModeV2 = true;
-_iub.totalNumberOfProviders = 9;
-_iub.csSiteConf = {"askConsentAtCookiePolicyUpdate":true,"countryDetection":true,"emailMarketing":{"styles":{"backgroundColor":"#E0E0E0","buttonsBackgroundColor":"#0898F3","buttonsTextColor":"#FFFFFF","footerBackgroundColor":"#14254400","footerTextColor":"#000000","textColor":"#000000"},"theme":"dark"},"enableFadp":true,"enableLgpd":true,"enableUspr":true,"lgpdAppliesGlobally":false,"perPurposeConsent":true,"siteId":4215499,"cookiePolicyId":59384181,"lang":"it","banner":{"acceptButtonColor":"#0898F3","acceptButtonDisplay":true,"backgroundColor":"#E0E0E0","brandBackgroundColor":"#E0E0E0","brandTextColor":"#000000","closeButtonRejects":true,"customizeButtonCaptionColor":"#000000","customizeButtonColor":"#14254400","customizeButtonDisplay":true,"explicitWithdrawal":true,"fontSizeBody":"8","listPurposes":true,"logo":"https://www.cardtrader.com/assets/logo/logo_light.svg","linksColor":"#000000","ownerName":"www.cardtrader.com","position":"float-bottom-center","rejectButtonCaptionColor":"#000000","rejectButtonColor":"#14254400","rejectButtonDisplay":true,"showTitle":false,"showTotalNumberOfProviders":true,"textColor":"#000000"}};

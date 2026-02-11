@@ -63,16 +63,8 @@ export async function POST(request: NextRequest) {
     // If merchant, create user as USER and create MerchantApplication
     const finalRole = role === 'MERCHANT' ? 'USER' : (role as UserRole)
 
-    // Validate city is provided
-    const body = await request.json()
-    const { city, province, maxDistance } = body
-    
-    if (!city || city.trim() === '') {
-      return NextResponse.json(
-        { error: 'La città è obbligatoria' },
-        { status: 400 }
-      )
-    }
+    // Extract city, province, maxDistance from parsed data
+    const { city, province, maxDistance } = parsed
 
     // Create user in Prisma database
     const user = await prisma.user.create({
