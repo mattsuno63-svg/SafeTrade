@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const eligibleTransactions = await prisma.safeTradeTransaction.findMany({
       where: {
         status: 'COMPLETED',
-        packageStatus: 'DELIVERED',
+        packageStatus: 'DELIVERED_TO_BUYER',
         packageDeliveredAt: {
           lte: sevenDaysAgo,
         },
