@@ -17,7 +17,8 @@
     "optimize-images": "tsx scripts/optimize-existing-images.ts",
     "test:security": "tsx scripts/security-tests.ts",
     "test:stability": "tsx scripts/stability-tests.ts",
-    "test:all": "tsx scripts/run-all-tests.ts"
+    "test:all": "tsx scripts/run-all-tests.ts",
+    "push": "node scripts/push-github.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",

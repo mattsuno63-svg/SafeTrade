@@ -14,6 +14,7 @@ async function main() {
       passwordHash: '$2a$10$placeholder', // In production, use proper hashing
       name: 'Admin SafeTrade',
       role: UserRole.ADMIN,
+      city: 'Milano',
     },
   })
 
@@ -26,6 +27,7 @@ async function main() {
       passwordHash: '$2a$10$placeholder',
       name: 'Mario Rossi',
       role: UserRole.USER,
+      city: 'Roma',
     },
   })
 
@@ -37,6 +39,7 @@ async function main() {
       passwordHash: '$2a$10$placeholder',
       name: 'Luigi Verdi',
       role: UserRole.USER,
+      city: 'Napoli',
     },
   })
 
@@ -49,6 +52,7 @@ async function main() {
       passwordHash: '$2a$10$placeholder',
       name: 'Game Store Milano',
       role: UserRole.MERCHANT,
+      city: 'Milano',
     },
   })
 
