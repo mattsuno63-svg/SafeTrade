@@ -23,17 +23,29 @@ const signupSchema = z.object({
     shopName: z.string(),
     companyName: z.string(),
     vatNumber: z.string(),
-    taxCode: z.string().optional().nullable(),
-    uniqueCode: z.string().optional().nullable(),
+    taxCode: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
+    uniqueCode: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
     description: z.string().optional().nullable(),
     address: z.string(),
     city: z.string(),
     province: z.string().optional().nullable(),
     postalCode: z.string().optional().nullable(),
     phone: z.string(),
-    email: z.string().email().optional().nullable(),
-    website: z.string().url().optional().nullable(),
-    legalForm: z.string().optional().nullable(),
+    // Empty/whitespace → null so optional email/url don't fail validation
+    email: z.preprocess(
+      (val) => { const s = typeof val === 'string' ? val.trim() : val; return s === '' || s === undefined ? null : s; },
+      z.union([z.string().email(), z.null()]).optional(),
+    ),
+    website: z.preprocess(
+      (val) => {
+        const s = typeof val === 'string' ? val.trim() : val
+        if (s === '' || s === undefined) return null
+        const url = /^https?:\/\//i.test(s as string) ? s : `https://${s}`
+        return url
+      },
+      z.union([z.string().url(), z.null()]).optional(),
+    ),
+    legalForm: z.preprocess((val) => (typeof val === 'string' && val.trim() === '' ? null : val), z.string().optional().nullable()),
   }).optional(),
 })
 

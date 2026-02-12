@@ -107,16 +107,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validazione 6: Verifica che non ci siano duplicazioni (item già in altro slot della stessa teca)
-    const existingItemInCase = await prisma.vaultItem.findFirst({
-      where: {
-        caseId: slot.caseId,
-        id: { not: itemId },
-        status: { in: ['IN_CASE', 'LISTED_ONLINE', 'RESERVED'] },
-      },
-    })
-
-    // Validazione 7: Verifica transizione stato (pre-check, ma verrà ricontrollato nella transazione)
+    // Validazione 6: Verifica transizione stato (pre-check, ma verrà ricontrollato nella transazione)
     const transition = canTransitionItemStatus(item.status, 'IN_CASE')
     if (!transition.valid) {
       return NextResponse.json(

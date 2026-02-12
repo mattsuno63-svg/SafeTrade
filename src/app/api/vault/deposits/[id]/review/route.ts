@@ -99,15 +99,24 @@ export async function POST(
       })
     )
 
-    // Update deposit status based on results
-    const acceptedCount = results.filter((r) => r.action === 'ACCEPT').length
-    const rejectedCount = results.filter((r) => r.action === 'REJECT').length
-    const totalItems = deposit.items.length
+    // Re-fetch ALL items in deposit to calculate correct overall status
+    const allItems = await prisma.vaultItem.findMany({
+      where: { depositId: id },
+      select: { id: true, status: true },
+    })
+
+    const totalItems = allItems.length
+    const totalAccepted = allItems.filter((i) => i.status === 'ACCEPTED').length
+    const totalRejected = allItems.filter((i) => i.status === 'REJECTED').length
+    const totalPending = allItems.filter((i) => i.status === 'PENDING_REVIEW').length
 
     let depositStatus: string
-    if (acceptedCount === totalItems) {
+    if (totalPending > 0) {
+      // Still have items pending review
+      depositStatus = 'IN_REVIEW'
+    } else if (totalAccepted === totalItems) {
       depositStatus = 'ACCEPTED'
-    } else if (rejectedCount === totalItems) {
+    } else if (totalRejected === totalItems) {
       depositStatus = 'REJECTED'
     } else {
       depositStatus = 'PARTIAL'

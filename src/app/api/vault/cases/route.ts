@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
     const case_ = await prisma.vaultCase.create({
       data: {
         shopId: data.shopId || null,
+        authorizedShopId: data.shopId || null, // Must match shopId for merchant operations
         status: data.shopId ? 'IN_SHOP_ACTIVE' : 'IN_HUB',
         label: data.label,
         slots: {
@@ -132,6 +133,14 @@ export async function POST(request: NextRequest) {
         },
       },
     })
+
+    // If assigned to a shop, also authorize the shop for vault case operations
+    if (data.shopId) {
+      await prisma.shop.update({
+        where: { id: data.shopId },
+        data: { vaultCaseAuthorized: true },
+      })
+    }
 
     await createVaultAuditLog({
       actionType: 'CASE_CREATED',

@@ -15,7 +15,7 @@ export function canTransitionItemStatus(
     PENDING_REVIEW: ['ACCEPTED', 'REJECTED'],
     ACCEPTED: ['ASSIGNED_TO_SHOP'],
     REJECTED: [], // Terminal
-    ASSIGNED_TO_SHOP: ['IN_CASE', 'LISTED_ONLINE'],
+    ASSIGNED_TO_SHOP: ['IN_CASE'], // Must be in case before listing online
     IN_CASE: ['LISTED_ONLINE', 'SOLD', 'RETURNED'],
     LISTED_ONLINE: ['RESERVED', 'RETURNED'],
     RESERVED: ['SOLD', 'RETURNED'], // Can only be sold online or returned

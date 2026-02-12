@@ -111,12 +111,21 @@ export async function POST(
       )
     }
 
-    // Validate transition (pre-check)
+    // Validate transition (pre-check) - only if status is actually changing
     const newStatus = 'IN_CASE'
-    const transition = canTransitionItemStatus(item.status, newStatus)
-    if (!transition.valid) {
+    if (item.status !== newStatus) {
+      // Status is changing (e.g. ASSIGNED_TO_SHOP → IN_CASE)
+      const transition = canTransitionItemStatus(item.status, newStatus)
+      if (!transition.valid) {
+        return NextResponse.json(
+          { error: transition.reason },
+          { status: 400 }
+        )
+      }
+    } else if (item.status !== 'IN_CASE') {
+      // Item must be IN_CASE or ASSIGNED_TO_SHOP to be moved to a slot
       return NextResponse.json(
-        { error: transition.reason },
+        { error: `La carta non può essere spostata. Stato corrente: ${item.status}` },
         { status: 400 }
       )
     }

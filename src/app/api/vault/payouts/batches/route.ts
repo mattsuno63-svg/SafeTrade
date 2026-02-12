@@ -38,29 +38,11 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Group by payee
-    const payeeMap = new Map<string, { amount: number; splitIds: string[] }>()
-
-    for (const split of splits) {
-      let payeeId: string
-      if (data.type === 'OWNER') {
-        payeeId = split.ownerUserId
-      } else if (data.type === 'MERCHANT') {
-        payeeId = split.shopId
-      } else {
-        // Platform - use a constant ID
-        payeeId = 'PLATFORM'
-      }
-
-      const existing = payeeMap.get(payeeId) || { amount: 0, splitIds: [] }
-      existing.amount +=
-        data.type === 'OWNER'
-          ? split.ownerAmount
-          : data.type === 'MERCHANT'
-          ? split.merchantAmount
-          : split.platformAmount
-      existing.splitIds.push(split.id)
-      payeeMap.set(payeeId, existing)
+    if (splits.length === 0) {
+      return NextResponse.json(
+        { error: 'No eligible splits found for the specified criteria' },
+        { status: 400 }
+      )
     }
 
     // Map type to VaultPayoutPayeeType enum values
@@ -77,19 +59,29 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      // Create payout lines
+      // Create one payout line per split for full traceability
       const lines = await Promise.all(
-        Array.from(payeeMap.entries()).map(async ([payeeId, { amount, splitIds }]) => {
-          // Get first split to link
-          const firstSplitId = splitIds[0]
+        splits.map(async (split) => {
+          let payeeId: string
+          let amount: number
+          if (data.type === 'OWNER') {
+            payeeId = split.ownerUserId
+            amount = split.ownerAmount
+          } else if (data.type === 'MERCHANT') {
+            payeeId = split.shopId
+            amount = split.merchantAmount
+          } else {
+            payeeId = 'PLATFORM'
+            amount = split.platformAmount
+          }
 
           return tx.vaultPayoutLine.create({
             data: {
               batchId: batch.id,
-              splitId: firstSplitId,
+              splitId: split.id,
               payeeType: data.type === 'OWNER' ? 'USER' : data.type === 'MERCHANT' ? 'SHOP' : 'PLATFORM',
               payeeId,
-              amount: Math.round(amount * 100) / 100, // Round to 2 decimals
+              amount: Math.round(amount * 100) / 100,
               status: 'PENDING',
             },
           })
@@ -99,7 +91,7 @@ export async function POST(request: NextRequest) {
       // Update splits to IN_PAYOUT
       await tx.vaultSplit.updateMany({
         where: {
-          id: { in: Array.from(payeeMap.values()).flatMap((v) => v.splitIds) },
+          id: { in: splits.map((s) => s.id) },
         },
         data: { status: 'IN_PAYOUT' },
       })
