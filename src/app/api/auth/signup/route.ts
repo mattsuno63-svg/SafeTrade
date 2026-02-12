@@ -53,18 +53,17 @@ export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request)
 
-    // ── Rate limit per IP ──
-    const rateLimitKey = getRateLimitKeyByIp(ip, 'SIGNUP')
-    const rateResult = await checkRateLimit(rateLimitKey, RATE_LIMITS.SIGNUP)
-
-    if (!rateResult.allowed) {
-      const res = NextResponse.json(
-        { error: 'Troppi tentativi di registrazione. Riprova più tardi.' },
-        { status: 429 },
-      )
-      setRateLimitHeaders(res.headers, rateResult)
-      return res
-    }
+    // ── Rate limit per IP (TEMPORANEAMENTE DISABILITATO) ──
+    // const rateLimitKey = getRateLimitKeyByIp(ip, 'SIGNUP')
+    // const rateResult = await checkRateLimit(rateLimitKey, RATE_LIMITS.SIGNUP)
+    // if (!rateResult.allowed) {
+    //   const res = NextResponse.json(
+    //     { error: 'Troppi tentativi di registrazione. Riprova più tardi.' },
+    //     { status: 429 },
+    //   )
+    //   setRateLimitHeaders(res.headers, rateResult)
+    //   return res
+    // }
 
     const body = await request.json()
     const parsed = signupSchema.parse(body)
@@ -214,7 +213,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 },
     )
-    setRateLimitHeaders(res.headers, rateResult)
+    // setRateLimitHeaders(res.headers, rateResult) // rate limit disabilitato
     return res
   } catch (error: unknown) {
     return handleApiError(error, '/auth/signup')
