@@ -44,8 +44,9 @@ export class ApiError extends Error {
 export function handleApiError(error: unknown, context?: string): NextResponse {
   // ── Zod validation error ──
   if (error instanceof z.ZodError) {
+    const firstMessage = error.errors[0]?.message
     return NextResponse.json(
-      { error: 'Dati non validi', details: error.errors },
+      { error: firstMessage || 'Dati non validi', details: error.errors },
       { status: 400 },
     )
   }

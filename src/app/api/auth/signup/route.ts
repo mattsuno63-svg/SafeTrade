@@ -17,7 +17,7 @@ const signupSchema = z.object({
   name: z.string().optional(),
   role: z.enum(['USER', 'MERCHANT']).default('USER'),
   city: z.string().min(1, 'La città è obbligatoria'),
-  province: z.string().optional(),
+  province: z.string().optional().nullable(),
   maxDistance: z.number().int().min(10).max(200).default(50).optional(),
   merchantData: z.object({
     shopName: z.string(),
