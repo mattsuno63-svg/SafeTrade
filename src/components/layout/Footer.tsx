@@ -42,6 +42,11 @@ export function Footer() {
                 Gradazione
               </Link>
             </li>
+            <li>
+              <Link href="/safevault" className="text-slate-400 hover:text-primary transition-colors text-[13px] font-bold uppercase tracking-widest">
+                SafeVault
+              </Link>
+            </li>
           </ul>
         </div>
 

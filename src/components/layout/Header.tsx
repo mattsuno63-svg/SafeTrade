@@ -169,6 +169,9 @@ export function Header() {
           <Link href="/safetrade" className="text-sm font-medium text-text-primary/80 hover:text-primary dark:text-white/80 dark:hover:text-primary transition-colors">
             SafeTrade
           </Link>
+          <Link href="/safevault" className="text-sm font-medium text-text-primary/80 hover:text-primary dark:text-white/80 dark:hover:text-primary transition-colors">
+            SafeVault
+          </Link>
           <Link href="/sell" className="text-sm font-medium text-text-primary/80 hover:text-primary dark:text-white/80 dark:hover:text-primary transition-colors">
             {t('nav.sell')}
           </Link>
