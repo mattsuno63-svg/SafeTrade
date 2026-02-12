@@ -4,10 +4,16 @@ import { prisma } from '@/lib/db'
 import { UserRole } from '@prisma/client'
 import { z } from 'zod'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { checkRateLimit, RATE_LIMITS, getClientIp, getRateLimitKeyByIp, setRateLimitHeaders } from '@/lib/rate-limit'
+import { handleApiError } from '@/lib/api-error'
 
 const signupSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string()
+    .min(8, 'La password deve avere almeno 8 caratteri')
+    .regex(/[A-Z]/, 'La password deve contenere almeno una lettera maiuscola')
+    .regex(/[0-9]/, 'La password deve contenere almeno un numero')
+    .regex(/[^A-Za-z0-9]/, 'La password deve contenere almeno un carattere speciale'),
   name: z.string().optional(),
   role: z.enum(['USER', 'MERCHANT']).default('USER'),
   city: z.string().min(1, 'La città è obbligatoria'),
@@ -33,6 +39,21 @@ const signupSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request)
+
+    // ── Rate limit per IP ──
+    const rateLimitKey = getRateLimitKeyByIp(ip, 'SIGNUP')
+    const rateResult = await checkRateLimit(rateLimitKey, RATE_LIMITS.SIGNUP)
+
+    if (!rateResult.allowed) {
+      const res = NextResponse.json(
+        { error: 'Troppi tentativi di registrazione. Riprova più tardi.' },
+        { status: 429 },
+      )
+      setRateLimitHeaders(res.headers, rateResult)
+      return res
+    }
+
     const body = await request.json()
     const parsed = signupSchema.parse(body)
     const { email, password, name, role, merchantData } = parsed
@@ -46,24 +67,23 @@ export async function POST(request: NextRequest) {
     })
 
     if (authError) {
+      // Messaggio GENERICO — non rivelare se l'email esiste già
+      // Supabase potrebbe restituire "User already registered" ma noi non lo esponiamo
+      console.error('[signup] Supabase auth error:', authError.message)
       return NextResponse.json(
-        { error: authError.message },
-        { status: 400 }
+        { error: 'Registrazione non riuscita. Controlla i dati inseriti.' },
+        { status: 400 },
       )
     }
 
     if (!authData.user) {
       return NextResponse.json(
-        { error: 'Failed to create user' },
-        { status: 500 }
+        { error: 'Registrazione non riuscita' },
+        { status: 500 },
       )
     }
 
-    // If merchant registration, create as USER first (will be upgraded after approval)
-    // If merchant, create user as USER and create MerchantApplication
     const finalRole = role === 'MERCHANT' ? 'USER' : (role as UserRole)
-
-    // Extract city, province, maxDistance from parsed data
     const { city, province, maxDistance } = parsed
 
     // Create user in Prisma database
@@ -76,22 +96,20 @@ export async function POST(request: NextRequest) {
         role: finalRole,
         city: city.trim(),
         province: province?.trim() || null,
-        maxDistance: maxDistance || 50, // Default 50km
+        maxDistance: maxDistance || 50,
       },
     })
 
     // If merchant registration, create MerchantApplication
     if (role === 'MERCHANT' && merchantData) {
-      // Validate required merchant fields
-      if (!merchantData.shopName || !merchantData.companyName || !merchantData.vatNumber || 
+      if (!merchantData.shopName || !merchantData.companyName || !merchantData.vatNumber ||
           !merchantData.address || !merchantData.city || !merchantData.phone) {
         return NextResponse.json(
-          { error: 'Missing required merchant fields' },
-          { status: 400 }
+          { error: 'Campi obbligatori mancanti per la registrazione commerciante' },
+          { status: 400 },
         )
       }
 
-      // Create merchant application
       const application = await prisma.merchantApplication.create({
         data: {
           userId: user.id,
@@ -113,8 +131,7 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      // Auto-confirm email for merchants (bypass email verification)
-      // Since admin will manually approve them, we can skip email verification
+      // Auto-confirm email for merchants
       if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
         try {
           const supabaseAdmin = createAdminClient(
@@ -125,32 +142,20 @@ export async function POST(request: NextRequest) {
                 autoRefreshToken: false,
                 persistSession: false,
               },
-            }
+            },
           )
 
-          // Update user to confirm email
-          const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+          await supabaseAdmin.auth.admin.updateUserById(
             authData.user.id,
-            {
-              email_confirm: true,
-            }
+            { email_confirm: true },
           )
-
-          if (updateError) {
-            console.error('Error confirming merchant email during signup:', updateError)
-            // Don't fail signup if email confirmation fails
-          } else {
-            console.log('✅ Merchant email confirmed automatically during signup')
-          }
-        } catch (error) {
-          console.error('Error setting up Supabase Admin client during signup:', error)
-          // Don't fail signup if email confirmation fails
+        } catch (err) {
+          // Non bloccare il signup se la conferma email fallisce
+          console.error('[signup] Auto-confirm email error:', err)
         }
-      } else {
-        console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set - cannot auto-confirm merchant email')
       }
 
-      // Notify admins using AdminNotification (for AdminNotificationBell)
+      // Notify admins
       try {
         await prisma.adminNotification.create({
           data: {
@@ -163,30 +168,29 @@ export async function POST(request: NextRequest) {
             targetRoles: ['ADMIN', 'MODERATOR'],
           },
         })
-        console.log('✅ Admin notification created for merchant application')
       } catch (notifError) {
-        console.error('Error creating admin notification:', notifError)
-        // Fallback: create regular notification for admins
-      const admins = await prisma.user.findMany({
-        where: { role: 'ADMIN' },
-        select: { id: true },
-      })
-
-      for (const admin of admins) {
-        await prisma.notification.create({
-          data: {
-            userId: admin.id,
-            type: 'NEW_MERCHANT_APPLICATION',
-            title: 'Nuova Richiesta Commerciante',
-            message: `${merchantData.shopName} ha richiesto di diventare un partner SafeTrade.`,
-            link: `/admin/applications`,
-          },
+        console.error('[signup] Notification error:', notifError)
+        // Fallback: notifica utenti admin
+        const admins = await prisma.user.findMany({
+          where: { role: 'ADMIN' },
+          select: { id: true },
         })
+
+        for (const admin of admins) {
+          await prisma.notification.create({
+            data: {
+              userId: admin.id,
+              type: 'NEW_MERCHANT_APPLICATION',
+              title: 'Nuova Richiesta Commerciante',
+              message: `${merchantData.shopName} ha richiesto di diventare un partner SafeTrade.`,
+              link: '/admin/applications',
+            },
+          })
         }
       }
     }
 
-    return NextResponse.json(
+    const res = NextResponse.json(
       {
         user: {
           id: user.id,
@@ -196,35 +200,11 @@ export async function POST(request: NextRequest) {
         },
         merchantApplication: role === 'MERCHANT' ? { status: 'PENDING' } : undefined,
       },
-      { status: 201 }
+      { status: 201 },
     )
-  } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      )
-    }
-
-    console.error('Signup error:', error)
-    
-    // Check for database connection errors
-    if (error?.message?.includes('Tenant or user not found') || 
-        error?.message?.includes("Can't reach database server")) {
-      return NextResponse.json(
-        { 
-          error: 'Database connection failed. Please check that your Supabase project is active and the DATABASE_URL is correct.',
-          details: 'The database server cannot be reached. This usually means the Supabase project is paused or the connection string is incorrect.'
-        },
-        { status: 503 }
-      )
-    }
-
-    return NextResponse.json(
-      { error: 'Internal server error', details: error?.message || 'Unknown error' },
-      { status: 500 }
-    )
+    setRateLimitHeaders(res.headers, rateResult)
+    return res
+  } catch (error: unknown) {
+    return handleApiError(error, '/auth/signup')
   }
 }
-
-

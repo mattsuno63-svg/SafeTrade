@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     // BUG #8 FIX: Rate limiting for QR scan
     const rateLimitKey = getRateLimitKey(user.id, 'QR_SCAN')
-    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.QR_SCAN)
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.QR_SCAN)
     
     if (!rateLimit.allowed) {
       return NextResponse.json(

@@ -51,7 +51,7 @@ export async function POST(
 
     // BUG #8 FIX: Rate limiting for payment hold
     const rateLimitKey = getRateLimitKey(user.id, 'PAYMENT_HOLD')
-    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_HOLD)
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_HOLD)
     
     if (!rateLimit.allowed) {
       return NextResponse.json(

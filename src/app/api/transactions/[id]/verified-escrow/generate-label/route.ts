@@ -31,7 +31,7 @@ export async function POST(
 
     // SECURITY: Rate limiting
     const rateLimitKey = getRateLimitKey(user.id, 'MESSAGE_SEND') // Reuse message rate limit
-    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.MESSAGE_SEND)
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.MESSAGE_SEND)
     
     if (!rateLimit.allowed) {
       return NextResponse.json(

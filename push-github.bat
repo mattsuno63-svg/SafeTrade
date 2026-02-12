@@ -23,7 +23,7 @@ if not errorlevel 1 (
 )
 
 set "MSG=chore: sync"
-if not "%~1"=="" set "MSG=%~*"
+if not "%~1"=="" set "MSG=%*"
 
 echo Commit: %MSG%
 git commit -m "%MSG%"

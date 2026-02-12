@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Download, Printer, QrCode, CheckCircle2, XCircle } from 'lucide-react'
 import { useUser } from '@/hooks/use-user'
+import { escapeHtml } from '@/lib/api-error'
 import Image from 'next/image'
 
 interface QRCodeData {
@@ -93,7 +94,7 @@ export default function VaultCaseQRPrintPage() {
         <!DOCTYPE html>
         <html>
           <head>
-            <title>QR Codes Teca - ${caseData?.caseLabel || 'Teca'}</title>
+            <title>QR Codes Teca - ${escapeHtml(caseData?.caseLabel || 'Teca')}</title>
             <style>
               @media print {
                 @page {
@@ -156,16 +157,16 @@ export default function VaultCaseQRPrintPage() {
           <body>
             <div class="header">
               <h1>SafeTrade Vault - QR Codes</h1>
-              <p>Teca: ${caseData?.caseLabel || 'N/A'}</p>
+              <p>Teca: ${escapeHtml(caseData?.caseLabel || 'N/A')}</p>
               <p>Generato il: ${new Date().toLocaleDateString('it-IT')}</p>
             </div>
             <div class="qr-grid">
               ${caseData?.qrCodes.map(qr => `
                 <div class="qr-label">
-                  <h3>${qr.slotCode}</h3>
-                  <img src="${qr.qrData}" alt="QR Code ${qr.slotCode}" />
-                  <p><strong>Status:</strong> ${qr.status}</p>
-                  <p style="font-size: 10px; margin-top: 10px;">${window.location.origin}/scan/${qr.qrToken}</p>
+                  <h3>${escapeHtml(qr.slotCode)}</h3>
+                  <img src="${escapeHtml(qr.qrData)}" alt="QR Code ${escapeHtml(qr.slotCode)}" />
+                  <p><strong>Status:</strong> ${escapeHtml(qr.status)}</p>
+                  <p style="font-size: 10px; margin-top: 10px;">${escapeHtml(window.location.origin)}/scan/${escapeHtml(qr.qrToken)}</p>
                 </div>
               `).join('') || ''}
             </div>

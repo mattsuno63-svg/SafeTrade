@@ -77,7 +77,7 @@ export async function POST(
 
     // Rate limiting for transaction verification
     const rateLimitKey = getRateLimitKey(user.id, 'TRANSACTION_VERIFY')
-    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.TRANSACTION_VERIFY)
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.TRANSACTION_VERIFY)
     
     if (!rateLimit.allowed) {
       return NextResponse.json(

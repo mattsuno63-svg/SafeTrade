@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     // SECURITY: Rate limiting for conversation creation
     const rateLimitKey = getRateLimitKey(user.id, 'CONVERSATION_CREATE')
-    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.CONVERSATION_CREATE)
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.CONVERSATION_CREATE)
     
     if (!rateLimit.allowed) {
       return NextResponse.json(

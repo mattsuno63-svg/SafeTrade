@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
     // Rate limiting for transaction creation
     const { checkRateLimit, getRateLimitKey, RATE_LIMITS } = await import('@/lib/rate-limit')
     const rateLimitKey = getRateLimitKey(user.id, 'PAYMENT_CREATE') // Use PAYMENT_CREATE limit (10/hour)
-    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_CREATE)
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_CREATE)
     
     if (!rateLimit.allowed) {
       return NextResponse.json(

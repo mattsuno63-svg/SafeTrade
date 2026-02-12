@@ -51,7 +51,7 @@ export async function POST(
 
     // BUG #8 FIX: Rate limiting for payment release
     const rateLimitKey = getRateLimitKey(user.id, 'PAYMENT_RELEASE')
-    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_RELEASE)
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_RELEASE)
     
     if (!rateLimit.allowed) {
       return NextResponse.json(

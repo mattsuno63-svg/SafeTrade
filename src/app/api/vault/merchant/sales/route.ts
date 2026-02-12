@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     // BUG #8 FIX: Rate limiting for vault sales
     const rateLimitKey = getRateLimitKey(user.id, 'VAULT_SALES')
-    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.VAULT_SALES)
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.VAULT_SALES)
     
     if (!rateLimit.allowed) {
       return NextResponse.json(

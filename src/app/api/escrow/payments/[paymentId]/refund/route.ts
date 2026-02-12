@@ -55,7 +55,7 @@ export async function POST(
 
     // BUG #8 FIX: Rate limiting for payment refund
     const rateLimitKey = getRateLimitKey(user.id, 'PAYMENT_REFUND')
-    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_REFUND)
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.PAYMENT_REFUND)
     
     if (!rateLimit.allowed) {
       return NextResponse.json(

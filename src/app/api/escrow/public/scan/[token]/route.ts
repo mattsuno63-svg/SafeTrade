@@ -22,7 +22,7 @@ export async function GET(
 
     // Rate limiting (per IP)
     const rateLimitKey = getRateLimitKey(ipAddress || 'unknown', 'QR_SCAN_PUBLIC')
-    const rateLimit = checkRateLimit(rateLimitKey, { maxRequests: 10, windowMs: 60 * 1000 }) // 10 req/min
+    const rateLimit = await checkRateLimit(rateLimitKey, { maxRequests: 10, windowMs: 60 * 1000 }) // 10 req/min
 
     if (!rateLimit.allowed) {
       return NextResponse.json(

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/db'
+import type { UserRole } from '@prisma/client'
 
 /**
  * Get current session (lighter than getCurrentUser, doesn't hit Prisma)
@@ -8,11 +9,11 @@ export async function getSession() {
   try {
     const supabase = await createClient()
     const { data: { session }, error } = await supabase.auth.getSession()
-    
+
     if (error || !session) {
       return null
     }
-    
+
     return {
       user: {
         id: session.user.id,
@@ -22,8 +23,7 @@ export async function getSession() {
       accessToken: session.access_token,
       expiresAt: session.expires_at,
     }
-  } catch (error) {
-    console.error('[getSession] Error:', error)
+  } catch {
     return null
   }
 }
@@ -34,27 +34,17 @@ export async function getSession() {
 export async function getCurrentUser() {
   try {
     const supabase = await createClient()
-    
-    console.log('[getCurrentUser] Calling supabase.auth.getUser()...')
+
     const {
       data: { user },
       error,
     } = await supabase.auth.getUser()
 
-    console.log('[getCurrentUser] getUser result:', { 
-      hasUser: !!user, 
-      userId: user?.id, 
-      hasError: !!error,
-      errorMessage: error?.message 
-    })
-
     if (error || !user) {
-      console.log('[getCurrentUser] No user found, returning null')
       return null
     }
 
     // Get user from Prisma database
-    console.log('[getCurrentUser] Fetching user from Prisma...')
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -66,19 +56,15 @@ export async function getCurrentUser() {
       },
     })
 
-    console.log('[getCurrentUser] Prisma user found:', !!dbUser)
-    
-    // Add email verification status from Supabase
     if (dbUser) {
       return {
         ...dbUser,
         emailVerified: !!user.email_confirmed_at,
       }
     }
-    
+
     return dbUser
-  } catch (error) {
-    console.error('[getCurrentUser] Error getting current user:', error)
+  } catch {
     return null
   }
 }
@@ -95,11 +81,23 @@ export async function requireAuth() {
 }
 
 /**
- * Require specific role
+ * Require specific role — supporta tutti i ruoli inclusi MODERATOR e HUB_STAFF.
+ * ADMIN ha sempre accesso.
  */
-export async function requireRole(role: 'USER' | 'MERCHANT' | 'ADMIN') {
+export async function requireRole(role: UserRole) {
   const user = await requireAuth()
   if (user.role !== role && user.role !== 'ADMIN') {
+    throw new Error('Forbidden: Insufficient permissions')
+  }
+  return user
+}
+
+/**
+ * Require any of the specified roles — ADMIN ha sempre accesso.
+ */
+export async function requireAnyRole(roles: UserRole[]) {
+  const user = await requireAuth()
+  if (!roles.includes(user.role as UserRole) && user.role !== 'ADMIN') {
     throw new Error('Forbidden: Insufficient permissions')
   }
   return user
@@ -118,4 +116,3 @@ export async function requireEmailVerified() {
   }
   return user
 }
-

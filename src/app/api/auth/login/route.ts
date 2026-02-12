@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { z } from 'zod'
+import { checkRateLimit, RATE_LIMITS, getClientIp, getRateLimitKeyByIp, setRateLimitHeaders } from '@/lib/rate-limit'
+import { logSecurityEvent } from '@/lib/security/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,21 +12,41 @@ const loginSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  let response = NextResponse.next({
-    request,
-  })
+  let response = NextResponse.next({ request })
+  const ip = getClientIp(request)
 
   try {
+    // ── Rate limit per IP ──
+    const rateLimitKey = getRateLimitKeyByIp(ip, 'LOGIN')
+    const rateResult = await checkRateLimit(rateLimitKey, RATE_LIMITS.LOGIN)
+
+    if (!rateResult.allowed) {
+      await logSecurityEvent({
+        eventType: 'RATE_LIMIT_EXCEEDED',
+        endpoint: '/api/auth/login',
+        method: 'POST',
+        request,
+        wasBlocked: true,
+        reason: `Rate limit exceeded: ${RATE_LIMITS.LOGIN.maxRequests} attempts per ${RATE_LIMITS.LOGIN.windowMs / 60000} min`,
+        severity: 'HIGH',
+      })
+
+      const res = NextResponse.json(
+        { error: 'Troppi tentativi. Riprova tra qualche minuto.' },
+        { status: 429 },
+      )
+      setRateLimitHeaders(res.headers, rateResult)
+      return res
+    }
+
     const body = await request.json()
     const { email, password } = loginSchema.parse(body)
 
-    // Create Supabase client with proper cookie handling for API routes
-    // CRITICAL: Must use base64url encoding to match createBrowserClient
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        cookieEncoding: 'base64url', // CRITICAL: Must match createBrowserClient encoding
+        cookieEncoding: 'base64url',
         cookies: {
           getAll() {
             return request.cookies.getAll()
@@ -32,10 +54,7 @@ export async function POST(request: NextRequest) {
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
               request.cookies.set(name, value)
-              // Create new response with updated cookies
-              response = NextResponse.next({
-                request,
-              })
+              response = NextResponse.next({ request })
               response.cookies.set(name, value, {
                 ...options,
                 httpOnly: options?.httpOnly ?? true,
@@ -46,7 +65,7 @@ export async function POST(request: NextRequest) {
             })
           },
         },
-      }
+      },
     )
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -55,47 +74,41 @@ export async function POST(request: NextRequest) {
     })
 
     if (error) {
-      console.error('[API /auth/login] Supabase signIn error:', error.message, error.status)
+      // Messaggio GENERICO — non rivelare se l'email esiste o meno
       return NextResponse.json(
-        { error: error.message },
-        { status: 401 }
+        { error: 'Credenziali non valide' },
+        { status: 401 },
       )
     }
 
     if (!data.session) {
       return NextResponse.json(
-        { error: 'No session returned' },
-        { status: 500 }
+        { error: 'Errore durante il login' },
+        { status: 500 },
       )
     }
 
-    // CRITICAL: Call setSession to force setAll() to be called
-    // This ensures cookies are set correctly in API routes
+    // Set session cookies
     const { error: setSessionError } = await supabase.auth.setSession({
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
     })
-    
+
     if (setSessionError) {
       return NextResponse.json(
-        { error: 'Failed to set session' },
-        { status: 500 }
+        { error: 'Errore durante il login' },
+        { status: 500 },
       )
     }
-    
-    // Get cookies that were set by setAll()
+
     const cookiesAfterSetSession = response.cookies.getAll()
-    
-    console.log('[API /auth/login] Cookies set:', cookiesAfterSetSession.map(c => c.name).join(', '))
-    
-    // Create JSON response
+
     const jsonResponse = NextResponse.json({
       user: data.user,
       session: data.session,
     })
 
-    // CRITICAL: Copy ALL cookies from response to jsonResponse
-    // These cookies were set by setAll() when we called setSession()
+    // Copy cookies
     cookiesAfterSetSession.forEach((cookie) => {
       jsonResponse.cookies.set(cookie.name, cookie.value, {
         httpOnly: true,
@@ -104,26 +117,22 @@ export async function POST(request: NextRequest) {
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days
       })
-      console.log(`[API /auth/login] Cookie set in response: ${cookie.name}`)
     })
 
-    console.log('[API /auth/login] Response cookies count:', jsonResponse.cookies.getAll().length)
-
+    setRateLimitHeaders(jsonResponse.headers, rateResult)
     return jsonResponse
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
+        { error: 'Dati non validi' },
+        { status: 400 },
       )
     }
 
     console.error('[API /auth/login] Error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: 'Errore interno del server' },
+      { status: 500 },
     )
   }
 }
-
-
