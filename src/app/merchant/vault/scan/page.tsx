@@ -161,14 +161,7 @@ export default function MerchantVaultScanPage() {
     }
   }, [qrToken, user, handleScanQR, scanning, slotInfo])
 
-  // Fetch orders when fulfillment tab is active
-  useEffect(() => {
-    if (activeTab === 'fulfillment' && user && !loadingOrders) {
-      fetchOrders()
-    }
-  }, [activeTab, user, orderFilter])
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoadingOrders(true)
       const params = new URLSearchParams()
@@ -186,7 +179,14 @@ export default function MerchantVaultScanPage() {
     } finally {
       setLoadingOrders(false)
     }
-  }
+  }, [orderFilter])
+
+  // Fetch orders when fulfillment tab is active
+  useEffect(() => {
+    if (activeTab === 'fulfillment' && user) {
+      fetchOrders()
+    }
+  }, [activeTab, user, fetchOrders])
 
   const handleAssignItem = async () => {
     if (!selectedItemId) {

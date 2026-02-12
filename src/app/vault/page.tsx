@@ -67,8 +67,9 @@ export default function VaultDashboardPage() {
         setDeposits(depositsData.data || [])
       }
 
-      // Fetch items
-      const itemsRes = await fetch('/api/vault/items?ownerId=' + user?.id)
+      // Fetch items (only if user ID is available)
+      if (!user?.id) return
+      const itemsRes = await fetch(`/api/vault/items?ownerId=${user.id}`)
       if (itemsRes.ok) {
         const itemsData = await itemsRes.json()
         setItems(itemsData.data || [])
@@ -160,14 +161,8 @@ export default function VaultDashboardPage() {
                 <Link href="/vault" className="text-sm font-semibold text-primary border-b-2 border-primary pb-1">
                   Dashboard
                 </Link>
-                <Link href="/vault/items" className="text-sm font-medium opacity-60 hover:opacity-100 transition-opacity">
-                  Inventario
-                </Link>
                 <Link href="/vault/deposits" className="text-sm font-medium opacity-60 hover:opacity-100 transition-opacity">
                   Depositi
-                </Link>
-                <Link href="/vault/sales" className="text-sm font-medium opacity-60 hover:opacity-100 transition-opacity">
-                  Vendite
                 </Link>
               </nav>
             </div>

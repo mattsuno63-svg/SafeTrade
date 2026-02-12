@@ -87,10 +87,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Assign items
-    const results = await Promise.all(
-      data.itemIds.map(async (itemId) => {
-        const item = await prisma.vaultItem.findUnique({
+    // Assign items atomically
+    const results = await prisma.$transaction(async (tx) => {
+      const assignResults = []
+
+      for (const itemId of data.itemIds) {
+        const item = await tx.vaultItem.findUnique({
           where: { id: itemId },
         })
 
@@ -124,44 +126,52 @@ export async function POST(request: NextRequest) {
           updateData.slotId = data.slotId
         }
 
-        const updated = await prisma.vaultItem.update({
+        const updated = await tx.vaultItem.update({
           where: { id: itemId },
           data: updateData,
         })
 
         // If slot assigned, mark as occupied
         if (data.slotId) {
-          await prisma.vaultCaseSlot.update({
+          await tx.vaultCaseSlot.update({
             where: { id: data.slotId },
             data: { status: 'OCCUPIED' },
           })
-
-          await createVaultAuditLog({
-            actionType: 'SLOT_OCCUPIED',
-            performedBy: user,
-            itemId: itemId,
-            caseId: data.caseId,
-            slotId: data.slotId,
-          })
         }
 
-        // Audit log
-        await createVaultAuditLog({
-          actionType: 'ITEM_ASSIGNED_TO_SHOP',
-          performedBy: user,
-          itemId: itemId,
-          oldValue: { status: item.status, shopIdCurrent: item.shopIdCurrent },
-          newValue: {
-            status: newStatus,
-            shopIdCurrent: data.shopId,
-            caseId: data.caseId,
-            slotId: data.slotId,
-          },
-        })
+        assignResults.push({ itemId, updated, oldStatus: item.status, oldShopId: item.shopIdCurrent })
+      }
 
-        return { itemId, updated }
+      return assignResults
+    })
+
+    // Audit logs (outside transaction - non-critical)
+    for (const { itemId, oldStatus, oldShopId } of results) {
+      const newStatus = data.slotId ? 'IN_CASE' : 'ASSIGNED_TO_SHOP'
+
+      if (data.slotId) {
+        await createVaultAuditLog({
+          actionType: 'SLOT_OCCUPIED',
+          performedBy: user,
+          itemId,
+          caseId: data.caseId,
+          slotId: data.slotId,
+        })
+      }
+
+      await createVaultAuditLog({
+        actionType: 'ITEM_ASSIGNED_TO_SHOP',
+        performedBy: user,
+        itemId,
+        oldValue: { status: oldStatus, shopIdCurrent: oldShopId },
+        newValue: {
+          status: newStatus,
+          shopIdCurrent: data.shopId,
+          caseId: data.caseId,
+          slotId: data.slotId,
+        },
       })
-    )
+    }
 
     // Notify merchant
     await notifyItemsAssigned(data.shopId, data.itemIds)

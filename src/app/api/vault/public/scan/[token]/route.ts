@@ -3,13 +3,19 @@ import { prisma } from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> | { token: string } }
 ) {
   try {
-    const { token } = params
+    const resolvedParams = 'then' in params ? await params : params
+    const { token } = resolvedParams
 
     if (!token) {
       return NextResponse.json({ error: 'Token mancante' }, { status: 400 })
+    }
+
+    // Validate token format (alphanumeric + hyphens, reasonable length)
+    if (token.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+      return NextResponse.json({ error: 'Token non valido' }, { status: 400 })
     }
 
     // Find slot by QR token

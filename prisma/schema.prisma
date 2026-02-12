@@ -169,7 +169,6 @@ model User {
   vaultItemsOwned         VaultItem[]        @relation("VaultItemOwner")
   vaultOrdersAsBuyer      VaultOrder[]
   vaultSplitsAsOwner      VaultSplit[]       @relation("VaultSplitOwner")
-  vaultPayoutLinesAsPayee VaultPayoutLine[]
   vaultAuditLogs          VaultAuditLog[]
   vaultCaseRequests       VaultCaseRequest[] @relation("VaultCaseRequestUser")
   securityAuditLogs       SecurityAuditLog[] @relation("SecurityAuditAttemptedBy")
@@ -2114,8 +2113,6 @@ model VaultPayoutLine {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?
 
   @@index([batchId])
   @@index([payeeType, payeeId])

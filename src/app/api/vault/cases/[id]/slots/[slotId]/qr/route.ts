@@ -9,7 +9,7 @@ import QRCode from 'qrcode'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; slotId: string } }
+  { params }: { params: Promise<{ id: string; slotId: string }> | { id: string; slotId: string } }
 ) {
   try {
     const user = await requireAuth()
@@ -17,7 +17,8 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id: caseId, slotId } = params
+    const resolvedParams = 'then' in params ? await params : params
+    const { id: caseId, slotId } = resolvedParams
 
     // Fetch slot
     const slot = await prisma.vaultCaseSlot.findUnique({

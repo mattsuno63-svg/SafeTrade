@@ -12,12 +12,13 @@ import { z } from 'zod'
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await requireRole('ADMIN')
 
-    const { id } = params
+    const resolvedParams = 'then' in params ? await params : params
+    const { id } = resolvedParams
     const body = await request.json()
 
     const schema = z.object({

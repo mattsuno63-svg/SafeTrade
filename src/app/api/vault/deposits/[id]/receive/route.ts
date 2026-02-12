@@ -10,12 +10,13 @@ import { notifyDepositReceived } from '@/lib/vault/notifications'
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await requireRole('ADMIN') // Hub staff uses ADMIN role for now
 
-    const { id } = params
+    const resolvedParams = 'then' in params ? await params : params
+    const { id } = resolvedParams
 
     const deposit = await prisma.vaultDeposit.findUnique({
       where: { id },

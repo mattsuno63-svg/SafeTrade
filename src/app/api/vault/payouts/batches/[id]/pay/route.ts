@@ -9,11 +9,12 @@ import { notifyPayoutPaid } from '@/lib/vault/notifications'
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await requireRole('ADMIN')
-    const { id: batchId } = params
+    const resolvedParams = 'then' in params ? await params : params
+    const { id: batchId } = resolvedParams
 
     const batch = await prisma.vaultPayoutBatch.findUnique({
       where: { id: batchId },

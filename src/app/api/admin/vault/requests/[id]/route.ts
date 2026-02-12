@@ -13,11 +13,12 @@ export const dynamic = 'force-dynamic'
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id } = params
+    const resolvedParams = 'then' in params ? await params : params
+    const { id } = resolvedParams
     const body = await request.json()
     const { status, adminNotes } = body
 

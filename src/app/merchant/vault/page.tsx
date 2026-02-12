@@ -225,7 +225,7 @@ export default function MerchantVaultPage() {
                     <CardTitle className="text-sm font-medium text-gray-600">Inventario</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Link href="/merchant/vault/inventory">
+                    <Link href="/merchant/vault/scan">
                       <Button className="w-full" variant="outline">
                         <Package className="h-4 w-4 mr-2" />
                         Vedi Inventario
@@ -239,7 +239,7 @@ export default function MerchantVaultPage() {
                     <CardTitle className="text-sm font-medium text-gray-600">Ordini Online</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Link href="/merchant/vault/orders">
+                    <Link href="/merchant/vault/scan?tab=fulfillment">
                       <Button className="w-full" variant="outline">
                         <ShoppingCart className="h-4 w-4 mr-2" />
                         Ordini da Evadere
@@ -253,10 +253,10 @@ export default function MerchantVaultPage() {
                     <CardTitle className="text-sm font-medium text-gray-600">Teca</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Link href="/merchant/vault/case">
+                    <Link href="/merchant/vault/requests">
                       <Button className="w-full" variant="outline">
                         <Grid3x3 className="h-4 w-4 mr-2" />
-                        Vista Teca
+                        Gestisci Teca
                       </Button>
                     </Link>
                   </CardContent>

@@ -46,11 +46,23 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const caseId = searchParams.get('caseId')
 
+    // Validate status against enum values
+    const validStatuses = [
+      'PENDING_REVIEW', 'ACCEPTED', 'REJECTED', 'ASSIGNED_TO_SHOP',
+      'IN_CASE', 'LISTED_ONLINE', 'RESERVED', 'SOLD', 'RETURNED',
+    ]
+    if (status && !validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: `Invalid status. Valid values: ${validStatuses.join(', ')}` },
+        { status: 400 }
+      )
+    }
+
     const items = await prisma.vaultItem.findMany({
       where: {
         // Se admin, mostra tutti gli item. Altrimenti solo quelli del negozio
         ...(shopId ? { shopIdCurrent: shopId } : {}),
-        ...(status ? { status: status as any } : {}),
+        ...(status ? { status: status as 'PENDING_REVIEW' | 'ACCEPTED' | 'REJECTED' | 'ASSIGNED_TO_SHOP' | 'IN_CASE' | 'LISTED_ONLINE' | 'RESERVED' | 'SOLD' | 'RETURNED' } : {}),
         ...(caseId ? { caseId } : {}),
       },
       include: {

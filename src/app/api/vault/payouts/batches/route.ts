@@ -20,15 +20,17 @@ export async function POST(request: NextRequest) {
 
     const data = schema.parse(body)
 
-    // Get eligible splits
+    // Get eligible splits filtered by type
     const splits = await prisma.vaultSplit.findMany({
       where: {
         status: 'ELIGIBLE',
         ...(data.type === 'OWNER'
-          ? {}
+          ? { ownerAmount: { gt: 0 } }
           : data.type === 'MERCHANT'
-          ? {}
-          : {}), // Platform splits
+          ? { merchantAmount: { gt: 0 } }
+          : { platformAmount: { gt: 0 } }),
+        ...(data.periodStart ? { eligibleAt: { gte: new Date(data.periodStart) } } : {}),
+        ...(data.periodEnd ? { eligibleAt: { lte: new Date(data.periodEnd) } } : {}),
       },
       include: {
         owner: true,

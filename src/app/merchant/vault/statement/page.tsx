@@ -180,13 +180,32 @@ export default function MerchantVaultStatementPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <Button className="flex items-center gap-2 px-6 py-3 bg-white/60 dark:bg-white/10 hover:bg-white border border-white/20 rounded-xl font-bold transition-all glass">
+              <Button 
+                onClick={() => {
+                  // Export CSV of sales data
+                  const csvHeader = 'Data,Carta,Importo Lordo,Commissione Merchant,Stato\n'
+                  const csvRows = splits.map((s: Split) => 
+                    `${new Date(s.createdAt).toLocaleDateString('it-IT')},${s.item?.name || 'N/A'},€${s.grossAmount?.toFixed(2) || '0'},€${s.merchantAmount?.toFixed(2) || '0'},${s.status || 'N/A'}`
+                  ).join('\n')
+                  const blob = new Blob([csvHeader + csvRows], { type: 'text/csv' })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `vault-statement-${new Date().toISOString().slice(0, 10)}.csv`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                }}
+                className="flex items-center gap-2 px-6 py-3 bg-white/60 dark:bg-white/10 hover:bg-white border border-white/20 rounded-xl font-bold transition-all glass"
+              >
                 <span>📥</span>
                 Export CSV
               </Button>
-              <Button className="flex items-center gap-2 px-6 py-3 bg-primary text-white hover:shadow-lg hover:shadow-primary/30 rounded-xl font-bold transition-all">
+              <Button 
+                onClick={() => router.push('/merchant/vault/sales')}
+                className="flex items-center gap-2 px-6 py-3 bg-primary text-white hover:shadow-lg hover:shadow-primary/30 rounded-xl font-bold transition-all"
+              >
                 <span>💳</span>
-                Request Payout
+                Vendite
               </Button>
             </div>
           </div>

@@ -78,7 +78,8 @@ export default function AdminVaultRequestsPage() {
     
     if (user && !userLoading) {
       // Verifica che l'utente sia admin
-      if (user.user_metadata?.role !== 'ADMIN' && user.email !== 'portelli.mattiaa@gmail.com') {
+      const userRole = user.user_metadata?.role || user.role
+      if (userRole !== 'ADMIN' && userRole !== 'HUB_STAFF') {
         router.push('/dashboard')
         return
       }

@@ -11,11 +11,12 @@ import { notifyNewOrder } from '@/lib/vault/notifications'
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id: orderId } = params
+    const resolvedParams = 'then' in params ? await params : params
+    const { id: orderId } = resolvedParams
 
     const order = await prisma.vaultOrder.findUnique({
       where: { id: orderId },

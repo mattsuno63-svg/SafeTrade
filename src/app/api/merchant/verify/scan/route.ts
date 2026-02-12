@@ -309,7 +309,7 @@ export async function POST(request: NextRequest) {
       })
     } else if (parsedData.type === 'VAULT_SLOT' || parsedData.qrToken) {
       // Vault slot QR
-      const qrToken = parsedData.qrToken || parsedData.qrToken
+      const qrToken = parsedData.qrToken
 
       const slot = await prisma.vaultCaseSlot.findUnique({
         where: { qrToken },

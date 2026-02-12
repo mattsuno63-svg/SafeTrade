@@ -494,18 +494,44 @@ export default function VaultCaseDetailPage() {
 
               {/* Action Row (10%) */}
               <section className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-3">
-                <Button className="w-full h-14 bg-primary text-white rounded-xl flex items-center justify-center gap-3 font-bold text-lg hover:brightness-110 transition-all shadow-xl shadow-primary/20">
+                <Button 
+                  onClick={() => router.push(`/merchant/vault/scan?tab=sell&itemId=${selectedSlot.item!.id}`)}
+                  className="w-full h-14 bg-primary text-white rounded-xl flex items-center justify-center gap-3 font-bold text-lg hover:brightness-110 transition-all shadow-xl shadow-primary/20"
+                >
                   <span>🛒</span>
                   Vendi Fisico
                 </Button>
                 <div className="grid grid-cols-2 gap-3">
-                  <Button className="h-12 glass-tile rounded-xl flex items-center justify-center gap-2 font-bold text-xs text-accent-orange border-accent-orange/20 hover:bg-accent-orange/10">
+                  <Button 
+                    onClick={async () => {
+                      if (!selectedSlot || !confirm('Sei sicuro di voler rimuovere questa carta dallo slot?')) return
+                      try {
+                        const res = await fetch(`/api/vault/merchant/items/${selectedSlot.item!.id}/move-slot`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ slotId: null }),
+                        })
+                        if (!res.ok) {
+                          const err = await res.json()
+                          throw new Error(err.error || 'Errore nella rimozione')
+                        }
+                        setSelectedSlot(null)
+                        fetchCase()
+                      } catch (err: any) {
+                        alert(err.message)
+                      }
+                    }}
+                    className="h-12 glass-tile rounded-xl flex items-center justify-center gap-2 font-bold text-xs text-accent-orange border-accent-orange/20 hover:bg-accent-orange/10"
+                  >
                     <span>🚪</span>
                     Rimuovi
                   </Button>
-                  <Button className="h-12 glass-tile rounded-xl flex items-center justify-center gap-2 font-bold text-xs hover:bg-white/5">
+                  <Button 
+                    onClick={() => router.push(`/merchant/vault/sales`)}
+                    className="h-12 glass-tile rounded-xl flex items-center justify-center gap-2 font-bold text-xs hover:bg-white/5"
+                  >
                     <span>📜</span>
-                    History
+                    Storico
                   </Button>
                 </div>
               </section>

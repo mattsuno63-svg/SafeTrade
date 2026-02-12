@@ -11,6 +11,10 @@ export function calculateSplit(grossAmount: number): {
   merchantAmount: number
   platformAmount: number
 } {
+  if (!grossAmount || grossAmount <= 0) {
+    return { ownerAmount: 0, merchantAmount: 0, platformAmount: 0 }
+  }
+
   // Calculate with precision
   const ownerAmount = Math.floor(grossAmount * 0.70 * 100) / 100
   const merchantAmount = Math.floor(grossAmount * 0.20 * 100) / 100

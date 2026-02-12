@@ -10,11 +10,12 @@ import { canListOnline, canTransitionItemStatus } from '@/lib/vault/state-machin
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const user = await requireAuth()
-    const { id: itemId } = params
+    const resolvedParams = 'then' in params ? await params : params
+    const { id: itemId } = resolvedParams
 
     // Get merchant's shop
     const shop = await prisma.shop.findUnique({
