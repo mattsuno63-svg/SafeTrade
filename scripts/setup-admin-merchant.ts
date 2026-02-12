@@ -2,33 +2,44 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
+const ADMIN_EMAIL = 'portelli.mattiaa@gmail.com'
+
 async function main() {
-  const email = 'portelli.mattiaa@gmail.com'
-  
-  console.log('🔍 Looking for user:', email)
-  
-  // Find user
+  console.log('🔒 Impostazione admin: solo', ADMIN_EMAIL)
+
+  // 1. Rimuovi ADMIN da tutti tranne il tuo account
+  const demoted = await prisma.user.updateMany({
+    where: {
+      role: 'ADMIN',
+      email: { not: ADMIN_EMAIL },
+    },
+    data: { role: 'USER' },
+  })
+  if (demoted.count > 0) {
+    console.log('⚠️ Ruolo ADMIN rimosso da', demoted.count, 'altro/i utente/i')
+  }
+
+  // 2. Trova il tuo utente
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: ADMIN_EMAIL },
   })
 
   if (!user) {
-    console.error('❌ User not found!')
+    console.error('❌ Utente non trovato:', ADMIN_EMAIL)
+    console.error('   Registrati prima con questa email, poi riesegui lo script.')
     return
   }
 
-  console.log('✅ User found:', user.email, 'Current role:', user.role)
+  console.log('✅ Utente trovato:', user.email, '— ruolo attuale:', user.role)
 
-  // Keep user as ADMIN (ADMIN can access everything via requireRole)
-  // But we'll create a shop so they can test merchant features
-  const updatedUser = user.role === 'ADMIN' 
-    ? user 
+  const updatedUser = user.role === 'ADMIN'
+    ? user
     : await prisma.user.update({
-        where: { email },
-        data: { role: 'ADMIN' }
+        where: { email: ADMIN_EMAIL },
+        data: { role: 'ADMIN' },
       })
-  
-  console.log('✅ User role:', updatedUser.role)
+
+  console.log('✅ Ruolo finale:', updatedUser.role)
 
   // Check if shop exists
   let shop = await prisma.shop.findUnique({
@@ -59,11 +70,11 @@ async function main() {
     console.log('✅ Shop approved')
   }
 
-  console.log('\n🎉 Setup complete!')
-  console.log('User:', updatedUser.email)
-  console.log('Role:', updatedUser.role)
-  console.log('Shop:', shop.name)
-  console.log('Shop Approved:', shop.isApproved)
+  const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } })
+  console.log('\n🎉 Setup completato!')
+  console.log('Admin nel DB:', adminCount, '(solo', ADMIN_EMAIL, ')')
+  console.log('User:', updatedUser.email, '| Role:', updatedUser.role)
+  console.log('Shop:', shop.name, '| Approved:', shop.isApproved)
 }
 
 main()

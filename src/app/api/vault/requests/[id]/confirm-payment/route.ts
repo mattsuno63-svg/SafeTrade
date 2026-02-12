@@ -57,9 +57,10 @@ export async function POST(
     }
 
     // Verifica che il pagamento non sia già stato confermato o processato
+    // paymentStatus iniziale è null → accetta solo null per la prima conferma
     if (vaultRequest.paymentStatus === 'PENDING') {
       return NextResponse.json(
-        { error: 'Il pagamento è già stato confermato e in attesa di verifica' },
+        { error: 'Il pagamento è già stato confermato e in attesa di verifica admin' },
         { status: 400 }
       )
     }
@@ -67,6 +68,13 @@ export async function POST(
     if (vaultRequest.paymentStatus === 'PAID') {
       return NextResponse.json(
         { error: 'Il pagamento è già stato verificato e confermato' },
+        { status: 400 }
+      )
+    }
+
+    if (vaultRequest.paymentStatus && vaultRequest.paymentStatus !== 'UNPAID') {
+      return NextResponse.json(
+        { error: 'Stato pagamento non valido per la conferma' },
         { status: 400 }
       )
     }

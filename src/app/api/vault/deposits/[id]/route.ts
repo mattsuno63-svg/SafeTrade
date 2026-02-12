@@ -112,7 +112,7 @@ export async function PATCH(
       depositId: deposit.id,
       oldValue: { notes: deposit.notes, trackingIn: deposit.trackingIn },
       newValue: { notes: updatedDeposit.notes, trackingIn: updatedDeposit.trackingIn },
-    }).catch(console.error)
+    }).catch((auditErr) => console.error('[AUDIT LOG FAILED] DEPOSIT_UPDATED for deposit', deposit.id, ':', auditErr))
 
     return NextResponse.json({ data: updatedDeposit }, { status: 200 })
   } catch (error: any) {
@@ -172,7 +172,7 @@ export async function DELETE(
       performedBy: user,
       depositId: id,
       oldValue: { itemCount: deposit.items.length },
-    }).catch(console.error)
+    }).catch((auditErr) => console.error('[AUDIT LOG FAILED] DEPOSIT_DELETED for deposit', id, ':', auditErr))
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error: any) {

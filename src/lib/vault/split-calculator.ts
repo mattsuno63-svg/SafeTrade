@@ -15,10 +15,10 @@ export function calculateSplit(grossAmount: number): {
     return { ownerAmount: 0, merchantAmount: 0, platformAmount: 0 }
   }
 
-  // Calculate with precision
-  const ownerAmount = Math.floor(grossAmount * 0.70 * 100) / 100
-  const merchantAmount = Math.floor(grossAmount * 0.20 * 100) / 100
-  // Platform gets remainder to handle rounding
+  // Calculate with consistent rounding (Math.round for all)
+  const ownerAmount = Math.round(grossAmount * 0.70 * 100) / 100
+  const merchantAmount = Math.round(grossAmount * 0.20 * 100) / 100
+  // Platform gets remainder to guarantee sum === grossAmount
   const platformAmount = Math.round((grossAmount - ownerAmount - merchantAmount) * 100) / 100
 
   return {

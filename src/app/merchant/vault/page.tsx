@@ -128,7 +128,14 @@ export default function MerchantVaultPage() {
                 }
                 return sum
               }, 0),
-            pendingPayout: 0, // TODO: calculate from splits
+            pendingPayout: items
+              .filter((i: any) => i.splits && i.splits.length > 0)
+              .reduce((sum: number, i: any) => {
+                const pendingSplits = (i.splits || []).filter(
+                  (s: any) => s.status === 'PENDING' || s.status === 'ELIGIBLE'
+                )
+                return sum + pendingSplits.reduce((s: number, sp: any) => s + (sp.merchantAmount || 0), 0)
+              }, 0),
           }
 
           setStats(stats)

@@ -15,7 +15,7 @@ export function canTransitionItemStatus(
     PENDING_REVIEW: ['ACCEPTED', 'REJECTED'],
     ACCEPTED: ['ASSIGNED_TO_SHOP'],
     REJECTED: [], // Terminal
-    ASSIGNED_TO_SHOP: ['IN_CASE'], // Must be in case before listing online
+    ASSIGNED_TO_SHOP: ['IN_CASE', 'RETURNED'], // Must be in case before listing online; can be returned
     IN_CASE: ['LISTED_ONLINE', 'SOLD', 'RETURNED'],
     LISTED_ONLINE: ['RESERVED', 'RETURNED'],
     RESERVED: ['SOLD', 'RETURNED'], // Can only be sold online or returned
@@ -66,16 +66,16 @@ export function canTransitionOrderStatus(
 }
 
 /**
- * Check if item can be sold physically (not reserved)
+ * Check if item can be sold physically (must be in case or listed online)
  */
 export function canSellPhysically(status: VaultItemStatus): boolean {
-  return !['RESERVED', 'SOLD', 'RETURNED', 'REJECTED'].includes(status)
+  return ['IN_CASE', 'LISTED_ONLINE'].includes(status)
 }
 
 /**
- * Check if item can be listed online
+ * Check if item can be listed online (must be in case first)
  */
 export function canListOnline(status: VaultItemStatus): boolean {
-  return ['ASSIGNED_TO_SHOP', 'IN_CASE'].includes(status)
+  return status === 'IN_CASE'
 }
 

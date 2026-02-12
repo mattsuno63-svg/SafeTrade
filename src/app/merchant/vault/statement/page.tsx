@@ -42,6 +42,7 @@ export default function MerchantVaultStatementPage() {
     platformFees: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState({
     period: '30days',
     game: null as string | null,
@@ -61,24 +62,33 @@ export default function MerchantVaultStatementPage() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/vault/payouts?type=merchant')
-      if (res.ok) {
-        const data = await res.json()
-        setSplits(data.data?.splits || [])
-        
-        // Calculate stats
-        const totalRevenue = data.data?.splits?.reduce((sum: number, split: Split) => 
-          sum + split.merchantAmount, 0) || 0
-        const pendingPayout = data.data?.splits?.filter((s: Split) => 
-          s.status === 'ELIGIBLE' || s.status === 'PENDING').reduce((sum: number, split: Split) => 
-          sum + split.merchantAmount, 0) || 0
-        const platformFees = data.data?.splits?.reduce((sum: number, split: Split) => 
-          sum + split.platformAmount, 0) || 0
-        
-        setStats({ totalRevenue, pendingPayout, platformFees })
+      setError(null)
+      // Build query params from filters
+      const params = new URLSearchParams({ type: 'merchant' })
+      if (filters.period) params.set('period', filters.period)
+      if (filters.game) params.set('game', filters.game)
+
+      const res = await fetch(`/api/vault/payouts?${params.toString()}`)
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        setError(errData.error || 'Errore nel caricamento dei dati')
+        return
       }
-    } catch (error) {
-      console.error('Error fetching statement data:', error)
+      const data = await res.json()
+      setSplits(data.data?.splits || [])
+      
+      // Calculate stats
+      const allSplits: Split[] = data.data?.splits || []
+      const totalRevenue = allSplits.reduce((sum, split) => sum + split.merchantAmount, 0)
+      const pendingPayout = allSplits
+        .filter((s) => s.status === 'ELIGIBLE' || s.status === 'PENDING')
+        .reduce((sum, split) => sum + split.merchantAmount, 0)
+      const platformFees = allSplits.reduce((sum, split) => sum + split.platformAmount, 0)
+      
+      setStats({ totalRevenue, pendingPayout, platformFees })
+    } catch (err) {
+      console.error('Error fetching statement data:', err)
+      setError('Errore di connessione. Riprova.')
     } finally {
       setLoading(false)
     }
@@ -224,7 +234,7 @@ export default function MerchantVaultStatementPage() {
                   <span className="text-4xl font-black">
                     €{stats.totalRevenue.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
                   </span>
-                  <span className="text-sm font-bold text-green-500">+12.4%</span>
+                  <span className="text-sm font-medium opacity-60">Commissione 20%</span>
                 </div>
               </div>
             </div>
@@ -259,7 +269,7 @@ export default function MerchantVaultStatementPage() {
                   <span className="text-4xl font-black">
                     €{stats.platformFees.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
                   </span>
-                  <span className="text-sm font-medium opacity-60">Avg. 10%</span>
+                  <span className="text-sm font-medium opacity-60">Fee 10%</span>
                 </div>
               </div>
             </div>

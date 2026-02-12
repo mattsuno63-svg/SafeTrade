@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const cases = await prisma.vaultCase.findMany({
       where: {
         ...(shopId ? { shopId } : {}),
-        ...(status ? { status: status as any } : {}),
+        ...(status ? { status: status as 'IN_HUB' | 'IN_TRANSIT' | 'IN_SHOP_ACTIVE' | 'RETIRED' } : {}),
       },
       include: {
         shop: {

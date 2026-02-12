@@ -86,11 +86,14 @@ export async function assignItemToSlotAtomic(
     throw new Error('Slot già occupato')
   }
   
-  // 3. Verifica che slot appartenga a teca autorizzata del shop
-  const case_ = await tx.vaultCase.findUnique({
-    where: { id: lockedSlot.caseId },
-    select: { authorizedShopId: true, status: true },
-  })
+  // 3. Lock e verifica che slot appartenga a teca autorizzata del shop
+  const caseResult = await tx.$queryRaw<Array<{ id: string; authorizedShopId: string | null; status: string }>>`
+    SELECT id, "authorizedShopId", status
+    FROM "VaultCase"
+    WHERE id = ${lockedSlot.caseId}
+    FOR UPDATE
+  `
+  const case_ = caseResult[0]
   
   if (!case_) {
     throw new Error('Teca non trovata')

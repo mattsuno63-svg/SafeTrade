@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useUser } from '@/hooks/use-user'
+import { Header } from '@/components/layout/Header'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
@@ -55,6 +56,7 @@ export default function VaultDashboardPage() {
     totalSales: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
@@ -72,21 +74,27 @@ export default function VaultDashboardPage() {
       const itemsRes = await fetch(`/api/vault/items?ownerId=${user.id}`)
       if (itemsRes.ok) {
         const itemsData = await itemsRes.json()
-        setItems(itemsData.data || [])
+        const allItems: VaultItem[] = itemsData.data || []
+        setItems(allItems)
         
         // Calculate stats
-        const totalValue = itemsData.data?.reduce((sum: number, item: VaultItem) => 
-          sum + (item.priceFinal || 0), 0) || 0
-        const totalItems = itemsData.data?.length || 0
+        const totalValue = allItems.reduce((sum: number, item: VaultItem) => 
+          sum + (item.priceFinal || 0), 0)
+        const totalItems = allItems.length
+        // Calculate total sales from items with SOLD status
+        const soldItems = allItems.filter((item: VaultItem) => item.status === 'SOLD')
+        const totalSales = soldItems.reduce((sum: number, item: VaultItem) => 
+          sum + (item.priceFinal || 0), 0)
         
         setStats({
           totalValue,
           totalItems,
-          totalSales: 0, // TODO: fetch from sales
+          totalSales,
         })
       }
-    } catch (error) {
-      console.error('Error fetching vault data:', error)
+    } catch (err) {
+      console.error('Error fetching vault data:', err)
+      setError('Errore nel caricamento dei dati. Riprova.')
     } finally {
       setLoading(false)
     }
@@ -135,74 +143,56 @@ export default function VaultDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark text-[#1d130c] dark:text-gray-100">
-      <div className="relative w-full h-full">
-        {/* Grid Pattern Background */}
-        <div className="fixed inset-0 grid-pattern opacity-40 pointer-events-none -z-10" 
-          style={{
-            backgroundImage: 'radial-gradient(circle, #e5e7eb 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-          }}
-        />
+    <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-primary dark:text-white font-display">
+      <Header />
 
-        {/* Header */}
-        <header className="sticky top-0 z-50 liquid-glass border-b border-white/20 px-6 py-4">
-          <div className="max-w-[1440px] mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                  <span className="text-3xl">🛡️</span>
-                </div>
-                <h1 className="text-xl font-extrabold tracking-tight">
-                  SafeTrade <span className="font-light opacity-70 text-sm align-top">VAULT</span>
-                </h1>
-              </div>
-              <nav className="hidden md:flex items-center gap-6">
-                <Link href="/vault" className="text-sm font-semibold text-primary border-b-2 border-primary pb-1">
-                  Dashboard
-                </Link>
-                <Link href="/vault/deposits" className="text-sm font-medium opacity-60 hover:opacity-100 transition-opacity">
-                  Depositi
-                </Link>
-              </nav>
+      {/* Vault Sub-Navigation */}
+      <div className="border-b border-gray-200 dark:border-white/10 bg-white/50 dark:bg-black/30 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-12">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-lg">account_balance</span>
+              <span className="text-sm font-bold text-primary">SafeVault</span>
             </div>
-            <div className="flex items-center gap-6">
-              <div className="relative hidden lg:block">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                <input
-                  className="bg-white/50 dark:bg-black/20 border-none rounded-full pl-10 pr-4 py-2 w-64 focus:ring-2 focus:ring-primary/50 text-sm"
-                  placeholder="Cerca nel vault..."
-                  type="text"
-                />
-              </div>
-              <Button
-                onClick={() => router.push('/vault/deposits/new')}
-                className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-xl shadow-primary/30 hover:scale-105 transition-transform active:scale-95"
-              >
-                <span>➕</span>
-                Nuovo Deposito
-              </Button>
-              <div className="w-10 h-10 rounded-full border-2 border-primary/20 p-0.5 overflow-hidden">
-                <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center">
-                  <span className="text-lg">👤</span>
-                </div>
-              </div>
-            </div>
+            <nav className="hidden md:flex items-center gap-4">
+              <Link href="/vault" className="text-sm font-semibold text-primary border-b-2 border-primary pb-1">
+                Dashboard
+              </Link>
+              <Link href="/vault/deposits" className="text-sm font-medium text-text-primary/60 dark:text-white/60 hover:text-primary transition-colors">
+                Depositi
+              </Link>
+            </nav>
           </div>
-        </header>
+          <Button
+            onClick={() => router.push('/vault/deposit/new')}
+            size="sm"
+            className="flex items-center gap-2 bg-primary text-white rounded-full font-bold text-xs shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+          >
+            <span className="material-symbols-outlined text-sm">add</span>
+            Nuovo Deposito
+          </Button>
+        </div>
+      </div>
 
-        <main className="max-w-[1440px] mx-auto p-6 space-y-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">error</span>
+              {error}
+              <button onClick={() => { setError(null); fetchData() }} className="ml-auto text-red-500 hover:text-red-700 font-bold text-xs">
+                Riprova
+              </button>
+            </div>
+          )}
           {/* Stats Section */}
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Stat Card 1 */}
-            <div className="liquid-glass p-8 rounded-xl shadow-sm group">
+            <div className="glass-panel p-8 rounded-xl shadow-sm group">
               <div className="flex justify-between items-start mb-4">
                 <div className="p-3 bg-primary/10 rounded-lg text-primary">
-                  <span className="text-2xl">💰</span>
+                  <span className="material-symbols-outlined text-2xl">account_balance_wallet</span>
                 </div>
-                <span className="text-green-500 text-sm font-bold flex items-center gap-1">
-                  <span>📈</span> +5.2%
-                </span>
+                <span className="material-symbols-outlined text-primary/40 text-lg">account_balance</span>
               </div>
               <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
                 Valore nel Vault
@@ -211,14 +201,12 @@ export default function VaultDashboardPage() {
             </div>
 
             {/* Stat Card 2 */}
-            <div className="liquid-glass p-8 rounded-xl shadow-sm">
+            <div className="glass-panel p-8 rounded-xl shadow-sm">
               <div className="flex justify-between items-start mb-4">
                 <div className="p-3 bg-blue-500/10 rounded-lg text-blue-500">
-                  <span className="text-2xl">🃏</span>
+                  <span className="material-symbols-outlined text-2xl">style</span>
                 </div>
-                <span className="text-blue-500 text-sm font-bold flex items-center gap-1">
-                  <span>➕</span> {stats.totalItems}
-                </span>
+                <span className="material-symbols-outlined text-blue-400/40 text-lg">style</span>
               </div>
               <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
                 Carte Depositate
@@ -227,14 +215,12 @@ export default function VaultDashboardPage() {
             </div>
 
             {/* Stat Card 3 */}
-            <div className="liquid-glass p-8 rounded-xl shadow-sm">
+            <div className="glass-panel p-8 rounded-xl shadow-sm">
               <div className="flex justify-between items-start mb-4">
                 <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-500">
-                  <span className="text-2xl">💳</span>
+                  <span className="material-symbols-outlined text-2xl">payments</span>
                 </div>
-                <span className="text-emerald-500 text-sm font-bold flex items-center gap-1">
-                  <span>📈</span> +8.4%
-                </span>
+                <span className="material-symbols-outlined text-emerald-400/40 text-lg">payments</span>
               </div>
               <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
                 Vendite Totali
@@ -344,7 +330,7 @@ export default function VaultDashboardPage() {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400">
-                          <span className="text-4xl">🃏</span>
+                          <span className="material-symbols-outlined text-4xl text-gray-300">style</span>
                         </div>
                       )}
                     </div>
@@ -355,7 +341,7 @@ export default function VaultDashboardPage() {
                       </div>
                       <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-zinc-800">
                         <div className="flex items-center gap-1.5 opacity-60">
-                          <span className="text-sm">📍</span>
+                          <span className="material-symbols-outlined text-sm">location_on</span>
                           <span className="text-[10px] font-bold">
                             {item.case && item.slot
                               ? `${item.case.label || 'CASE'}, ${item.slot.slotCode}`
@@ -379,10 +365,6 @@ export default function VaultDashboardPage() {
           </section>
         </main>
 
-        {/* Footer */}
-        <footer className="max-w-[1440px] mx-auto p-12 text-center opacity-30 text-xs uppercase tracking-widest font-bold">
-          SafeTrade Security Systems © 2024 • Liquid Glass UI 26.1
-        </footer>
       </div>
     </div>
   )

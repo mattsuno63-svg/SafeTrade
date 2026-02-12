@@ -11,6 +11,11 @@ import { useUser } from '@/hooks/use-user'
 import { escapeHtml } from '@/lib/api-error'
 import Image from 'next/image'
 
+function getBaseUrl() {
+  if (typeof window !== 'undefined') return window.location.origin
+  return process.env.NEXT_PUBLIC_APP_URL || ''
+}
+
 interface QRCodeData {
   slotId: string
   slotCode: string
@@ -166,7 +171,7 @@ export default function VaultCaseQRPrintPage() {
                   <h3>${escapeHtml(qr.slotCode)}</h3>
                   <img src="${escapeHtml(qr.qrData)}" alt="QR Code ${escapeHtml(qr.slotCode)}" />
                   <p><strong>Status:</strong> ${escapeHtml(qr.status)}</p>
-                  <p style="font-size: 10px; margin-top: 10px;">${escapeHtml(window.location.origin)}/scan/${escapeHtml(qr.qrToken)}</p>
+                  <p style="font-size: 10px; margin-top: 10px;">${escapeHtml(getBaseUrl())}/scan/${escapeHtml(qr.qrToken)}</p>
                 </div>
               `).join('') || ''}
             </div>
@@ -334,7 +339,7 @@ export default function VaultCaseQRPrintPage() {
                 {/* URL */}
                 <div className="text-xs text-gray-500 dark:text-gray-400 break-all">
                   <p className="font-semibold mb-1">Scan URL:</p>
-                  <p className="font-mono">{`${window.location.origin}/scan/${qr.qrToken}`}</p>
+                  <p className="font-mono">{`${getBaseUrl()}/scan/${qr.qrToken}`}</p>
                 </div>
 
                 {/* Actions */}
@@ -359,7 +364,7 @@ export default function VaultCaseQRPrintPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const url = `${window.location.origin}/scan/${qr.qrToken}`
+                      const url = `${getBaseUrl()}/scan/${qr.qrToken}`
                       navigator.clipboard.writeText(url)
                       // You could add a toast here
                     }}

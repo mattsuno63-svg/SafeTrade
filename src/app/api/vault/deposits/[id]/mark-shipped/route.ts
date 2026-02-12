@@ -60,7 +60,7 @@ export async function PATCH(
       depositId: deposit.id,
       oldValue: { trackingIn: deposit.trackingIn },
       newValue: { trackingIn: updatedDeposit.trackingIn },
-    }).catch(console.error)
+    }).catch((auditErr) => console.error('[AUDIT LOG FAILED] DEPOSIT_MARKED_SHIPPED for deposit', deposit.id, ':', auditErr))
 
     return NextResponse.json({ data: updatedDeposit }, { status: 200 })
   } catch (error: any) {
