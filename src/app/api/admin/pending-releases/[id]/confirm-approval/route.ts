@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import { createLedgerEntry } from '@/lib/merchant/ledger'
 
 export const dynamic = 'force-dynamic'
 
@@ -233,6 +234,96 @@ export async function POST(
               completedAt: confirmClickAt,
             },
           })
+        }
+
+        // 9. MERCHANT LEDGER: Crea voce registro commissioni per trade LOCAL completati
+        if (pendingRelease.type === 'RELEASE_TO_SELLER' && pendingRelease.orderId) {
+          try {
+            // Ottieni la transazione con escrow session e shop
+            const txn = await tx.safeTradeTransaction.findUnique({
+              where: { id: pendingRelease.orderId },
+              include: {
+                escrowSession: {
+                  select: {
+                    totalAmount: true,
+                    feePercentage: true,
+                    feeAmount: true,
+                    feePaidBy: true,
+                    paymentMethod: true,
+                  },
+                },
+                escrowPayment: {
+                  select: {
+                    paymentMethod: true,
+                  },
+                },
+                shop: {
+                  select: {
+                    id: true,
+                    platformFeeShare: true,
+                  },
+                },
+              },
+            })
+
+            // Crea ledger entry solo per trade LOCAL con shop
+            if (txn && txn.escrowType === 'LOCAL' && txn.shop && txn.escrowSession) {
+              const session = txn.escrowSession
+              const paymentMethod = txn.escrowPayment?.paymentMethod || session.paymentMethod || 'CASH'
+
+              await createLedgerEntry(tx, {
+                shopId: txn.shop.id,
+                transactionId: txn.id,
+                tradeAmount: session.totalAmount,
+                feePercentage: session.feePercentage,
+                feeAmount: session.feeAmount,
+                feePaidBy: session.feePaidBy,
+                platformFeeSharePercent: txn.shop.platformFeeShare,
+                paymentMethod,
+              })
+
+              // Per trades ONLINE: accredita la quota merchant nel wallet del merchant
+              if (paymentMethod === 'ONLINE') {
+                const { calculateMerchantFeeSplit } = await import('@/lib/merchant/ledger')
+                const split = calculateMerchantFeeSplit(session.feeAmount, txn.shop.platformFeeShare)
+
+                if (split.merchantCut > 0) {
+                  // Trova il merchantId del negozio
+                  const shopFull = await tx.shop.findUnique({
+                    where: { id: txn.shop.id },
+                    select: { merchantId: true },
+                  })
+
+                  if (shopFull) {
+                    const merchantWallet = await getOrCreateWallet(tx, shopFull.merchantId)
+                    const mBalanceBefore = merchantWallet.balance
+                    const mBalanceAfter = mBalanceBefore + split.merchantCut
+
+                    await tx.escrowWallet.update({
+                      where: { userId: shopFull.merchantId },
+                      data: { balance: mBalanceAfter },
+                    })
+
+                    await tx.escrowWalletTransaction.create({
+                      data: {
+                        walletId: merchantWallet.id,
+                        amount: split.merchantCut,
+                        type: 'ESCROW_RELEASE',
+                        description: `Commissione merchant - Trade #${txn.id.slice(0, 8)} (${paymentMethod})`,
+                        relatedTransactionId: txn.id,
+                        balanceBefore: mBalanceBefore,
+                        balanceAfter: mBalanceAfter,
+                      },
+                    })
+                  }
+                }
+              }
+            }
+          } catch (ledgerError) {
+            // Non far fallire l'intera transazione per un errore nel ledger
+            // Ma logga per debug
+            console.error('[confirm-approval] Error creating ledger entry:', ledgerError)
+          }
         }
       }
 

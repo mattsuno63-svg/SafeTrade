@@ -17,6 +17,7 @@ enum UserRole {
   MODERATOR // Nuovo ruolo: può approvare rilascio fondi e gestire dispute, ma meno controllo di ADMIN
   ADMIN
   HUB_STAFF // Staff del centro hub per gestione depositi e verifiche
+  ESCROW_AGENT // Agente escrow autorizzato dall'admin per confermare pagamenti ricevuti in Verified Escrow
 }
 
 enum ListingType {
@@ -164,6 +165,10 @@ model User {
   financialAuditLogs         FinancialAuditLog[] @relation("AuditPerformer")
   adminNotificationsActioned AdminNotification[] @relation("NotificationActioner")
 
+  // Escrow Agent authorization
+  escrowAgentAuth            EscrowAgentAuthorization?  @relation("EscrowAgentAuth")
+  escrowAgentAuthorizations  EscrowAgentAuthorization[] @relation("EscrowAgentAuthorizer")
+
   // Vault relations
   vaultDeposits           VaultDeposit[]
   vaultItemsOwned         VaultItem[]        @relation("VaultItemOwner")
@@ -210,6 +215,10 @@ model Shop {
   youtubeUrl   String?
   tiktokUrl    String?
 
+  // Fee split configuration
+  platformFeeShare Float @default(10.0) // % della fee che va alla piattaforma (default 10% della fee totale)
+  // Esempio: fee 5% su trade €100 = €5 fee totale. platformFeeShare 10% = €0.50 alla piattaforma, €4.50 al merchant
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -231,6 +240,10 @@ model Shop {
   vaultSales            VaultSale[]
   vaultSplitsAsMerchant VaultSplit[]       @relation("VaultSplitMerchant")
   vaultCaseRequests     VaultCaseRequest[] @relation("VaultCaseRequest")
+
+  // Merchant ledger & invoicing
+  merchantLedgerEntries MerchantLedgerEntry[]
+  merchantInvoices      MerchantInvoice[]
 
   @@index([merchantId])
   @@index([name])
@@ -489,6 +502,7 @@ model SafeTradeTransaction {
   escrowPayment   EscrowPayment?
   pendingReleases PendingRelease[] @relation("PendingReleases")
   shippingLabel   ShippingLabel?   @relation("TransactionShippingLabel")
+  merchantLedgerEntries MerchantLedgerEntry[]
 
   // Insurance, Disputes, Packages
   insurance      PackageInsurance?      @relation("PackageInsurance")
@@ -2298,4 +2312,141 @@ model ShippingLabel {
   @@index([status])
   @@index([courier])
   @@index([generatedAt])
+}
+
+// ============= MERCHANT LEDGER & INVOICING =============
+// Tracciamento commissioni merchant per ogni trade completato.
+// Per CASH: il merchant ha già incassato tutto fisicamente, la piattaforma deve fatturare la sua quota.
+// Per ONLINE: la piattaforma deduce automaticamente la sua quota.
+
+enum MerchantInvoiceStatus {
+  DRAFT // In preparazione (non ancora inviata)
+  ISSUED // Emessa e inviata al merchant
+  PAID // Merchant ha pagato la quota piattaforma
+  OVERDUE // Scaduta e non pagata
+  CANCELLED // Annullata
+}
+
+// Singola voce di registro per ogni trade completato in un negozio
+model MerchantLedgerEntry {
+  id              String               @id @default(cuid())
+  shopId          String
+  shop            Shop                 @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  transactionId   String
+  transaction     SafeTradeTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  // Dettagli trade
+  tradeAmount     Float // Importo totale del trade (es. €100)
+  feePercentage   Float // Percentuale fee applicata (es. 5.0 = 5%)
+  feeAmount       Float // Fee totale calcolata (es. €5)
+  feePaidBy       String // "SELLER", "BUYER", "SPLIT"
+
+  // Split della fee tra merchant e piattaforma
+  platformFeeSharePercent Float // % della fee che spetta alla piattaforma (es. 10.0)
+  merchantCut     Float // Quota merchant (es. €4.50 = 90% di €5)
+  platformCut     Float // Quota piattaforma (es. €0.50 = 10% di €5)
+
+  // Metodo pagamento: determina come la piattaforma incassa la sua quota
+  paymentMethod   String // "CASH" o "ONLINE"
+  // CASH: merchant ha già incassato tutto → piattaforma deve fatturare platformCut
+  // ONLINE: piattaforma deduce automaticamente platformCut dal pagamento Stripe
+
+  // Stato incasso piattaforma
+  platformCollected Boolean @default(false) // La piattaforma ha incassato la sua quota?
+  // Per ONLINE: true subito (auto-dedotto)
+  // Per CASH: true quando il merchant paga la fattura mensile
+
+  // Riferimento fattura
+  invoiceId       String?
+  invoice         MerchantInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime @default(now())
+
+  @@index([shopId])
+  @@index([transactionId])
+  @@index([invoiceId])
+  @@index([paymentMethod])
+  @@index([platformCollected])
+  @@index([createdAt])
+}
+
+// Fattura mensile per un merchant - aggrega tutte le voci del periodo
+model MerchantInvoice {
+  id              String   @id @default(cuid())
+  invoiceNumber   String   @unique // es. "INV-2026-02-SHOP001"
+  shopId          String
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  // Periodo di riferimento
+  periodStart     DateTime // Primo giorno del mese
+  periodEnd       DateTime // Ultimo giorno del mese
+
+  // Riepilogo trades
+  totalTrades       Int   // Totale trades nel periodo
+  cashTrades        Int   // Trades pagati in contanti
+  onlineTrades      Int   // Trades pagati online (Stripe)
+
+  // Volumi e fee
+  totalTradeVolume  Float // Somma di tutti i tradeAmount del periodo
+  totalFees         Float // Somma di tutte le fee del periodo
+  totalMerchantCut  Float // Totale quota merchant
+  totalPlatformCut  Float // Totale quota piattaforma
+
+  // Breakdown cash vs online
+  cashFees          Float // Fee totali da trades cash
+  cashMerchantCut   Float // Quota merchant da trades cash
+  cashPlatformCut   Float // Quota piattaforma da trades cash (= DEBITO del merchant)
+  onlineFees        Float // Fee totali da trades online
+  onlineMerchantCut Float // Quota merchant da trades online
+  onlinePlatformCut Float // Quota piattaforma da trades online (auto-dedotta)
+
+  // Importo dovuto dal merchant alla piattaforma
+  // = cashPlatformCut (perché il merchant ha già incassato la quota piattaforma fisicamente)
+  amountDue         Float
+
+  // Status
+  status            MerchantInvoiceStatus @default(DRAFT)
+
+  // Date operative
+  issuedAt          DateTime? // Quando la fattura è stata emessa
+  dueDate           DateTime? // Scadenza pagamento (es. 15 del mese successivo)
+  paidAt            DateTime? // Quando il merchant ha pagato
+
+  // Dettagli pagamento del merchant verso la piattaforma
+  paymentMethod     String?  // Come il merchant ha pagato (es. "BANK_TRANSFER", "STRIPE")
+  paymentReference  String?  // Riferimento pagamento (es. CRO bonifico)
+
+  // Note admin
+  notes             String?  @db.Text
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Voci di dettaglio
+  entries           MerchantLedgerEntry[]
+
+  @@unique([shopId, periodStart, periodEnd]) // Una sola fattura per shop per periodo
+  @@index([shopId])
+  @@index([status])
+  @@index([periodStart, periodEnd])
+  @@index([invoiceNumber])
+  @@index([dueDate])
+}
+
+// Autorizzazione Escrow Agent - Solo l'admin può autorizzare
+model EscrowAgentAuthorization {
+  id              String   @id @default(cuid())
+  userId          String   @unique // L'utente autorizzato come escrow agent
+  user            User     @relation("EscrowAgentAuth", fields: [userId], references: [id], onDelete: Cascade)
+  authorizedById  String   // L'admin che ha autorizzato
+  authorizedBy    User     @relation("EscrowAgentAuthorizer", fields: [authorizedById], references: [id], onDelete: Cascade)
+
+  isActive        Boolean  @default(true) // L'admin può revocare l'autorizzazione
+  notes           String?  @db.Text // Motivo autorizzazione
+
+  authorizedAt    DateTime @default(now())
+  revokedAt       DateTime? // Se revocato
+
+  @@index([userId])
+  @@index([isActive])
 }

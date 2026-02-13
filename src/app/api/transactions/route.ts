@@ -482,25 +482,27 @@ export async function POST(request: NextRequest) {
     }
 
     // SECURITY: Create EscrowPayment automatically
-    // For VERIFIED escrow: payment is HELD immediately (funds held in escrow account)
-    // For LOCAL escrow: payment is PENDING until merchant confirms cash payment at store
-    const paymentStatus = escrowType === 'VERIFIED' ? 'HELD' : 'PENDING'
+    // ENTRAMBI partono da PENDING:
+    // - LOCAL: resta PENDING fino a quando il merchant conferma il pagamento cash in negozio → HELD
+    // - VERIFIED: resta PENDING fino a quando ADMIN/ESCROW_AGENT conferma il pagamento ricevuto → HELD
+    //   SOLO dopo la conferma admin il seller viene autorizzato a spedire.
+    //   Questo previene che qualcuno faccia spedire il seller senza aver realmente pagato.
+    const paymentStatus = 'PENDING' // Sempre PENDING all'inizio
     
-    // SECURITY: Payment method - CASH for LOCAL, ONLINE for VERIFIED (future: will be actual online payment)
-    // For now, both use CASH but status differs
+    // Payment method: CASH per LOCAL, ONLINE per VERIFIED (futuro Stripe)
+    const paymentMethod = escrowType === 'VERIFIED' ? 'ONLINE' : 'CASH'
+    
     const escrowPaymentData: any = {
       transactionId: transaction.id,
       amount: feeCalculation.totalAmount, // Total amount buyer needs to pay
       currency: 'EUR',
-      paymentMethod: 'CASH', // For now, both use CASH (future: ONLINE for VERIFIED)
+      paymentMethod,
       status: paymentStatus,
       paymentInitiatedAt: new Date(),
     }
 
-    // For VERIFIED escrow, funds are held immediately
-    if (escrowType === 'VERIFIED') {
-      escrowPaymentData.paymentHeldAt = new Date()
-    }
+    // NOTA: Per VERIFIED escrow, paymentHeldAt viene impostato SOLO quando
+    // ADMIN/ESCROW_AGENT conferma il pagamento via POST /api/admin/escrow/confirm-payment
 
     const escrowPayment = await prisma.escrowPayment.create({
       data: escrowPaymentData,
