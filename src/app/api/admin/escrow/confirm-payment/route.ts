@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import { stripe } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 
@@ -130,6 +131,54 @@ export async function POST(request: NextRequest) {
         { error: 'Importo pagamento non valido (deve essere > 0)' },
         { status: 400 }
       )
+    }
+
+    // 6. SECURITY: Se c'è un Payment Intent Stripe, verifica che sia effettivamente autorizzato
+    let stripeVerified = false
+    if (payment.paymentProviderId && payment.paymentProvider === 'stripe') {
+      try {
+        const paymentIntent = await stripe.paymentIntents.retrieve(payment.paymentProviderId)
+
+        // Il PI deve essere in requires_capture (autorizzato ma non catturato)
+        if (paymentIntent.status !== 'requires_capture') {
+          return NextResponse.json(
+            {
+              error: `Il Payment Intent Stripe è in stato "${paymentIntent.status}". Deve essere "requires_capture" per confermare il pagamento.`,
+              stripeStatus: paymentIntent.status,
+              hint: paymentIntent.status === 'requires_payment_method'
+                ? 'Il buyer non ha ancora completato il pagamento su Stripe.'
+                : paymentIntent.status === 'canceled'
+                ? 'Il pagamento è stato annullato su Stripe.'
+                : 'Controlla lo stato su Stripe Dashboard.',
+            },
+            { status: 400 }
+          )
+        }
+
+        // Verifica che l'importo corrisponda
+        const stripeAmountEur = paymentIntent.amount / 100
+        const tolerance = 0.01 // 1 centesimo di tolleranza
+        if (Math.abs(stripeAmountEur - payment.amount) > tolerance) {
+          return NextResponse.json(
+            {
+              error: `Discrepanza importo: Stripe €${stripeAmountEur.toFixed(2)} vs DB €${payment.amount.toFixed(2)}`,
+              stripeAmount: stripeAmountEur,
+              dbAmount: payment.amount,
+            },
+            { status: 400 }
+          )
+        }
+
+        stripeVerified = true
+      } catch (stripeError: any) {
+        return NextResponse.json(
+          {
+            error: `Errore verifica Stripe: ${stripeError.message}`,
+            hint: 'Verifica che il Payment Intent ID sia corretto e che Stripe sia raggiungibile.',
+          },
+          { status: 500 }
+        )
+      }
     }
 
     // =========================================================

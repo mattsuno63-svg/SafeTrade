@@ -18,6 +18,7 @@ const CSRF_EXEMPT_API = [
   '/api/auth/signup',
   '/api/auth/logout',
   '/api/auth/callback',
+  '/api/webhooks/stripe', // Stripe invia POST senza Origin (verifica tramite firma webhook)
 ]
 
 /** HTTP methods that mutate state */

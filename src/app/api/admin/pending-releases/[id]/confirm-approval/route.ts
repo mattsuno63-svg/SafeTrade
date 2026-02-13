@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { createLedgerEntry } from '@/lib/merchant/ledger'
+import { capturePaymentIntent } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 
@@ -182,6 +183,20 @@ export async function POST(
 
         if (escrowPayment) {
           if (pendingRelease.type === 'RELEASE_TO_SELLER' && escrowPayment.status === 'HELD') {
+            // STRIPE: Se c'è un Payment Intent, cattura i fondi (addebito reale)
+            if (escrowPayment.paymentProviderId && escrowPayment.paymentProvider === 'stripe') {
+              try {
+                await capturePaymentIntent(escrowPayment.paymentProviderId)
+                console.log(`[confirm-approval] Stripe PI ${escrowPayment.paymentProviderId} captured`)
+              } catch (captureError: any) {
+                console.error(`[confirm-approval] Stripe capture failed:`, captureError)
+                throw new Error(
+                  `Impossibile catturare il pagamento Stripe: ${captureError.message}. ` +
+                  `Controlla lo stato su Stripe Dashboard prima di riprovare.`
+                )
+              }
+            }
+
             await tx.escrowPayment.update({
               where: { id: escrowPayment.id },
               data: {
@@ -203,6 +218,24 @@ export async function POST(
             }
           } else if ((pendingRelease.type === 'REFUND_FULL' || pendingRelease.type === 'REFUND_PARTIAL') && 
                      (escrowPayment.status === 'HELD' || escrowPayment.status === 'PENDING')) {
+            // STRIPE: Se c'è un Payment Intent, rimborsa/cancella su Stripe
+            if (escrowPayment.paymentProviderId && escrowPayment.paymentProvider === 'stripe') {
+              try {
+                const { refundPayment } = await import('@/lib/stripe')
+                const refundAmountCents = pendingRelease.type === 'REFUND_PARTIAL'
+                  ? Math.round(pendingRelease.amount * 100)
+                  : undefined // undefined = rimborso totale
+                await refundPayment(escrowPayment.paymentProviderId, refundAmountCents)
+                console.log(`[confirm-approval] Stripe PI ${escrowPayment.paymentProviderId} refunded`)
+              } catch (refundError: any) {
+                console.error(`[confirm-approval] Stripe refund failed:`, refundError)
+                throw new Error(
+                  `Impossibile rimborsare su Stripe: ${refundError.message}. ` +
+                  `Controlla lo stato su Stripe Dashboard.`
+                )
+              }
+            }
+
             await tx.escrowPayment.update({
               where: { id: escrowPayment.id },
               data: {
