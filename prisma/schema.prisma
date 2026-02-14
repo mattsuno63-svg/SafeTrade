@@ -1541,6 +1541,8 @@ enum AdminNotificationType {
   VAULT_CASE_REQUEST // Richiesta teca Vault da merchant
   MERCHANT_APPLICATION // Nuova richiesta merchant application
   LISTING_PENDING // Listing richiede approvazione manuale
+  ESCROW_PAYMENT_CONFIRMED // Pagamento Verified Escrow confermato da admin/escrow agent
+  STRIPE_PAYMENT_AUTHORIZED // Pagamento Stripe autorizzato (webhook payment_intent.succeeded)
 }
 
 enum NotificationPriority {

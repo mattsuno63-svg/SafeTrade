@@ -364,8 +364,6 @@ export default function VaultDashboardPage() {
             </div>
           </section>
         </main>
-
-      </div>
     </div>
   )
 }
