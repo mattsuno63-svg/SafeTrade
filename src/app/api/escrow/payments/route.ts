@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { validateAndRoundAmount, validateAmountMatchesSession, validateAmountPositive, validateAmountLimit } from '@/lib/security/amount-validation'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,12 +68,9 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json({ payments })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching escrow payments:', error)
-    if (error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error, 'escrow-payments-GET')
   }
 }
 
@@ -134,11 +132,8 @@ export async function POST(request: NextRequest) {
 
       // Arrotonda a 2 decimali
       amount = validateAndRoundAmount(amount)
-    } catch (error: any) {
-      return NextResponse.json(
-        { error: error.message || 'Importo non valido' },
-        { status: 400 }
-      )
+    } catch (error) {
+      return handleApiError(error, 'escrow-payments')
     }
 
     // Get transaction
@@ -275,12 +270,9 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(payment, { status: 201 })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating escrow payment:', error)
-    if (error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error, 'escrow-payments-POST')
   }
 }
 

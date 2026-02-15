@@ -5,6 +5,7 @@ import { createVaultAuditLog } from '@/lib/vault/audit'
 import { canTransitionItemStatus } from '@/lib/vault/state-machine'
 import { notifyNewOrder } from '@/lib/vault/notifications'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/orders
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
     // Will be notified again when order is paid
 
     return NextResponse.json({ data: result }, { status: 201 })
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -111,10 +112,7 @@ export async function POST(request: NextRequest) {
       )
     }
     console.error('[POST /api/vault/orders] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-orders')
   }
 }
 

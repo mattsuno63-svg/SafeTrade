@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireRole } from '@/lib/auth'
 import { createVaultAuditLog } from '@/lib/vault/audit'
 import { generateSlotQRToken } from '@/lib/vault/qr-generator'
+import { handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
 
 /**
@@ -46,12 +47,9 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json({ data: cases }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[GET /api/vault/cases] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-cases-GET')
   }
 }
 
@@ -150,18 +148,9 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ data: caseWithQR }, { status: 201 })
-  } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      )
-    }
+  } catch (error) {
     console.error('[POST /api/vault/cases] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-cases-POST')
   }
 }
 

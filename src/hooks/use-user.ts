@@ -26,7 +26,7 @@ export function useUser() {
       if (error) {
         console.error('[useUser] Error getting session:', error)
       } else if (session?.user) {
-        console.log('[useUser] ✅ Session found in refreshSession, user:', session.user.id)
+        if (process.env.NODE_ENV === 'development') console.log('[useUser] Session found, user:', session.user.id)
         userFoundRef.current = true
         if (mountedRef.current) {
           setUser(session.user)
@@ -36,11 +36,11 @@ export function useUser() {
       }
 
       // If no session from getSession, try getUser (reads from server/cookies)
-      console.log('[useUser] No session from getSession, trying getUser()...')
+      if (process.env.NODE_ENV === 'development') console.log('[useUser] No session from getSession, trying getUser()...')
       const { data: { user: userFromGetUser }, error: getUserError } = await supabase.auth.getUser()
       
       if (!getUserError && userFromGetUser) {
-        console.log('[useUser] ✅ User found via getUser in refreshSession, user:', userFromGetUser.id)
+        if (process.env.NODE_ENV === 'development') console.log('[useUser] User found via getUser:', userFromGetUser.id)
         userFoundRef.current = true
         if (mountedRef.current) {
           setUser(userFromGetUser)
@@ -49,7 +49,7 @@ export function useUser() {
       } else {
         // Only set null if we haven't found user elsewhere
         if (!userFoundRef.current && mountedRef.current) {
-          console.log('[useUser] ❌ No user found in refreshSession')
+          if (process.env.NODE_ENV === 'development') console.log('[useUser] No user found in refreshSession')
           setUser(null)
           setLoading(false)
         }
@@ -72,29 +72,25 @@ export function useUser() {
     // Get initial session from localStorage/cookies
     const getInitialSession = async (retryCount = 0) => {
       // Stop if user was already found or component unmounted
-      if (userFoundRef.current || !mountedRef.current) {
-        console.log('[useUser] 🛑 Stopping retry - user already found or unmounted')
-        return
-      }
-      
+      if (userFoundRef.current || !mountedRef.current) return
+
       try {
-        console.log(`[useUser] 🔍 Getting initial session (attempt ${retryCount + 1})...`)
+        if (process.env.NODE_ENV === 'development') console.log('[useUser] Getting initial session, attempt', retryCount + 1)
         
         // First try getSession (local - reads from localStorage)
         const { data: { session }, error } = await supabase.auth.getSession()
         if (error) {
           console.error('[useUser] ❌ Error getting session:', error)
         } else if (session?.user) {
-          // Session found, set user immediately
-          console.log('[useUser] ✅ Session found via getSession, user:', session.user.id, session.user.email)
+          if (process.env.NODE_ENV === 'development') console.log('[useUser] Session via getSession:', session.user.id)
           userFoundRef.current = true
           if (mountedRef.current) {
             setUser(session.user)
             setLoading(false)
           }
           return
-        } else {
-          console.log('[useUser] ⚠️ No session from getSession()')
+        } else if (process.env.NODE_ENV === 'development') {
+          console.log('[useUser] No session from getSession()')
         }
 
         // If no session from getSession, try to sync from cookies on first attempt

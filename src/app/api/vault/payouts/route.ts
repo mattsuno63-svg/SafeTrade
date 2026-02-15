@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth, requireRole } from '@/lib/auth'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,12 +58,9 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({ data: lines }, { status: 200 })
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('[GET /api/vault/payouts] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-payouts')
   }
 }
 

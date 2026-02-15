@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,12 +62,9 @@ export async function POST(request: NextRequest) {
     console.log('[API /auth/logout] Cleared cookies:', supabaseCookies.map(c => c.name).join(', '))
 
     return response
-  } catch (error: any) {
+  } catch (error) {
     console.error('[API /auth/logout] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Logout failed' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'auth-logout')
   }
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import { CardGame, CardCondition, ListingType } from '@prisma/client'
 import { useUser } from '@/hooks/use-user'
 
-export default function CreateListingPage() {
+function CreateListingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -647,3 +647,7 @@ export default function CreateListingPage() {
   )
 }
 
+const fallback = <div className="flex min-h-[40vh] items-center justify-center"><span className="text-muted-foreground">Caricamento...</span></div>
+export default function CreateListingPage() {
+  return <Suspense fallback={fallback}><CreateListingContent /></Suspense>
+}

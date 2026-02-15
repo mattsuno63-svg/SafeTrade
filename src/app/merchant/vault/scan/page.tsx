@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
@@ -67,7 +67,7 @@ interface QueueItem {
   photos: string[]
 }
 
-export default function MerchantVaultScanPage() {
+function MerchantVaultScanContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading: userLoading } = useUser()
@@ -2000,4 +2000,9 @@ export default function MerchantVaultScanPage() {
       </div>
     </div>
   )
+}
+
+const fallback = <div className="flex min-h-[40vh] items-center justify-center"><span className="text-muted-foreground">Caricamento...</span></div>
+export default function MerchantVaultScanPage() {
+  return <Suspense fallback={fallback}><MerchantVaultScanContent /></Suspense>
 }

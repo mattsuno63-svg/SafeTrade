@@ -5,6 +5,7 @@ import { createVaultAuditLog } from '@/lib/vault/audit'
 import { canTransitionItemStatus } from '@/lib/vault/state-machine'
 import { moveItemBetweenSlotsAtomic, removeItemFromSlotAtomic, assignItemToSlotAtomic } from '@/lib/vault/transactions'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/merchant/items/[id]/move-slot
@@ -163,7 +164,7 @@ export async function POST(
     })
 
     return NextResponse.json({ data: result.item }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -171,10 +172,7 @@ export async function POST(
       )
     }
     console.error('[POST /api/vault/merchant/items/[id]/move-slot] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-merchant-items-id-move-slot')
   }
 }
 

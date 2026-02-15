@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { createVaultAuditLog } from '@/lib/vault/audit'
 import { canListOnline, canTransitionItemStatus } from '@/lib/vault/state-machine'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/merchant/items/[id]/list-online
@@ -96,12 +97,9 @@ export async function POST(
     })
 
     return NextResponse.json({ data: updated }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[POST /api/vault/merchant/items/[id]/list-online] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-merchant-items-id-list-online')
   }
 }
 

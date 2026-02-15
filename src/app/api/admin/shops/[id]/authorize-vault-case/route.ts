@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/auth'
 import { createVaultAuditLog } from '@/lib/vault/audit'
 import { z } from 'zod'
 import type { VaultCase } from '@prisma/client'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/admin/shops/[id]/authorize-vault-case
@@ -173,7 +174,7 @@ export async function POST(
     })
 
     return NextResponse.json({ data: updatedShop }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -181,10 +182,7 @@ export async function POST(
       )
     }
     console.error('[POST /api/admin/shops/[id]/authorize-vault-case] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'admin-shops-id-authorize-vault-case')
   }
 }
 

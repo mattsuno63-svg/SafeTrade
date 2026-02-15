@@ -5,6 +5,7 @@ import { createVaultAuditLog } from '@/lib/vault/audit'
 import { canTransitionItemStatus } from '@/lib/vault/state-machine'
 import { notifyDepositReviewed } from '@/lib/vault/notifications'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/deposits/[id]/review
@@ -150,7 +151,7 @@ export async function POST(
       },
       { status: 200 }
     )
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -158,10 +159,7 @@ export async function POST(
       )
     }
     console.error('[POST /api/vault/deposits/[id]/review] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-deposits-id-review')
   }
 }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/requests
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     )
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -124,10 +125,7 @@ export async function POST(request: NextRequest) {
       )
     }
     console.error('Error creating vault case request:', error)
-    return NextResponse.json(
-      { error: error.message || 'Errore nella creazione della richiesta' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-requests')
   }
 }
 
@@ -194,12 +192,9 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json({ data: requests })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching vault case requests:', error)
-    return NextResponse.json(
-      { error: error.message || 'Errore nel caricamento delle richieste' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-requests')
   }
 }
 

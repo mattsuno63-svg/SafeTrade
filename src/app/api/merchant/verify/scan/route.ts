@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { logSecurityEvent } from '@/lib/security/audit'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -402,12 +403,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error scanning QR code:', error)
-    return NextResponse.json(
-      { error: error.message || 'Errore nella scansione del QR code' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'merchant-verify-scan')
   }
 }
 

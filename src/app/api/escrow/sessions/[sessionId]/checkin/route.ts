@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { canCheckIn as canCheckInValidation, canCheckInStatus } from '@/lib/escrow/state-machine'
 import { transitionSessionStatus, createAuditEvent, parseUserRole } from '@/lib/escrow/session-utils'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/escrow/sessions/[sessionId]/checkin
@@ -136,12 +137,9 @@ export async function POST(
       session: updated,
       message: 'Check-in completato con successo',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error performing check-in:', error)
-    return NextResponse.json(
-      { error: error.message || 'Errore interno del server' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'escrow-sessions-id-checkin')
   }
 }
 

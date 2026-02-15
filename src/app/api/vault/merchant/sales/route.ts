@@ -8,6 +8,7 @@ import { notifySaleComplete } from '@/lib/vault/notifications'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { logSecurityEvent } from '@/lib/security/audit'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -280,7 +281,7 @@ export async function POST(request: NextRequest) {
     await notifySaleComplete(result.sale.id)
 
     return NextResponse.json({ data: result }, { status: 201 })
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -288,10 +289,7 @@ export async function POST(request: NextRequest) {
       )
     }
     console.error('[POST /api/vault/merchant/sales] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-merchant-sales')
   }
 }
 
@@ -417,12 +415,9 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('[GET /api/vault/merchant/sales] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-merchant-sales')
   }
 }
 

@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { canPerformAction, canCompleteVerification } from '@/lib/escrow/state-machine'
 import { transitionSessionStatus, createAuditEvent, parseUserRole } from '@/lib/escrow/session-utils'
 import { optimizeImage } from '@/lib/image-optimization'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/escrow/sessions/[sessionId]/verification
@@ -184,12 +185,9 @@ export async function POST(
       { error: 'action deve essere START o COMPLETE' },
       { status: 400 }
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in verification:', error)
-    return NextResponse.json(
-      { error: error.message || 'Errore interno del server' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'escrow-sessions-id-verification')
   }
 }
 

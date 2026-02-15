@@ -147,7 +147,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-black/50 transition-all duration-300">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2 group">
+        <Link href="/" className="flex items-center gap-2 group mr-6">
           <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-orange-600 text-white shadow-lg shadow-primary/20 transition-transform group-hover:scale-105">
             <span className="material-symbols-outlined text-[20px]">playing_cards</span>
           </div>
@@ -155,7 +155,7 @@ export function Header() {
             SafeTrade
           </h1>
         </Link>
-        
+
         <nav className="hidden md:flex items-center gap-8">
           <Link href="/marketplace" className="text-sm font-medium text-text-primary/80 hover:text-primary dark:text-white/80 dark:hover:text-primary transition-colors">
             {t('nav.marketplace')}
@@ -177,12 +177,12 @@ export function Header() {
           </Link>
         </nav>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 ml-6">
           {/* Language Selector */}
           <div className="flex items-center gap-1 rounded-full border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-black/30 p-1">
             <button
               onClick={() => setLocale('it')}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 active:scale-95 ${
                 locale === 'it'
                   ? 'bg-primary text-white'
                   : 'text-text-primary/60 dark:text-white/60 hover:text-text-primary dark:hover:text-white'
@@ -192,7 +192,7 @@ export function Header() {
             </button>
             <button
               onClick={() => setLocale('en')}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 active:scale-95 ${
                 locale === 'en'
                   ? 'bg-primary text-white'
                   : 'text-text-primary/60 dark:text-white/60 hover:text-text-primary dark:hover:text-white'
@@ -210,23 +210,24 @@ export function Header() {
             <div className="h-9 w-9 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
           ) : user ? (
             <>
-              {/* Admin Button and Notifications - For Admin/Moderator */}
+              {/* Admin Button - For Admin/Moderator (notification bell moved next to normal bell) */}
               {(user.email === 'portelli.mattiaa@gmail.com' || user.user_metadata?.role === 'ADMIN' || user.user_metadata?.role === 'MODERATOR') && (
-                <>
-                  <AdminNotificationBell />
-                  <Link href="/admin">
-                    <Button 
-                      variant="outline" 
-                      className="hidden sm:flex items-center gap-2 border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400"
-                    >
-                      <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
-                      <span className="font-bold">Admin</span>
-                    </Button>
-                  </Link>
-                </>
+                <Link href="/admin">
+                  <Button 
+                    variant="outline" 
+                    className="hidden sm:flex items-center gap-2 border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400"
+                  >
+                    <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
+                    <span className="font-bold">Admin</span>
+                  </Button>
+                </Link>
               )}
               {/* Shop Button - For merchants with approved shop */}
               <ShopButton user={user} />
+              {/* Admin notification bell (solo admin/mod) vicino alla campanella normale */}
+              {(user.email === 'portelli.mattiaa@gmail.com' || user.user_metadata?.role === 'ADMIN' || user.user_metadata?.role === 'MODERATOR') && (
+                <AdminNotificationBell />
+              )}
               <NotificationBell userId={user.id} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

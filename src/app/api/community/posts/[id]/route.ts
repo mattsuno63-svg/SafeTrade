@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { handleApiError } from '@/lib/api-error'
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -53,12 +54,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         }).catch(console.error)
 
         return NextResponse.json(post)
-    } catch (error: any) {
+    } catch (error) {
         console.error('Error fetching post:', error)
-        return NextResponse.json(
-            { error: error.message || 'Internal server error' },
-            { status: 500 }
-        )
+        return handleApiError(error, 'community-posts-id')
     }
 }
 
@@ -102,14 +100,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         })
 
         return NextResponse.json(comment)
-    } catch (error: any) {
+    } catch (error) {
         console.error('Error creating comment:', error)
-        if (error.message?.includes('Unauthorized') || error.message?.includes('authentication')) {
+        if (error instanceof Error && (error.message?.includes('Unauthorized') || error.message?.includes('authentication'))) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
-        return NextResponse.json(
-            { error: error.message || 'Internal server error' },
-            { status: 500 }
-        )
+        return handleApiError(error, 'community-posts-id')
     }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * PATCH /api/user/profile
@@ -36,7 +37,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     return NextResponse.json({ data: updated })
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -44,9 +45,6 @@ export async function PATCH(request: NextRequest) {
       )
     }
     console.error('Error updating user profile:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'user-profile')
   }
 }

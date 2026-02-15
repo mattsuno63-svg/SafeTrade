@@ -82,11 +82,8 @@ export function QRCodeDisplay({
 
         <div className="flex flex-col items-center gap-4">
           <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
-            {qrData.startsWith('data:image/svg') ? (
-              <div
-                className="w-64 h-64"
-                dangerouslySetInnerHTML={{ __html: qrData.replace('data:image/svg+xml;charset=utf-8,', '') }}
-              />
+            {qrData.startsWith('data:image/') ? (
+              <img src={qrData} alt="QR Code" width={256} height={256} className="w-64 h-64" />
             ) : (
               <Image src={qrData} alt="QR Code" width={256} height={256} className="w-64 h-64" unoptimized />
             )}

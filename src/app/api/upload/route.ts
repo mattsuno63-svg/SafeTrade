@@ -114,25 +114,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ── Ottimizzazione ──
-    let optimizedImage: { buffer: Buffer; mimeType: string; originalSize: number; optimizedSize: number }
+    // ── Ottimizzazione (con fallback: su Vercel Sharp può fallire) ──
+    let payload: { buffer: Buffer; mimeType: string; originalSize: number; optimizedSize: number }
     try {
-      optimizedImage = await optimizeImageFile(file, {
+      payload = await optimizeImageFile(file, {
         maxWidth: 1200,
         maxHeight: 1200,
         quality: 80,
         format: 'auto',
       })
-    } catch {
-      return NextResponse.json(
-        { error: 'Impossibile elaborare l\'immagine' },
-        { status: 400 },
-      )
+    } catch (optimizeErr) {
+      console.warn('[upload] Optimize failed, uploading original:', optimizeErr instanceof Error ? optimizeErr.message : optimizeErr)
+      const ext = detectedType === 'image/png' ? 'png' : detectedType === 'image/gif' ? 'gif' : detectedType === 'image/webp' ? 'webp' : 'jpg'
+      const buf = Buffer.from(fileBuffer)
+      payload = {
+        buffer: buf,
+        mimeType: detectedType,
+        originalSize: buf.length,
+        optimizedSize: buf.length,
+      }
     }
 
-    // ── Filename sicuro con crypto.randomUUID ──
-    const fileExt = getFileExtension(optimizedImage.mimeType)
-
+    const fileExt = getFileExtension(payload.mimeType)
     if (!ALLOWED_EXTENSIONS.has(fileExt)) {
       return NextResponse.json(
         { error: 'Estensione file non consentita' },
@@ -143,22 +146,21 @@ export async function POST(request: NextRequest) {
     const fileName = `listings/${randomUUID()}.${fileExt}`
     const bucketName = 'safetrade-images'
 
-    const uint8Array = new Uint8Array(optimizedImage.buffer)
-    const optimizedBlob = new Blob([uint8Array], { type: optimizedImage.mimeType })
+    const uint8Array = new Uint8Array(payload.buffer)
+    const blob = new Blob([uint8Array], { type: payload.mimeType })
 
-    // Upload
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(fileName, optimizedBlob, {
+      .upload(fileName, blob, {
         cacheControl: '31536000',
         upsert: false,
-        contentType: optimizedImage.mimeType,
+        contentType: payload.mimeType,
       })
 
     if (error) {
-      console.error('[upload] Storage error:', error.message)
+      console.error('[upload] Storage error:', error.message, error)
       return NextResponse.json(
-        { error: 'Errore durante il caricamento' },
+        { error: 'Errore durante il caricamento. Verifica che il bucket "safetrade-images" esista e le policy RLS consentano l\'upload.' },
         { status: 500 },
       )
     }
@@ -170,9 +172,9 @@ export async function POST(request: NextRequest) {
     const res = NextResponse.json({
       url: publicUrl,
       path: data.path,
-      originalSize: optimizedImage.originalSize,
-      optimizedSize: optimizedImage.optimizedSize,
-      sizeReduction: calculateSizeReduction(optimizedImage.originalSize, optimizedImage.optimizedSize),
+      originalSize: payload.originalSize,
+      optimizedSize: payload.optimizedSize,
+      sizeReduction: calculateSizeReduction(payload.originalSize, payload.optimizedSize),
       format: fileExt,
     })
     setRateLimitHeaders(res.headers, rateResult)

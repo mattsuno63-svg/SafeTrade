@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireRole } from '@/lib/auth'
 import { notifyPayoutPaid } from '@/lib/vault/notifications'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/payouts/batches/[id]/pay
@@ -68,12 +69,9 @@ export async function POST(
     await notifyPayoutPaid(batchId)
 
     return NextResponse.json({ data: result }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[POST /api/vault/payouts/batches/[id]/pay] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-payouts-batches-id-pay')
   }
 }
 

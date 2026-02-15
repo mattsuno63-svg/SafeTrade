@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { createVaultAuditLog } from '@/lib/vault/audit'
 import { canTransitionOrderStatus } from '@/lib/vault/state-machine'
 import { notifyNewOrder } from '@/lib/vault/notifications'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/orders/[id]/pay
@@ -63,12 +64,9 @@ export async function POST(
     await notifyNewOrder(orderId)
 
     return NextResponse.json({ data: updated }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[POST /api/vault/orders/[id]/pay] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-orders-id-pay')
   }
 }
 

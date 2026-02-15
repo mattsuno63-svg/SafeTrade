@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { createVaultAuditLog } from '@/lib/vault/audit'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * GET /api/vault/deposits/[id]
@@ -48,12 +49,9 @@ export async function GET(
     }
 
     return NextResponse.json({ data: deposit }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[GET /api/vault/deposits/[id]] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-deposits-id')
   }
 }
 
@@ -115,12 +113,9 @@ export async function PATCH(
     }).catch((auditErr) => console.error('[AUDIT LOG FAILED] DEPOSIT_UPDATED for deposit', deposit.id, ':', auditErr))
 
     return NextResponse.json({ data: updatedDeposit }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[PATCH /api/vault/deposits/[id]] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-deposits-id')
   }
 }
 
@@ -175,11 +170,8 @@ export async function DELETE(
     }).catch((auditErr) => console.error('[AUDIT LOG FAILED] DEPOSIT_DELETED for deposit', id, ':', auditErr))
 
     return NextResponse.json({ success: true }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[DELETE /api/vault/deposits/[id]] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-deposits-id')
   }
 }

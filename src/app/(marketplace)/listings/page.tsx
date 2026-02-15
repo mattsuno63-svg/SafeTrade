@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
@@ -81,7 +81,7 @@ const SELLER_TYPES = [
   { value: 'MERCHANT', label: 'Shops Only' },
 ]
 
-export default function ListingsPage() {
+function ListingsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -873,4 +873,9 @@ export default function ListingsPage() {
       </div>
     </div>
   )
+}
+
+const fallback = <div className="flex min-h-[40vh] items-center justify-center"><span className="text-muted-foreground">Caricamento...</span></div>
+export default function ListingsPage() {
+  return <Suspense fallback={fallback}><ListingsPageContent /></Suspense>
 }

@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import QRCode from 'qrcode'
 import { logSecurityEvent } from '@/lib/security/audit'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -158,12 +159,9 @@ export async function GET(
         status: session.status,
       })
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error generating QR code:', error)
-    return NextResponse.json(
-      { error: error.message || 'Errore generazione QR code' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'escrow-sessions-id-qr')
   }
 }
 

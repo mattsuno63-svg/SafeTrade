@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { markInvoiceAsPaid, cancelInvoice } from '@/lib/merchant/invoicing'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,10 +63,7 @@ export async function GET(
     return NextResponse.json({ data: invoice })
   } catch (error: any) {
     console.error('[GET /api/admin/merchant-invoices/[id]] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'merchant-invoices-id')
   }
 }
 
@@ -149,9 +147,6 @@ export async function PATCH(
     })
   } catch (error: any) {
     console.error('[PATCH /api/admin/merchant-invoices/[id]] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'merchant-invoices-id')
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireRole } from '@/lib/auth'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/payouts/batches
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ data: batch }, { status: 201 })
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -108,10 +109,7 @@ export async function POST(request: NextRequest) {
       )
     }
     console.error('[POST /api/vault/payouts/batches] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-payouts-batches')
   }
 }
 

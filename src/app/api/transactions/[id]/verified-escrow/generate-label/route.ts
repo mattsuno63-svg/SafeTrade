@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { SafeTradeStatus, ShippingLabelStatus } from '@prisma/client'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { generateShippingLabel, downloadLabelPdf, validateSendcloudConfig } from '@/lib/shipping/sendcloud'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/transactions/[id]/verified-escrow/generate-label
@@ -379,27 +380,9 @@ export async function POST(
       },
       transaction: updatedTransaction,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[API] Error generating shipping label:', error)
-    console.error('[API] Error stack:', error.stack)
-    
-    // Return detailed error for debugging (in development)
-    const errorMessage = error.message || 'Errore interno del server'
-    const errorDetails = process.env.NODE_ENV === 'development' 
-      ? { 
-          message: errorMessage,
-          stack: error.stack,
-          name: error.name,
-        }
-      : { message: errorMessage }
-
-    return NextResponse.json(
-      { 
-        error: errorMessage,
-        ...errorDetails,
-      },
-      { status: 500 }
-    )
+    return handleApiError(error, 'generate-label')
   }
 }
 

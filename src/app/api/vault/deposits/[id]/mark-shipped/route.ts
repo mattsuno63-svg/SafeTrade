@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { createVaultAuditLog } from '@/lib/vault/audit'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * PATCH /api/vault/deposits/[id]/mark-shipped
@@ -63,7 +64,7 @@ export async function PATCH(
     }).catch((auditErr) => console.error('[AUDIT LOG FAILED] DEPOSIT_MARKED_SHIPPED for deposit', deposit.id, ':', auditErr))
 
     return NextResponse.json({ data: updatedDeposit }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -71,10 +72,7 @@ export async function PATCH(
       )
     }
     console.error('[PATCH /api/vault/deposits/[id]/mark-shipped] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-deposits-id-mark-shipped')
   }
 }
 

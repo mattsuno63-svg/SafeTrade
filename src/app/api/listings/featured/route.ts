@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,12 +53,9 @@ export async function GET(request: NextRequest) {
     }))
 
     return NextResponse.json({ data: formatted })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching featured listings:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'listings-featured')
   }
 }
 

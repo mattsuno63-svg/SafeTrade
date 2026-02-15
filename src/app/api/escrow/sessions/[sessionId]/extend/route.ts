@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { canPerformAction } from '@/lib/escrow/state-machine'
 import { transitionSessionStatus, createAuditEvent, parseUserRole } from '@/lib/escrow/session-utils'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/escrow/sessions/[sessionId]/extend
@@ -113,12 +114,9 @@ export async function POST(
       session: updated,
       message: 'Sessione estesa con successo',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error extending session:', error)
-    return NextResponse.json(
-      { error: error.message || 'Errore interno del server' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'escrow-sessions-id-extend')
   }
 }
 

@@ -5,6 +5,7 @@ import { createVaultAuditLog } from '@/lib/vault/audit'
 import { canTransitionOrderStatus } from '@/lib/vault/state-machine'
 import { notifyTrackingAdded } from '@/lib/vault/notifications'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/merchant/orders/[id]/fulfill
@@ -163,7 +164,7 @@ export async function POST(
     }
 
     return NextResponse.json({ data: result }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -171,10 +172,7 @@ export async function POST(
       )
     }
     console.error('[POST /api/vault/merchant/orders/[id]/fulfill] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-merchant-orders-id-fulfill')
   }
 }
 

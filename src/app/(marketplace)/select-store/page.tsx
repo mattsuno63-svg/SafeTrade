@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,7 @@ interface Shop {
   logo: string | null
 }
 
-export default function SelectStorePage() {
+function SelectStoreContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -332,4 +332,9 @@ export default function SelectStorePage() {
       </div>
     </div>
   )
+}
+
+const fallback = <div className="flex min-h-[40vh] items-center justify-center"><span className="text-muted-foreground">Caricamento...</span></div>
+export default function SelectStorePage() {
+  return <Suspense fallback={fallback}><SelectStoreContent /></Suspense>
 }

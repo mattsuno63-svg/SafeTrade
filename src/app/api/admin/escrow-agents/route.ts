@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,12 +31,9 @@ export async function GET() {
     })
 
     return NextResponse.json({ data: agents })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[GET /api/admin/escrow-agents] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'escrow-agents-GET')
   }
 }
 
@@ -155,12 +153,9 @@ export async function POST(request: NextRequest) {
       message: `${targetUser.name || targetUser.email} è stato autorizzato come Escrow Agent`,
       data: result,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[POST /api/admin/escrow-agents] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'escrow-agents-POST')
   }
 }
 
@@ -242,11 +237,8 @@ export async function DELETE(request: NextRequest) {
       success: true,
       message: 'Autorizzazione Escrow Agent revocata',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[DELETE /api/admin/escrow-agents] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'escrow-agents-DELETE')
   }
 }

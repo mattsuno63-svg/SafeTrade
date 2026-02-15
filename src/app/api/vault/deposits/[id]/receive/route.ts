@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireRole } from '@/lib/auth'
 import { createVaultAuditLog } from '@/lib/vault/audit'
 import { notifyDepositReceived } from '@/lib/vault/notifications'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/deposits/[id]/receive
@@ -53,12 +54,9 @@ export async function POST(
     await notifyDepositReceived(id)
 
     return NextResponse.json({ data: updated }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[POST /api/vault/deposits/[id]/receive] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-deposits-id-receive')
   }
 }
 

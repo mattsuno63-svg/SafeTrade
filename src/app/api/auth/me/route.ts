@@ -5,13 +5,14 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('[API /auth/me] Called, checking cookies...')
-    const cookies = request.cookies.getAll()
-    console.log('[API /auth/me] Cookies:', cookies.map(c => c.name).join(', '))
-    
+    if (process.env.NODE_ENV === 'development') {
+      const cookies = request.cookies.getAll()
+      console.log('[API /auth/me] Cookies:', cookies.map(c => c.name).join(', '))
+    }
     const user = await getCurrentUser()
-    
-    console.log('[API /auth/me] User found:', !!user, user?.id || 'none')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[API /auth/me] User found:', !!user, user?.id || 'none')
+    }
 
     if (!user) {
       return NextResponse.json(

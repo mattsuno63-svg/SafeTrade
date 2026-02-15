@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { createVaultAuditLog } from '@/lib/vault/audit'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * GET /api/vault/deposits
@@ -69,12 +70,9 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ data: deposits }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[GET /api/vault/deposits] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-deposits')
   }
 }
 
@@ -137,7 +135,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ data: deposit }, { status: 201 })
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -145,10 +143,7 @@ export async function POST(request: NextRequest) {
       )
     }
     console.error('[POST /api/vault/deposits] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-deposits')
   }
 }
 

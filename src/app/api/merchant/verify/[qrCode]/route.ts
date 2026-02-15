@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { logSecurityEvent } from '@/lib/security/audit'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -205,12 +206,9 @@ export async function GET(
     }
 
     return NextResponse.json(session)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error verifying QR code:', error)
-    return NextResponse.json(
-      { error: error.message || 'Errore nella verifica del QR code' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'merchant-verify-id')
   }
 }
 

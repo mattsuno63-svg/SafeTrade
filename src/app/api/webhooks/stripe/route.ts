@@ -77,8 +77,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[Stripe Webhook] Unhandled error:', error)
     // Rispondi 200 anche in caso di errore per evitare retry infiniti di Stripe
-    // L'errore è stato loggato, lo gestiamo manualmente
-    return NextResponse.json({ received: true, error: error.message })
+    return NextResponse.json({ received: true })
   }
 }
 

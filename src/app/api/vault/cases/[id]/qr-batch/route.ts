@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import QRCode from 'qrcode'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,12 +89,9 @@ export async function GET(
       caseLabel: case_.label,
       qrCodes: qrCodes.filter((qr) => qr !== null),
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error generating batch QR codes:', error)
-    return NextResponse.json(
-      { error: error.message || 'Errore generazione QR codes' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-cases-id-qr-batch')
   }
 }
 

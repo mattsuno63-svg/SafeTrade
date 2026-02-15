@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
-export default function AppointmentConfirmationPage() {
+function AppointmentConfirmationContent() {
   const searchParams = useSearchParams()
   const date = searchParams.get('date')
   const time = searchParams.get('time')
@@ -133,3 +133,7 @@ export default function AppointmentConfirmationPage() {
   )
 }
 
+const fallback = <div className="flex min-h-[40vh] items-center justify-center"><span className="text-muted-foreground">Caricamento...</span></div>
+export default function AppointmentConfirmationPage() {
+  return <Suspense fallback={fallback}><AppointmentConfirmationContent /></Suspense>
+}

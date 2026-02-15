@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { stripe } from '@/lib/stripe'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -299,11 +300,8 @@ export async function POST(request: NextRequest) {
       },
       confirmedAt: confirmedAt.toISOString(),
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[POST /api/admin/escrow/confirm-payment] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Errore nella conferma del pagamento' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'confirm-payment')
   }
 }

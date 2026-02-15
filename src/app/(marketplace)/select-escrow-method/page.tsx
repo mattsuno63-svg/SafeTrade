@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { useUser } from '@/hooks/use-user'
 
-export default function SelectEscrowMethodPage() {
+function SelectEscrowMethodContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -205,4 +205,8 @@ export default function SelectEscrowMethodPage() {
   )
 }
 
+const fallback = <div className="flex min-h-[40vh] items-center justify-center"><span className="text-muted-foreground">Caricamento...</span></div>
+export default function SelectEscrowMethodPage() {
+  return <Suspense fallback={fallback}><SelectEscrowMethodContent /></Suspense>
+}
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import QRCode from 'qrcode'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * GET /api/vault/cases/[id]/slots/[slotId]/qr
@@ -115,12 +116,9 @@ export async function GET(
         scanUrl: qrPayload.scanUrl,
       })
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error generating slot QR code:', error)
-    return NextResponse.json(
-      { error: error.message || 'Errore generazione QR code' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-cases-id-slots-id-qr')
   }
 }
 

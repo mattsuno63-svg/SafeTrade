@@ -5,6 +5,7 @@ import { createVaultAuditLog } from '@/lib/vault/audit'
 import { canTransitionItemStatus } from '@/lib/vault/state-machine'
 import { assignItemToSlotAtomic } from '@/lib/vault/transactions'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/merchant/assign-item-to-slot
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
           slotId,
           shopId: shop.id,
         })
-      } catch (error: any) {
+      } catch (error) {
         // Rilancia l'errore per gestirlo fuori dalla transazione
         throw error
       }
@@ -153,7 +154,7 @@ export async function POST(request: NextRequest) {
         },
       },
     }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
@@ -161,10 +162,7 @@ export async function POST(request: NextRequest) {
       )
     }
     console.error('[POST /api/vault/merchant/assign-item-to-slot] Error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'vault-merchant-assign-item-to-slot')
   }
 }
 
