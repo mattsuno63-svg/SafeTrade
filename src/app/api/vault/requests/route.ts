@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const schema = z.object({
       shopId: z.string(),
+      notes: z.string().max(1000).optional().nullable(),
     })
 
     const data = schema.parse(body)
@@ -74,7 +75,9 @@ export async function POST(request: NextRequest) {
         shopId: data.shopId,
         requestedBy: user.id,
         status: 'PENDING',
-        notes: `Richiesta teca Vault per ${shop.name}`,
+        notes: data.notes && data.notes.trim().length > 0
+          ? data.notes.trim()
+          : `Richiesta teca Vault per ${shop.name}`,
       },
       include: {
         shop: {

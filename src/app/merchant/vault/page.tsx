@@ -40,19 +40,51 @@ export default function MerchantVaultPage() {
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    if (user) {
-      setIsAdmin(user.role === 'ADMIN' || user.role === 'HUB_STAFF')
-    }
-    fetchVaultData()
+    if (!user) return
+
+    ;(async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        let isAdminFlag = false
+
+        if (res.ok) {
+          const data = await res.json()
+          const role = data.user?.role
+          isAdminFlag = role === 'ADMIN' || role === 'HUB_STAFF'
+        }
+
+        setIsAdmin(isAdminFlag)
+        await fetchVaultData(isAdminFlag)
+      } catch (err) {
+        console.error('Error checking admin role for merchant vault:', err)
+        setIsAdmin(false)
+        await fetchVaultData(false)
+      }
+    })()
   }, [user])
 
-  const fetchVaultData = async () => {
+  const fetchVaultData = async (isAdminFlag: boolean) => {
     setLoading(true)
     try {
+      if (!user) {
+        setAuthorized(false)
+        setStats({
+          totalItems: 0,
+          itemsInCase: 0,
+          itemsListedOnline: 0,
+          itemsReserved: 0,
+          itemsSold: 0,
+          totalRevenue: 0,
+          pendingPayout: 0,
+        })
+        setLoading(false)
+        return
+      }
+
       let isAuthorized = false
       
       // Se l'utente è ADMIN, permette sempre l'accesso
-      if (user && (user.role === 'ADMIN' || user.role === 'HUB_STAFF')) {
+      if (isAdminFlag) {
         isAuthorized = true
       } else {
         // Check authorization per merchant
@@ -106,7 +138,7 @@ export default function MerchantVaultPage() {
       setAuthorized(isAuthorized)
 
       // Fetch inventory for stats (solo se autorizzato o admin)
-      if (isAuthorized || (user && (user.role === 'ADMIN' || user.role === 'HUB_STAFF'))) {
+      if (isAuthorized || isAdminFlag) {
         const invRes = await fetch('/api/vault/merchant/inventory')
         if (invRes.ok) {
           const invData = await invRes.json()

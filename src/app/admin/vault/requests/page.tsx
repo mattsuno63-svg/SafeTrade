@@ -77,16 +77,31 @@ export default function AdminVaultRequestsPage() {
     }
     
     if (user && !userLoading) {
-      // Verifica che l'utente sia admin
-      const userRole = user.user_metadata?.role || user.role
-      if (userRole !== 'ADMIN' && userRole !== 'HUB_STAFF') {
-        router.push('/dashboard')
-        return
-      }
-      fetchRequests()
+      // Verifica ruolo usando l'utente applicativo (Prisma) invece dei metadata Supabase
+      ;(async () => {
+        try {
+          const res = await fetch('/api/auth/me')
+          if (!res.ok) {
+            router.push('/dashboard')
+            return
+          }
+
+          const data = await res.json()
+          const userRole = data.user?.role
+
+          if (userRole !== 'ADMIN' && userRole !== 'HUB_STAFF') {
+            router.push('/dashboard')
+            return
+          }
+
+          fetchRequests()
+        } catch (error) {
+          console.error('Error checking admin role for vault requests page:', error)
+          router.push('/dashboard')
+        }
+      })()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, userLoading])
+  }, [user?.id, userLoading, router, fetchRequests])
 
   const handleReview = async (requestId: string, status: 'APPROVED' | 'REJECTED' | 'PAID') => {
     setProcessing(true)
