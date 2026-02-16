@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth()
 
-    // Get user's shop
-    const shop = await prisma.shop.findUnique({
+    let shop = await prisma.shop.findUnique({
       where: { merchantId: user.id },
     })
 
@@ -16,6 +24,22 @@ export async function GET(request: NextRequest) {
         { error: 'Shop not found' },
         { status: 404 }
       )
+    }
+
+    // Se il negozio ha un nome ma nessuno slug (es. creato prima del campo slug), generalo e salvalo
+    if (shop.name && !shop.slug) {
+      let slug = generateSlug(shop.name)
+      let slugExists = await prisma.shop.findUnique({ where: { slug } })
+      let counter = 1
+      while (slugExists && slugExists.id !== shop.id) {
+        slug = `${generateSlug(shop.name)}-${counter}`
+        slugExists = await prisma.shop.findUnique({ where: { slug } })
+        counter++
+      }
+      shop = await prisma.shop.update({
+        where: { id: shop.id },
+        data: { slug },
+      })
     }
 
     return NextResponse.json(shop)
@@ -73,16 +97,6 @@ export async function POST(request: NextRequest) {
         { error: 'Shop already exists. Use PATCH to update.' },
         { status: 400 }
       )
-    }
-
-    // Generate slug from shop name
-    const generateSlug = (name: string): string => {
-      return name
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // Remove accents
-        .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
-        .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
     }
 
     let slug = generateSlug(name)
@@ -172,33 +186,27 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    // Update slug if name changed
+    // Aggiorna slug se è mancante o se è cambiato il nome
     let slug = existingShop.slug
-    if (name && name !== existingShop.name) {
-      const generateSlug = (name: string): string => {
-        return name
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '')
-      }
-
-      slug = generateSlug(name)
-      
-      // Ensure slug is unique (excluding current shop)
-      let slugExists = await prisma.shop.findUnique({ where: { slug } })
-      let counter = 1
-      while (slugExists && slugExists.id !== existingShop.id) {
-        slug = `${generateSlug(name)}-${counter}`
-        slugExists = await prisma.shop.findUnique({ where: { slug } })
-        counter++
+    const nameToUse = name ?? existingShop.name
+    if (nameToUse) {
+      const needsNewSlug = !existingShop.slug || (name && name !== existingShop.name)
+      if (needsNewSlug) {
+        slug = generateSlug(nameToUse)
+        let slugExists = await prisma.shop.findUnique({ where: { slug } })
+        let counter = 1
+        while (slugExists && slugExists.id !== existingShop.id) {
+          slug = `${generateSlug(nameToUse)}-${counter}`
+          slugExists = await prisma.shop.findUnique({ where: { slug } })
+          counter++
+        }
       }
     }
 
     // Update shop
     const updateData: any = {
-      ...(name && { name, slug }),
+      ...(name !== undefined && { name }),
+      ...(slug && { slug }),
       ...(description !== undefined && { description: description || null }),
       ...(address !== undefined && { address: address || null }),
       ...(city !== undefined && { city: city || null }),
