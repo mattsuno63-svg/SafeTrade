@@ -298,6 +298,22 @@ export default function AdminDashboardPage() {
                 </Card>
               </Link>
 
+              <Link href="/admin/contacts">
+                <Card className="glass-panel p-6 hover:shadow-lg transition-all cursor-pointer group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+                      <span className="material-symbols-outlined text-blue-500">contact_mail</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Messaggi di contatto</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Messaggi dal form di contatto del sito
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+
               <Link href="/admin/audit-log">
                 <Card className="glass-panel p-6 hover:shadow-lg transition-all cursor-pointer group">
                   <div className="flex items-center gap-4">
