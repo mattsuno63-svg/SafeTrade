@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { CategoryCard } from '@/components/homepage/CategoryCard'
@@ -92,11 +93,29 @@ export default function MarketplacePage() {
 
             {/* All Cards Section */}
             <div>
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2">Tutte le Carte</h2>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Esplora l'intero catalogo di carte disponibili
-                </p>
+              <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">Tutte le Carte</h2>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Esplora l'intero catalogo. Filtra per zona per vedere solo venditori vicini a te.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Zona:</span>
+                  {[
+                    { value: 'nazionale' as const, label: 'Tutta Italia' },
+                    { value: 'regionale' as const, label: 'Nella mia provincia' },
+                    { value: 'locale' as const, label: 'Vicino a me' },
+                  ].map((opt) => (
+                    <Link
+                      key={opt.value}
+                      href={`/listings?locationFilter=${opt.value}`}
+                      className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary hover:text-white transition-colors"
+                    >
+                      {opt.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
               <AllListingsGrid />
             </div>

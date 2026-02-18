@@ -96,6 +96,13 @@ export async function POST(request: NextRequest) {
 
     const finalRole = role === 'MERCHANT' ? 'USER' : (role as UserRole)
     const { city, province, maxDistance } = parsed
+    const cityTrimmed = typeof city === 'string' ? city.trim() : ''
+    if (!cityTrimmed) {
+      return NextResponse.json(
+        { error: 'La città è obbligatoria per usare i filtri zona nel marketplace.' },
+        { status: 400 },
+      )
+    }
 
     // Create user in Prisma database
     const user = await prisma.user.create({
@@ -105,9 +112,9 @@ export async function POST(request: NextRequest) {
         passwordHash: '', // Supabase handles password
         name: name || null,
         role: finalRole,
-        city: city.trim(),
+        city: cityTrimmed,
         province: province?.trim() || null,
-        maxDistance: maxDistance || 50,
+        maxDistance: maxDistance ?? 50,
       },
     })
 

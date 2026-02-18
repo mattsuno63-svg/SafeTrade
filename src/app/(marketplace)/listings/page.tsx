@@ -81,6 +81,12 @@ const SELLER_TYPES = [
   { value: 'MERCHANT', label: 'Shops Only' },
 ]
 
+const LOCATION_ZONE_OPTIONS = [
+  { value: 'nazionale', label: 'Tutta Italia' },
+  { value: 'regionale', label: 'Nella mia provincia' },
+  { value: 'locale', label: 'Vicino a me (nei dintorni)' },
+]
+
 function ListingsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -100,6 +106,9 @@ function ListingsPageContent() {
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest')
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000])
   const [city, setCity] = useState(searchParams.get('city') || '')
+  const [locationZone, setLocationZone] = useState<'locale' | 'regionale' | 'nazionale'>(
+    (searchParams.get('locationFilter') as 'locale' | 'regionale' | 'nazionale') || 'nazionale'
+  )
   const [sellerType, setSellerType] = useState(searchParams.get('sellerType') || 'all')
   const [isVault, setIsVault] = useState(searchParams.get('isVault') || 'all')
   const [showFilters, setShowFilters] = useState(false)
@@ -117,6 +126,7 @@ function ListingsPageContent() {
       if (priceRange[0] > 0) params.set('minPrice', priceRange[0].toString())
       if (priceRange[1] < 1000) params.set('maxPrice', priceRange[1].toString())
       if (city) params.set('city', city)
+      if (locationZone !== 'nazionale') params.set('locationFilter', locationZone)
       if (sellerType !== 'all') params.set('sellerType', sellerType)
       if (isVault !== 'all') params.set('isVault', isVault)
       params.set('page', page.toString())
@@ -134,7 +144,7 @@ function ListingsPageContent() {
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, game, condition, type, priceRange, page, sortBy, city, sellerType, isVault])
+  }, [searchQuery, game, condition, type, priceRange, page, sortBy, city, locationZone, sellerType, isVault])
 
   useEffect(() => {
     fetchListings()
@@ -148,11 +158,11 @@ function ListingsPageContent() {
     if (condition !== 'all') params.set('condition', condition)
     if (type !== 'all') params.set('type', type)
     if (sortBy !== 'newest') params.set('sort', sortBy)
-    
+    if (locationZone !== 'nazionale') params.set('locationFilter', locationZone)
     const queryString = params.toString()
     const newUrl = queryString ? `/listings?${queryString}` : '/listings'
     window.history.replaceState(null, '', newUrl)
-  }, [searchQuery, game, condition, type, sortBy])
+  }, [searchQuery, game, condition, type, sortBy, locationZone])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -167,6 +177,7 @@ function ListingsPageContent() {
     setType('all')
     setPriceRange([0, 1000])
     setCity('')
+    setLocationZone('nazionale')
     setSellerType('all')
     setIsVault('all')
     setSortBy('newest')
@@ -556,23 +567,46 @@ function ListingsPageContent() {
                     </Select>
                   </div>
 
-                  {/* Location Filter */}
+                  {/* Zona venditore: Locale / Regionale / Nazionale */}
                   <div className="space-y-2 mb-6">
-                    <Label>Location (City)</Label>
+                    <Label>Zona venditore</Label>
+                    <Select
+                      value={locationZone}
+                      onValueChange={(v) => setLocationZone(v as 'locale' | 'regionale' | 'nazionale')}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Dove cercare" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LOCATION_ZONE_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500">
+                      Locale: negozi/venditori vicini (usa la tua città e distanza max). Regionale: stessa provincia. Nazionale: tutta Italia.
+                    </p>
+                  </div>
+
+                  {/* Location (City) - ricerca libera per città */}
+                  <div className="space-y-2 mb-6">
+                    <Label>Città (opzionale)</Label>
                     <div className="relative">
                       <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
                         location_on
                       </span>
                       <Input
                         type="text"
-                        placeholder="e.g., Milano, Roma..."
+                        placeholder="es. Milano, Ragusa..."
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
                         className="pl-10"
                       />
                     </div>
                     <p className="text-xs text-gray-500">
-                      Filter by seller's city
+                      Filtra per nome città del venditore
                     </p>
                   </div>
 

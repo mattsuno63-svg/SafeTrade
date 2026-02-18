@@ -111,12 +111,22 @@ function OnboardingContent() {
   })
   const [provinceSearch, setProvinceSearch] = useState('')
   const [showProvinceDropdown, setShowProvinceDropdown] = useState(false)
+  const [settingsError, setSettingsError] = useState('')
 
   const handleNext = () => {
     const step = steps[currentStep]
     
     if (step.type === 'choice' && !selectedGoal) {
       return
+    }
+    
+    // Città obbligatoria nello step "Personalizza l'esperienza" per filtri zona (locale/regionale)
+    if (step.type === 'settings') {
+      if (!settings.city || settings.city.trim() === '') {
+        setSettingsError('La città è obbligatoria per usare i filtri "Vicino a me" e "Nella mia provincia" nel marketplace.')
+        return
+      }
+      setSettingsError('')
     }
     
     if (currentStep < steps.length - 1) {
@@ -148,15 +158,15 @@ function OnboardingContent() {
       localStorage.setItem('preferred_distance', settings.distance)
     }
     
-    // Salva city e province nel profilo utente
-    if (user && (settings.city || settings.province)) {
+    // Salva city e province nel profilo utente (città obbligatoria per filtri zona)
+    if (user && settings.city?.trim()) {
       try {
         await fetch('/api/user/profile', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            city: settings.city || null,
-            province: settings.province || null,
+            city: settings.city.trim(),
+            province: settings.province?.trim() || null,
           }),
         })
       } catch (error) {
@@ -389,20 +399,32 @@ function OnboardingContent() {
                       </div>
                     </div>
 
-                    {/* Location */}
+                    {/* Location - città obbligatoria per filtri zona marketplace */}
                     <div>
                       <label className="block text-sm font-black text-slate-900 mb-5 uppercase tracking-wider">
-                        La tua posizione
+                        La tua posizione <span className="text-primary">*</span>
                       </label>
+                      {settingsError && (
+                        <p className="text-sm text-red-600 mb-3">{settingsError}</p>
+                      )}
                       <div className="space-y-4">
                         <div>
                           <Input
                             type="text"
-                            placeholder="Città"
+                            placeholder="Città (es. Ragusa, Milano)"
                             value={settings.city}
-                            onChange={(e) => setSettings(prev => ({ ...prev, city: e.target.value }))}
-                            className="w-full px-4 py-3 rounded-xl border border-white/80 bg-white/60 backdrop-blur-3xl"
+                            onChange={(e) => {
+                              setSettings(prev => ({ ...prev, city: e.target.value }))
+                              if (settingsError) setSettingsError('')
+                            }}
+                            className={`w-full px-4 py-3 rounded-xl border backdrop-blur-3xl ${
+                              settingsError ? 'border-red-500 bg-red-50/50' : 'border-white/80 bg-white/60'
+                            }`}
+                            required
                           />
+                          <p className="text-xs text-slate-500 mt-1">
+                            Obbligatoria per filtrare le carte per zona (vicino a me / nella mia provincia).
+                          </p>
                         </div>
                         <div className="relative">
                           <Input
@@ -560,7 +582,10 @@ function OnboardingContent() {
               
               <Button
                 onClick={handleNext}
-                disabled={currentStepData.type === 'choice' && !selectedGoal}
+                disabled={
+                  (currentStepData.type === 'choice' && !selectedGoal) ||
+                  (currentStepData.type === 'settings' && !settings.city?.trim())
+                }
                 className="px-14 py-6 bg-primary text-white font-black rounded-2xl shadow-liquid hover:shadow-liquid-hover hover:-translate-y-1.5 transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {currentStep === steps.length - 1 

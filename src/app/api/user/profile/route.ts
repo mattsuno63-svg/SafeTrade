@@ -17,17 +17,18 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json()
     const schema = z.object({
-      city: z.string().optional().nullable(),
+      city: z.string().trim().min(1, 'La città non può essere vuota').optional(),
       province: z.string().optional().nullable(),
     })
 
     const data = schema.parse(body)
+    const cityValue = data.city
 
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: {
-        city: data.city || undefined,
-        province: data.province || undefined,
+        ...(cityValue !== undefined && { city: cityValue }),
+        province: data.province?.trim() ?? undefined,
       },
       select: {
         id: true,

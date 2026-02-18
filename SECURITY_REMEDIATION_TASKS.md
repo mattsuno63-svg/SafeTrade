@@ -4,6 +4,22 @@ Ogni sezione è un task. Segui l’ordine; alla fine di ogni fix metti `[x]` nel
 
 ---
 
+## Modifiche effettuate (log sessione)
+
+- **Task 6 (completato):** Tutti i `console.log` sensibili (user id, session, token, cookies, PII) sono stati avvolti in `if (process.env.NODE_ENV === 'development')` nei file:
+  - `src/app/(auth)/login/page.tsx` – log login/session/redirect
+  - `src/app/(auth)/login/actions.ts` – log email/session/cookies
+  - `src/app/api/escrow/public/scan/[token]/route.ts` – token e session found
+  - `src/lib/shipping/sendcloud.ts` – params, auth, parcel, label
+  - `src/app/api/admin/hub/packages/[id]/receive|ship-to-buyer|start-verification/route.ts` – user/role
+  - `src/app/api/auth/logout/route.ts` – cookie names
+  - `src/app/api/disputes/[id]/route.ts` – user, dispute id, auth check
+  - `src/app/api/tournaments/route.ts` – userCity, query params, tornei
+  - `src/app/merchant/shop/page.tsx` – user, role, shop data
+- In produzione questi log non vengono eseguiti; in development restano disponibili per debug.
+
+---
+
 ## Task 1 – Upgrade Next.js (CRITICO)
 
 **Priorità:** 10/10  
@@ -56,8 +72,8 @@ service-account*.json
 
 **Implementazione:** Validare `next` prima di usarlo in `NextResponse.redirect(new URL(next, requestUrl.origin))`: se non è un path relativo sicuro, usare `'/dashboard'`.
 
-- [x] Validazione `next` implementata
-- [ ] Test: `?next=https://evil.com` non deve portare a evil.com
+- [x] Validazione `next` implementata (safeRedirectPath in auth/callback/route.ts)
+- [ ] Test manuale: `?next=https://evil.com` non deve portare a evil.com (redirect a /dashboard)
 
 ---
 
@@ -179,7 +195,7 @@ A: `return handleApiError(error, 'NomeRoute')` (e in catch: `return handleApiErr
 2. Avvolgerli in `if (process.env.NODE_ENV === 'development')` così in produzione non partono.
 
 - [x] Log sensibili in auth/me e use-user condizionati a NODE_ENV=development
-- [ ] Altri file (login, escrow/scan, sendcloud): opzionale, stessi pattern
+- [x] Altri file (login, escrow/scan, sendcloud, hub, logout, disputes, tournaments, merchant/shop) condizionati a NODE_ENV=development
 
 ---
 
@@ -200,9 +216,9 @@ A: `return handleApiError(error, 'NomeRoute')` (e in catch: `return handleApiErr
 
 ## Task 8 – Verifiche finali
 
-- [ ] `npm run build` OK (prerender/useSearchParams preesistenti)
+- [x] `npm run build` OK (build completato con successo)
 - [x] `npm audit` senza critical
-- [ ] Login + callback testati
+- [ ] Login + callback testati (manuale: testare login e `?next=https://evil.com` → deve andare a /dashboard)
 - [x] API con handleApiError (no error.message al client)
 
 ---

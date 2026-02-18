@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { CardGame, CardCondition } from '@prisma/client'
 import { getSession } from '@/lib/auth'
+import { calculateCityDistance } from '@/lib/utils/distance'
 
 // Helper to check if user has premium subscription
 async function getUserSubscriptionTier(userId: string | null): Promise<'FREE' | 'PREMIUM' | 'PRO'> {
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q') || ''
     const city = searchParams.get('city') || ''
     const sellerType = searchParams.get('sellerType') || ''
+    const locationFilter = searchParams.get('locationFilter') as 'locale' | 'regionale' | 'nazionale' | null
     const isVault = searchParams.get('isVault') // 'true' or 'false' or null
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
@@ -67,9 +69,29 @@ export async function GET(request: NextRequest) {
     if (listingType) where.type = listingType
     if (isVault === 'true') where.isVaultListing = true
     if (isVault === 'false') where.isVaultListing = false
-    // Filter by seller's city and/or role
+    // Location filter: locale (near me), regionale (same province), nazionale (all)
+    let userCity: string | null = null
+    let userProvince: string | null = null
+    let maxDistanceKm: number | null = null
+    if (locationFilter === 'locale' || locationFilter === 'regionale') {
+      const uid = session?.user?.id
+      if (uid) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: uid },
+          select: { city: true, province: true, maxDistance: true },
+        })
+        userCity = dbUser?.city ?? null
+        userProvince = dbUser?.province ?? null
+        maxDistanceKm = dbUser?.maxDistance ?? 50
+      }
+    }
+    if (locationFilter === 'regionale' && userProvince) {
+      where.user = where.user || {}
+      where.user.province = { equals: userProvince, mode: 'insensitive' }
+    }
+    // Filter by seller's city and/or role (manual city search, not locationFilter)
     if (city || sellerType) {
-      where.user = {}
+      where.user = where.user || {}
       if (city) {
         where.user.city = { contains: city, mode: 'insensitive' }
       }
@@ -108,29 +130,66 @@ export async function GET(request: NextRequest) {
         orderBy = { createdAt: 'desc' }
     }
 
-    const [listings, total] = await Promise.all([
-      prisma.listingP2P.findMany({
+    const userSelect = {
+      id: true,
+      name: true,
+      avatar: true,
+      role: true,
+      city: true,
+      province: true,
+      subscription: {
+        include: { plan: true },
+      },
+    }
+
+    let listings: any[]
+    let total: number
+
+    if (locationFilter === 'locale' && userCity && maxDistanceKm != null) {
+      // Fetch ids + seller city for distance filter (no DB distance, so filter in memory)
+      const maxLocal = 5000
+      const candidates = await prisma.listingP2P.findMany({
         where,
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              avatar: true,
-              role: true,
-              city: true,
-              subscription: {
-                include: { plan: true }
-              }
-            },
-          },
+        select: {
+          id: true,
+          createdAt: true,
+          price: true,
+          user: { select: { city: true } },
         },
         orderBy,
-        take: limit,
-        skip,
-      }),
-      prisma.listingP2P.count({ where }),
-    ])
+        take: maxLocal,
+      })
+      const filtered = candidates.filter((row) => {
+        const sellerCity = row.user?.city ?? null
+        if (!sellerCity) return false
+        const km = calculateCityDistance(userCity!, sellerCity)
+        return km != null && km <= maxDistanceKm!
+      })
+      total = filtered.length
+      const pageIds = filtered.slice(skip, skip + limit).map((r) => r.id)
+      listings = pageIds.length
+        ? await prisma.listingP2P.findMany({
+            where: { id: { in: pageIds } },
+            include: { user: { select: userSelect } },
+          })
+        : []
+      // Restore sort order (findMany doesn't preserve id order)
+      const orderMap = new Map(pageIds.map((id, i) => [id, i]))
+      listings.sort((a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0))
+    } else {
+      const [listingsRes, totalRes] = await Promise.all([
+        prisma.listingP2P.findMany({
+          where,
+          include: { user: { select: userSelect } },
+          orderBy,
+          take: limit,
+          skip,
+        }),
+        prisma.listingP2P.count({ where }),
+      ])
+      listings = listingsRes
+      total = totalRes
+    }
 
     // Add isEarlyAccess flag to each listing for UI display
     const listingsWithFlags = listings.map(listing => ({
@@ -207,10 +266,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (typeof title !== 'string' || title.length > 500) {
+      return NextResponse.json(
+        { error: 'Title must be a string with max 500 characters' },
+        { status: 400 }
+      )
+    }
+
+    if (description != null && (typeof description !== 'string' || description.length > 5000)) {
+      return NextResponse.json(
+        { error: 'Description must be a string with max 5000 characters' },
+        { status: 400 }
+      )
+    }
+
     if (type === 'SALE' || type === 'BOTH') {
-      if (!price || price <= 0) {
+      const priceNum = typeof price === 'number' ? price : parseFloat(String(price))
+      if (isNaN(priceNum) || priceNum <= 0 || priceNum > 1_000_000) {
         return NextResponse.json(
-          { error: 'Price is required and must be greater than 0 for sale listings' },
+          { error: 'Price is required and must be a valid number between 0 and 1000000' },
           { status: 400 }
         )
       }
