@@ -60,6 +60,33 @@ export default function AdminContactsPage() {
   const [page, setPage] = useState(1)
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null)
 
+  const updateStatus = async (msgId: string, status: ContactMessage['status']) => {
+    try {
+      const res = await fetch(`/api/admin/contacts/${msgId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      if (res.ok) {
+        setSelectedMessage((prev) => (prev?.id === msgId ? { ...prev, status } : prev))
+        setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, status } : m)))
+        fetchMessages()
+      }
+    } catch {
+      toast({ title: 'Errore', description: 'Impossibile aggiornare lo stato', variant: 'destructive' })
+    }
+  }
+
+  const markAsRead = (msg: ContactMessage) => {
+    if (msg.status !== 'PENDING') return
+    updateStatus(msg.id, 'READ')
+  }
+
+  const openMessage = (msg: ContactMessage) => {
+    setSelectedMessage(msg)
+    markAsRead(msg)
+  }
+
   useEffect(() => {
     if (!currentUser && !userLoading) {
       router.push('/login')
@@ -138,13 +165,14 @@ export default function AdminContactsPage() {
             <div className="flex gap-4 mb-6">
               <Select value={statusFilter || 'ALL'} onValueChange={(v) => { setStatusFilter(v === 'ALL' ? '' : v); setPage(1) }}>
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Stato" />
+                  <SelectValue placeholder="Filtro" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Tutti</SelectItem>
-                  {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                  ))}
+                  <SelectItem value="PENDING">Da leggere</SelectItem>
+                  <SelectItem value="READ">Letti</SelectItem>
+                  <SelectItem value="REPLIED">Risposti</SelectItem>
+                  <SelectItem value="CLOSED">Chiusi</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -166,7 +194,7 @@ export default function AdminContactsPage() {
                     <div
                       key={msg.id}
                       className="p-4 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
-                      onClick={() => setSelectedMessage(msg)}
+                      onClick={() => openMessage(msg)}
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 flex-1">
@@ -235,6 +263,23 @@ export default function AdminContactsPage() {
               <div>
                 <p className="text-sm text-gray-500">Messaggio</p>
                 <p className="text-sm whitespace-pre-wrap">{selectedMessage.message}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedMessage.status !== 'READ' && selectedMessage.status !== 'PENDING' && (
+                  <Button variant="outline" size="sm" onClick={() => updateStatus(selectedMessage.id, 'READ')}>
+                    Segna letto
+                  </Button>
+                )}
+                {selectedMessage.status !== 'REPLIED' && (
+                  <Button variant="outline" size="sm" onClick={() => updateStatus(selectedMessage.id, 'REPLIED')}>
+                    Segna risposto
+                  </Button>
+                )}
+                {selectedMessage.status !== 'CLOSED' && (
+                  <Button variant="outline" size="sm" onClick={() => updateStatus(selectedMessage.id, 'CLOSED')}>
+                    Chiudi
+                  </Button>
+                )}
               </div>
               <Button asChild variant="outline" className="w-full">
                 <a href={`mailto:${selectedMessage.email}?subject=Re: ${encodeURIComponent(selectedMessage.subject)}`}>

@@ -159,17 +159,19 @@ export async function generateShippingLabel(
   const apiSecret = process.env.SENDCLOUD_API_SECRET!
   const baseUrl = 'https://panel.sendcloud.sc/api/v2'
 
-  // DEBUG: Log dettagliato dei parametri ricevuti
-  console.log('[SENDCLOUD] Params received:', {
-    fromStreet1: params.fromStreet1,
-    fromCity: params.fromCity,
-    fromZip: params.fromZip,
-    fromCountry: params.fromCountry,
-    toStreet1: params.toStreet1,
-    toCity: params.toCity,
-    toZip: params.toZip,
-    toCountry: params.toCountry,
-  })
+  // DEBUG: Log dettagliato dei parametri ricevuti (solo in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[SENDCLOUD] Params received:', {
+      fromStreet1: params.fromStreet1,
+      fromCity: params.fromCity,
+      fromZip: params.fromZip,
+      fromCountry: params.fromCountry,
+      toStreet1: params.toStreet1,
+      toCity: params.toCity,
+      toZip: params.toZip,
+      toCountry: params.toCountry,
+    })
+  }
   
   // Valida indirizzo mittente (seller) - deve essere completo e valido
   const fromStreet1Trimmed = params.fromStreet1?.trim() || ''
@@ -291,16 +293,16 @@ export async function generateShippingLabel(
     parcelData.carrier = params.courier
   }
 
-  console.log('[SENDCLOUD] Creating parcel...', {
-    transactionId: params.transactionId,
-    fromCity: fromCity,
-    toCity: toCity,
-    weight: params.weight,
-    courier: params.courier || 'AUTO',
-  })
-  
-  // Debug: log del payload completo
-  console.log('[SENDCLOUD] parcelData:', JSON.stringify(parcelData, null, 2))
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[SENDCLOUD] Creating parcel...', {
+      transactionId: params.transactionId,
+      fromCity: fromCity,
+      toCity: toCity,
+      weight: params.weight,
+      courier: params.courier || 'AUTO',
+    })
+    console.log('[SENDCLOUD] parcelData:', JSON.stringify(parcelData, null, 2))
+  }
 
   // Chiamata API Sendcloud per creare parcel (shipment + label)
   const auth = getSendcloudAuth()
@@ -308,9 +310,11 @@ export async function generateShippingLabel(
   // Sendcloud API v2 richiede SEMPRE il wrapper { parcel: ... }
   const requestBody = { parcel: parcelData }
   
-  console.log('[SENDCLOUD] Final request body:', JSON.stringify(requestBody, null, 2))
-  console.log('[SENDCLOUD] Auth check:', `Basic ${auth.substring(0, 15)}... (length: ${auth.length})`)
-  console.log('[SENDCLOUD] API URL:', `${baseUrl}/parcels`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[SENDCLOUD] Final request body:', JSON.stringify(requestBody, null, 2))
+    console.log('[SENDCLOUD] Auth check:', `Basic ${auth.substring(0, 15)}... (length: ${auth.length})`)
+    console.log('[SENDCLOUD] API URL:', `${baseUrl}/parcels`)
+  }
   
   const response = await fetch(`${baseUrl}/parcels`, {
     method: 'POST',
@@ -390,12 +394,14 @@ export async function generateShippingLabel(
   const labelUrl = parcel.label?.label_printer || parcel.label_url || parcel.labelUrl
   const shippingMethod = parcel.shipping_method || parcel.shippingMethod
   
-  console.log('[SENDCLOUD] Parcel created successfully:', {
-    parcelId: parcel.id,
-    trackingNumber,
-    labelUrl: labelUrl ? 'Present' : 'Missing',
-    shippingMethod: shippingMethod?.name || 'N/A',
-  })
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[SENDCLOUD] Parcel created successfully:', {
+      parcelId: parcel.id,
+      trackingNumber,
+      labelUrl: labelUrl ? 'Present' : 'Missing',
+      shippingMethod: shippingMethod?.name || 'N/A',
+    })
+  }
   
   return {
     success: true,
@@ -420,7 +426,7 @@ export async function downloadLabelPdf(parcelId: string): Promise<string | null>
   const baseUrl = 'https://panel.sendcloud.sc/api/v2'
   const auth = getSendcloudAuth()
   
-  console.log('[SENDCLOUD] Downloading label for parcel:', parcelId)
+  if (process.env.NODE_ENV === 'development') console.log('[SENDCLOUD] Downloading label for parcel:', parcelId)
   
   // Sendcloud API: GET /parcels/{id}/label
   const response = await fetch(`${baseUrl}/parcels/${parcelId}/label`, {
@@ -440,7 +446,7 @@ export async function downloadLabelPdf(parcelId: string): Promise<string | null>
   const buffer = await response.arrayBuffer()
   const base64 = Buffer.from(buffer).toString('base64')
   
-  console.log('[SENDCLOUD] Label downloaded successfully, size:', base64.length, 'bytes')
+  if (process.env.NODE_ENV === 'development') console.log('[SENDCLOUD] Label downloaded successfully, size:', base64.length, 'bytes')
   
   return base64
 }

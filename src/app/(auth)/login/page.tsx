@@ -58,7 +58,7 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    console.log('[Login] Form submitted, using API route')
+    if (process.env.NODE_ENV === 'development') console.log('[Login] Form submitted, using API route')
 
     try {
       // Use API route - it will call setSession which triggers setAll()
@@ -69,7 +69,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       })
 
-      console.log('[Login] API response status:', res.status)
+      if (process.env.NODE_ENV === 'development') console.log('[Login] API response status:', res.status)
 
       const data = await res.json()
 
@@ -84,7 +84,7 @@ export default function LoginPage() {
         return
       }
 
-      console.log('[Login] Login successful via API, user:', data.user?.id)
+      if (process.env.NODE_ENV === 'development') console.log('[Login] Login successful via API, user:', data.user?.id)
 
       // CRITICAL: Set session in browser client BEFORE redirect
       // This saves to localStorage so createBrowserClient can read it
@@ -92,7 +92,7 @@ export default function LoginPage() {
       const supabase = createClient()
       
       if (data.session) {
-        console.log('[Login] Setting session in browser client...')
+        if (process.env.NODE_ENV === 'development') console.log('[Login] Setting session in browser client...')
         // Set session in browser client - this saves to localStorage
         // The cookies are already set by the API route
         const { error: setSessionError } = await supabase.auth.setSession({
@@ -108,7 +108,7 @@ export default function LoginPage() {
             variant: 'destructive',
           })
         } else {
-          console.log('[Login] ✅ Session set in browser client')
+          if (process.env.NODE_ENV === 'development') console.log('[Login] ✅ Session set in browser client')
           
           // CRITICAL: Verify session is actually saved in localStorage
           const { data: { session: verifySession }, error: verifyError } = await supabase.auth.getSession()
@@ -118,8 +118,10 @@ export default function LoginPage() {
             console.warn('[Login] ⚠️ WARNING: Session not found after setSession!')
             console.warn('[Login] This might be a timing issue, will retry...')
           } else {
-            console.log('[Login] ✅ Session verified in browser client, user:', verifySession.user?.id)
-            console.log('[Login] ✅ Session access_token exists:', !!verifySession.access_token)
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[Login] ✅ Session verified in browser client, user:', verifySession.user?.id)
+              console.log('[Login] ✅ Session access_token exists:', !!verifySession.access_token)
+            }
           }
         }
       }
@@ -136,16 +138,18 @@ export default function LoginPage() {
           console.error('[Login] ❌ Error checking session:', checkError)
         }
         if (checkSession?.user && checkSession?.access_token) {
-          console.log('[Login] ✅ Session verified, user:', checkSession.user.id)
-          console.log('[Login] ✅ Access token exists:', !!checkSession.access_token)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Login] ✅ Session verified, user:', checkSession.user.id)
+            console.log('[Login] ✅ Access token exists:', !!checkSession.access_token)
+          }
           sessionVerified = true
         } else {
           attempts++
           if (attempts < maxAttempts) {
-            console.log(`[Login] ⏳ Session not found yet, waiting... (attempt ${attempts}/${maxAttempts})`)
+            if (process.env.NODE_ENV === 'development') console.log(`[Login] ⏳ Session not found yet, waiting... (attempt ${attempts}/${maxAttempts})`)
             // Try setting session again if it's not found
             if (attempts % 3 === 0 && data.session) {
-              console.log('[Login] 🔄 Retrying setSession...')
+              if (process.env.NODE_ENV === 'development') console.log('[Login] 🔄 Retrying setSession...')
               await supabase.auth.setSession({
                 access_token: data.session.access_token,
                 refresh_token: data.session.refresh_token,
@@ -176,7 +180,7 @@ export default function LoginPage() {
 
       // CRITICAL: Use window.location.href for full page reload
       // This ensures middleware reads cookies and useUser reads localStorage
-      console.log('[Login] 🔄 Redirecting to /dashboard')
+      if (process.env.NODE_ENV === 'development') console.log('[Login] 🔄 Redirecting to /dashboard')
       window.location.href = '/dashboard'
     } catch (err: any) {
       console.error('[Login] Error caught', err)

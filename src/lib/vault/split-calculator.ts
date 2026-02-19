@@ -1,10 +1,15 @@
 /**
  * Vault Split Calculator - Fixed 70/20/10 split
+ * All calculations in cents to avoid rounding discrepancies.
  */
+
+const OWNER_RATIO = 0.70
+const MERCHANT_RATIO = 0.20
+// Platform gets remainder: grossCents - ownerCents - merchantCents
 
 /**
  * Calculate split amounts (70% owner, 20% merchant, 10% platform)
- * Platform takes remainder to handle rounding
+ * Uses cents internally so sum always equals grossAmount.
  */
 export function calculateSplit(grossAmount: number): {
   ownerAmount: number
@@ -15,16 +20,15 @@ export function calculateSplit(grossAmount: number): {
     return { ownerAmount: 0, merchantAmount: 0, platformAmount: 0 }
   }
 
-  // Calculate with consistent rounding (Math.round for all)
-  const ownerAmount = Math.round(grossAmount * 0.70 * 100) / 100
-  const merchantAmount = Math.round(grossAmount * 0.20 * 100) / 100
-  // Platform gets remainder to guarantee sum === grossAmount
-  const platformAmount = Math.round((grossAmount - ownerAmount - merchantAmount) * 100) / 100
+  const grossCents = Math.round(grossAmount * 100)
+  const ownerCents = Math.round(grossCents * OWNER_RATIO)
+  const merchantCents = Math.round(grossCents * MERCHANT_RATIO)
+  const platformCents = grossCents - ownerCents - merchantCents
 
   return {
-    ownerAmount,
-    merchantAmount,
-    platformAmount,
+    ownerAmount: ownerCents / 100,
+    merchantAmount: merchantCents / 100,
+    platformAmount: platformCents / 100,
   }
 }
 

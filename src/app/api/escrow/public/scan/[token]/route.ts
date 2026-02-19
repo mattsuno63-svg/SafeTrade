@@ -15,7 +15,7 @@ export async function GET(
 ) {
   try {
     const { token } = params
-    console.log('[QR Scan API] Token received:', token)
+    if (process.env.NODE_ENV === 'development') console.log('[QR Scan API] Token received:', token)
     
     const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined
     const userAgent = request.headers.get('user-agent') || undefined
@@ -39,7 +39,7 @@ export async function GET(
       )
     }
 
-    console.log('[QR Scan API] Rate limit passed, searching session...')
+    if (process.env.NODE_ENV === 'development') console.log('[QR Scan API] Rate limit passed, searching session...')
 
     // Find session by QR token (try qrToken first, then qrCode for backward compatibility)
     // Simplified query to avoid errors with missing fields
@@ -84,7 +84,7 @@ export async function GET(
           merchant: { select: { id: true, name: true, email: true } },
         },
       })
-      console.log('[QR Scan API] Session query completed, session found:', !!session)
+      if (process.env.NODE_ENV === 'development') console.log('[QR Scan API] Session query completed, session found:', !!session)
     } catch (queryError: any) {
       console.error('[QR Scan API] Prisma query error:', queryError)
       // If query fails (e.g., missing columns), treat as no session found

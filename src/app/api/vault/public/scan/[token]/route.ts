@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { handleApiError } from '@/lib/api-error'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
@@ -57,22 +60,28 @@ export async function GET(
       return NextResponse.json({ error: 'Slot non trovato' }, { status: 404 })
     }
 
+    // Get listingId if item is LISTED_ONLINE (for "Acquista Online" link)
+    let listingId: string | null = null
+    if (slot.item?.status === 'LISTED_ONLINE') {
+      const listing = await prisma.listingP2P.findFirst({
+        where: { vaultItemId: slot.item.id, isActive: true },
+        select: { id: true },
+      })
+      listingId = listing?.id ?? null
+    }
+
     // Public endpoint - return basic info only
     return NextResponse.json({
       data: {
         id: slot.id,
         slotCode: slot.slotCode,
         case: slot.case,
-        item: slot.item,
+        item: slot.item ? { ...slot.item, listingId } : null,
         shop: slot.case.authorizedShop, // Shop info for display
       },
     })
-  } catch (error: any) {
-    console.error('Error fetching public slot info:', error)
-    return NextResponse.json(
-      { error: 'Errore nel caricamento dello slot' },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error, 'vault-public-scan')
   }
 }
 

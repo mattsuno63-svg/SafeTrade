@@ -20,8 +20,7 @@ export async function GET(request: NextRequest) {
       },
     }
     
-    // Debug: log per verificare query
-    console.log('[Tournaments API] Query params:', { game, futureOnly, filterByDistance, limit })
+    if (process.env.NODE_ENV === 'development') console.log('[Tournaments API] Query params:', { game, futureOnly, filterByDistance, limit })
 
     if (game) {
       where.game = game
@@ -91,53 +90,46 @@ export async function GET(request: NextRequest) {
       ],
     })
     
-    // Debug: log tornei trovati
-    console.log(`[Tournaments API] Found ${tournaments.length} tournaments`, tournaments.map(t => ({
-      id: t.id,
-      title: t.title,
-      status: t.status,
-      shopCity: t.shop?.city,
-      date: t.date,
-    })))
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Tournaments API] Found ${tournaments.length} tournaments`, tournaments.map(t => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        shopCity: t.shop?.city,
+        date: t.date,
+      })))
+    }
 
     // Filter by distance if requested and user has location
     let filteredTournaments = tournaments
     if (filterByDistance) {
       if (userCity && maxDistance) {
-        // Utente ha città: filtra per distanza reale
-        console.log(`[Tournaments API] Filtering by distance: userCity=${userCity}, maxDistance=${maxDistance}km`)
+        if (process.env.NODE_ENV === 'development') console.log(`[Tournaments API] Filtering by distance: userCity=${userCity}, maxDistance=${maxDistance}km`)
         filteredTournaments = tournaments.filter((tournament) => {
           if (!tournament.shop?.city) {
-            // Se il negozio non ha città, includi comunque il torneo (fallback)
-            console.log(`[Tournaments API] Tournament ${tournament.id} included (no shop city): fallback`)
+            if (process.env.NODE_ENV === 'development') console.log(`[Tournaments API] Tournament ${tournament.id} included (no shop city): fallback`)
             return true
           }
           
-          // Calcola distanza reale tra città utente e città negozio
           const distance = calculateCityDistance(userCity!, tournament.shop.city)
           
-          // Se il calcolo distanza fallisce (città non trovata), includi comunque il torneo (fallback)
-          // Questo garantisce che i tornei vengano mostrati anche se la città non è riconosciuta
           if (distance === null) {
-            console.log(`[Tournaments API] Tournament ${tournament.id} included (city "${tournament.shop.city}" not found): fallback`)
+            if (process.env.NODE_ENV === 'development') console.log(`[Tournaments API] Tournament ${tournament.id} included (city "${tournament.shop.city}" not found): fallback`)
             return true
           }
           
           const withinDistance = distance <= maxDistance!
-          console.log(`[Tournaments API] Tournament ${tournament.id} (${tournament.shop.city}): distance=${distance.toFixed(1)}km, within=${withinDistance}`)
+          if (process.env.NODE_ENV === 'development') console.log(`[Tournaments API] Tournament ${tournament.id} (${tournament.shop.city}): distance=${distance.toFixed(1)}km, within=${withinDistance}`)
           
-          // Include solo tornei entro la distanza massima
           return withinDistance
         })
-        console.log(`[Tournaments API] After distance filter: ${filteredTournaments.length} tournaments`)
+        if (process.env.NODE_ENV === 'development') console.log(`[Tournaments API] After distance filter: ${filteredTournaments.length} tournaments`)
       } else {
-        // Utente non autenticato o senza città: mostra tutti i tornei (senza filtro distanza)
-        // Questo permette di vedere i tornei anche se non si è impostata la città
-        console.log(`[Tournaments API] No distance filter: userCity=${userCity}, showing all ${tournaments.length} tournaments`)
+        if (process.env.NODE_ENV === 'development') console.log(`[Tournaments API] No distance filter: userCity=${userCity}, showing all ${tournaments.length} tournaments`)
         filteredTournaments = tournaments
       }
     } else {
-      console.log(`[Tournaments API] Distance filter disabled, showing all ${tournaments.length} tournaments`)
+      if (process.env.NODE_ENV === 'development') console.log(`[Tournaments API] Distance filter disabled, showing all ${tournaments.length} tournaments`)
     }
 
     // Apply limit after filtering

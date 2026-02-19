@@ -7,7 +7,7 @@ import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/vault/merchant/items/[id]/list-online
- * List item online - MERCHANT only
+ * List item online - MERCHANT only. Creates ListingP2P for marketplace visibility.
  */
 export async function POST(
   request: NextRequest,
@@ -83,9 +83,46 @@ export async function POST(
       )
     }
 
-    const updated = await prisma.vaultItem.update({
-      where: { id: itemId },
-      data: { status: 'LISTED_ONLINE' },
+    const price = item.priceFinal ?? 0
+    if (price <= 0) {
+      return NextResponse.json(
+        { error: 'La carta deve avere un prezzo (priceFinal) per essere listata online' },
+        { status: 400 }
+      )
+    }
+
+    if (!item.photos || item.photos.length === 0) {
+      return NextResponse.json(
+        { error: 'La carta deve avere almeno una foto per essere listata online' },
+        { status: 400 }
+      )
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const listing = await tx.listingP2P.create({
+        data: {
+          title: item.name,
+          description: `${item.game}${item.set ? ` - ${item.set}` : ''}`,
+          type: 'SALE',
+          price,
+          condition: item.conditionVerified ?? item.conditionDeclared,
+          game: item.game,
+          set: item.set,
+          images: item.photos,
+          userId: item.ownerUserId,
+          isVaultListing: true,
+          vaultItemId: itemId,
+          isApproved: true,
+          isActive: true,
+        },
+      })
+
+      const updated = await tx.vaultItem.update({
+        where: { id: itemId },
+        data: { status: 'LISTED_ONLINE', listingId: listing.id },
+      })
+
+      return { listing, updated }
     })
 
     await createVaultAuditLog({
@@ -96,7 +133,7 @@ export async function POST(
       newValue: { status: 'LISTED_ONLINE' },
     })
 
-    return NextResponse.json({ data: updated }, { status: 200 })
+    return NextResponse.json({ data: result.updated, listingId: result.listing.id }, { status: 200 })
   } catch (error) {
     console.error('[POST /api/vault/merchant/items/[id]/list-online] Error:', error)
     return handleApiError(error, 'vault-merchant-items-id-list-online')

@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Loader2, QrCode, CheckCircle2, XCircle, Package, Scan } from 'lucide-react'
 import { useUser } from '@/hooks/use-user'
 import { QRScanner } from '@/components/qr/QRScanner'
+import { canSellPhysically } from '@/lib/vault/state-machine'
 
 interface SlotInfo {
   id: string
@@ -81,7 +82,10 @@ function MerchantVaultScanContent() {
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
-  const [activeTab, setActiveTab] = useState<'posiziona' | 'sposta' | 'vendi' | 'list-online' | 'fulfillment'>('posiziona')
+  const tabParam = searchParams.get('tab') as 'posiziona' | 'sposta' | 'vendi' | 'list-online' | 'fulfillment' | null
+  const [activeTab, setActiveTab] = useState<'posiziona' | 'sposta' | 'vendi' | 'list-online' | 'fulfillment'>(
+    tabParam && ['posiziona', 'sposta', 'vendi', 'list-online', 'fulfillment'].includes(tabParam) ? tabParam : 'posiziona'
+  )
   
   // Tab "Sposta" state
   const [originSlot, setOriginSlot] = useState<SlotInfo | null>(null)
@@ -112,6 +116,13 @@ function MerchantVaultScanContent() {
       router.push('/login')
     }
   }, [user, userLoading, router])
+
+  // Sync activeTab with URL tab param when it changes
+  useEffect(() => {
+    if (tabParam && ['posiziona', 'sposta', 'vendi', 'list-online', 'fulfillment'].includes(tabParam)) {
+      setActiveTab(tabParam)
+    }
+  }, [tabParam])
 
   const handleScanQR = useCallback(async () => {
     if (!qrToken.trim()) {
@@ -927,9 +938,18 @@ function MerchantVaultScanContent() {
                         </AlertDescription>
                       </Alert>
                     )}
+                    {/* Validation: Item must be sellable physically (IN_CASE or LISTED_ONLINE) */}
+                    {slotInfo.item && !canSellPhysically(slotInfo.item.status as any) && (
+                      <Alert variant="destructive" className="mb-4">
+                        <XCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Questa carta non può essere venduta fisicamente (stato: {slotInfo.item.status}). Solo carte in teca o già listate online possono essere vendute in negozio.
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
-                    {/* Item Info */}
-                    {slotInfo.item && slotInfo.status === 'OCCUPIED' && (
+                    {/* Item Info - only show form if can sell physically */}
+                    {slotInfo.item && slotInfo.status === 'OCCUPIED' && canSellPhysically(slotInfo.item.status as any) && (
                       <Card className="bg-white/5 border-white/10 mb-6">
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between mb-4">
@@ -966,7 +986,8 @@ function MerchantVaultScanContent() {
                       </Card>
                     )}
 
-                    {/* Sale Form */}
+                    {/* Sale Form - only when item can be sold physically */}
+                    {slotInfo.item && canSellPhysically(slotInfo.item.status as any) && (
                     <Card className="bg-white/5 border-white/10 mb-6">
                       <CardContent className="p-6 space-y-6">
                         <h4 className="text-white font-bold text-lg">Dettagli Vendita</h4>
@@ -1144,6 +1165,7 @@ function MerchantVaultScanContent() {
                         </div>
                       </CardContent>
                     </Card>
+                    )}
 
                     {/* Error/Success Messages */}
                     {error && (

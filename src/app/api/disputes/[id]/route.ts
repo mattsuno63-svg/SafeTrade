@@ -20,10 +20,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    console.log('[GET /api/disputes/[id]] Starting...')
+    if (process.env.NODE_ENV === 'development') console.log('[GET /api/disputes/[id]] Starting...')
     
     const user = await getCurrentUser()
-    console.log('[GET /api/disputes/[id]] User:', user ? { id: user.id, role: user.role } : 'null')
+    if (process.env.NODE_ENV === 'development') console.log('[GET /api/disputes/[id]] User:', user ? { id: user.id, role: user.role } : 'null')
     
     if (!user) {
       return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
@@ -32,9 +32,9 @@ export async function GET(
     // Handle both Promise and non-Promise params (Next.js 14 vs 15)
     const resolvedParams = 'then' in params ? await params : params
     const { id } = resolvedParams
-    console.log('[GET /api/disputes/[id]] Dispute ID:', id)
+    if (process.env.NODE_ENV === 'development') console.log('[GET /api/disputes/[id]] Dispute ID:', id)
 
-    console.log('[GET /api/disputes/[id]] Fetching dispute from database...')
+    if (process.env.NODE_ENV === 'development') console.log('[GET /api/disputes/[id]] Fetching dispute from database...')
     let dispute
     try {
       dispute = await prisma.dispute.findUnique({
@@ -85,7 +85,7 @@ export async function GET(
       throw dbError // Re-throw to be caught by outer catch
     }
 
-    console.log('[GET /api/disputes/[id]] Dispute found:', !!dispute)
+    if (process.env.NODE_ENV === 'development') console.log('[GET /api/disputes/[id]] Dispute found:', !!dispute)
     
     if (!dispute) {
       return NextResponse.json(
@@ -95,7 +95,7 @@ export async function GET(
     }
 
     // Verifica autorizzazione
-    console.log('[GET /api/disputes/[id]] Checking authorization...')
+    if (process.env.NODE_ENV === 'development') console.log('[GET /api/disputes/[id]] Checking authorization...')
     const isInvolved = 
       dispute.openedById === user.id ||
       dispute.transaction.userAId === user.id || 

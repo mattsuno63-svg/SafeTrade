@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import QRCode from 'qrcode'
 import { handleApiError } from '@/lib/api-error'
+import { generateSlotQRToken } from '@/lib/vault/qr-generator'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/vault/cases/[id]/qr-batch
- * Genera QR codes per tutti gli slot di una teca (per stampa etichette)
+ * Genera QR codes per tutti i 30 slot della teca (per stampa etichette).
+ * Genera qrToken on-the-fly per slot che non ce l'hanno.
  */
 export async function GET(
   request: NextRequest,
@@ -49,20 +51,29 @@ export async function GET(
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-    // Generate QR codes for all slots
+    // Ensure all 30 slots have qrToken; generate and persist if missing
+    for (const slot of case_.slots) {
+      if (!slot.qrToken) {
+        const qrToken = generateSlotQRToken(caseId, slot.slotCode)
+        await prisma.vaultCaseSlot.update({
+          where: { id: slot.id },
+          data: { qrToken },
+        })
+        ;(slot as { qrToken: string }).qrToken = qrToken
+      }
+    }
+
+    // Generate QR codes for all 30 slots
     const qrCodes = await Promise.all(
       case_.slots.map(async (slot) => {
-        if (!slot.qrToken) {
-          return null
-        }
-
+        const token = slot.qrToken!
         const qrPayload = {
           type: 'VAULT_SLOT',
           slotId: slot.id,
           slotCode: slot.slotCode,
           caseId: slot.caseId,
-          qrToken: slot.qrToken,
-          scanUrl: `${baseUrl}/scan/${slot.qrToken}`,
+          qrToken: token,
+          scanUrl: `${baseUrl}/scan/${token}`,
         }
 
         const qrData = await QRCode.toDataURL(JSON.stringify(qrPayload), {
@@ -77,7 +88,7 @@ export async function GET(
         return {
           slotId: slot.id,
           slotCode: slot.slotCode,
-          qrToken: slot.qrToken,
+          qrToken: token,
           qrData,
           status: slot.status,
         }
@@ -87,7 +98,7 @@ export async function GET(
     return NextResponse.json({
       caseId: case_.id,
       caseLabel: case_.label,
-      qrCodes: qrCodes.filter((qr) => qr !== null),
+      qrCodes,
     })
   } catch (error) {
     console.error('Error generating batch QR codes:', error)

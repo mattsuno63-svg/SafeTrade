@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { handleApiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -106,15 +107,8 @@ export async function POST(
     }
 
     return NextResponse.json({ data: updated }, { status: 200 })
-  } catch (error: any) {
-    console.error('Error confirming payment:', error)
-    return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-      },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error, 'ConfirmPayment')
   }
 }
 

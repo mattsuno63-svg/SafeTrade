@@ -22,6 +22,7 @@ interface SlotInfo {
     priceFinal: number | null
     photos: string[]
     status: string
+    listingId?: string | null
   } | null
   shop: {
     id: string
@@ -237,7 +238,14 @@ export default function PublicScanPage() {
                   <div className="flex flex-col gap-4">
                     {slotInfo.item && slotInfo.item.status === 'LISTED_ONLINE' ? (
                       <Button
-                        onClick={() => slotInfo.item && router.push(`/vault/item/${slotInfo.item.id}`)}
+                        onClick={() => {
+                          const listingId = slotInfo.item?.listingId
+                          if (listingId) {
+                            router.push(`/listings/${listingId}`)
+                          } else {
+                            router.push('/listings?isVault=true')
+                          }
+                        }}
                         className="w-full flex items-center justify-center gap-3 rounded-2xl h-16 bg-accent-orange hover:bg-accent-orange/90 text-white text-lg font-bold transition-all shadow-xl shadow-accent-orange/20"
                       >
                         <span>🛒</span>

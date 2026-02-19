@@ -145,12 +145,14 @@ export default function MerchantShopPage() {
 
   const fetchShop = useCallback(async () => {
     try {
-      console.log('🔄 Fetching shop...')
+      if (process.env.NODE_ENV === 'development') console.log('🔄 Fetching shop...')
       const res = await fetch('/api/merchant/shop')
       if (res.ok) {
         const data = await res.json()
-        console.log('✅ Shop data loaded:', data)
-        console.log('🔗 Shop slug:', data.slug)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Shop data loaded:', data)
+          console.log('🔗 Shop slug:', data.slug)
+        }
         setShop(data)
         // Fetch stats
         await fetchStats(data.id)
@@ -160,8 +162,7 @@ export default function MerchantShopPage() {
         }
         setLoading(false)
       } else if (res.status === 404) {
-        // Shop doesn't exist - redirect to setup
-        console.log('❌ Shop not found, redirecting to setup')
+        if (process.env.NODE_ENV === 'development') console.log('❌ Shop not found, redirecting to setup')
         setLoading(false)
         router.push('/merchant/setup')
         return
@@ -176,25 +177,22 @@ export default function MerchantShopPage() {
   }, [router])
 
   useEffect(() => {
-    console.log('🔍 useEffect triggered:', { userLoading, user: !!user, roleLoading, userRole })
+    if (process.env.NODE_ENV === 'development') console.log('🔍 useEffect triggered:', { userLoading, user: !!user, roleLoading, userRole })
 
-    // Check if user is authenticated
     if (!userLoading && !user) {
-      console.log('❌ No user, redirecting to login')
+      if (process.env.NODE_ENV === 'development') console.log('❌ No user, redirecting to login')
       router.push('/login')
       return
     }
 
-    // Check role after it's loaded
     if (!roleLoading && userRole && userRole !== 'MERCHANT' && userRole !== 'ADMIN') {
-      console.log('❌ Wrong role:', userRole, 'redirecting to apply')
+      if (process.env.NODE_ENV === 'development') console.log('❌ Wrong role:', userRole, 'redirecting to apply')
       router.push('/merchant/apply')
       return
     }
 
-    // Fetch shop if user is authenticated and has correct role
     if (!userLoading && !roleLoading && user && (userRole === 'MERCHANT' || userRole === 'ADMIN')) {
-      console.log('✅ Conditions met, fetching shop')
+      if (process.env.NODE_ENV === 'development') console.log('✅ Conditions met, fetching shop')
       fetchShop()
     }
   }, [user, userLoading, userRole, roleLoading, router, fetchShop])

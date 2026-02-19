@@ -389,7 +389,7 @@ export default function MerchantVaultSalesPage() {
                   </thead>
                   <tbody className="divide-y divide-primary/5">
                     {sales.map((sale) => {
-                      const latestSplit = sale.splits[sale.splits.length - 1]
+                      const latestSplit = sale.splits?.length ? sale.splits[sale.splits.length - 1] : null
                       const statusBadge = getStatusBadge(latestSplit?.status || 'PENDING')
                       return (
                         <tr
@@ -502,7 +502,7 @@ export default function MerchantVaultSalesPage() {
                         </p>
                       )}
                       <p>
-                        <span className="font-bold">Proprietario:</span> {selectedSale.item.owner.name || selectedSale.item.owner.email}
+                        <span className="font-bold">Proprietario:</span> {selectedSale.item.owner?.name || selectedSale.item.owner?.email || '—'}
                       </p>
                       <p>
                         <span className="font-bold">Data Vendita:</span> {formatDate(selectedSale.soldAt)}

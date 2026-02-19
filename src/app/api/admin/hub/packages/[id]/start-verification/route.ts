@@ -68,8 +68,7 @@ export async function POST(
       },
     })
 
-    // Log action
-    console.log(`[VERIFIED_ESCROW] Verification started by ${user.role} ${user.id} for transaction ${id}`)
+    if (process.env.NODE_ENV === 'development') console.log(`[VERIFIED_ESCROW] Verification started by ${user.role} ${user.id} for transaction ${id}`)
 
     return NextResponse.json({
       success: true,

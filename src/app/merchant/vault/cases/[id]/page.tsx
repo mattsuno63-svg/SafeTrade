@@ -7,6 +7,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Loader2 } from 'lucide-react'
 import { useUser } from '@/hooks/use-user'
+import { canSellPhysically, canListOnline } from '@/lib/vault/state-machine'
+import type { VaultItemStatus } from '@prisma/client'
 
 interface Slot {
   id: string
@@ -46,7 +48,7 @@ export default function VaultCaseDetailPage() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState<'all' | 'FREE' | 'OCCUPIED'>('all')
-  const [filterGame, setFilterGame] = useState<string | null>(null)
+  const [filterGame, setFilterGame] = useState<'POKEMON' | 'MAGIC' | 'YUGIOH' | 'ONEPIECE' | null>(null)
 
   const fetchCase = useCallback(async () => {
     try {
@@ -328,22 +330,21 @@ export default function VaultCaseDetailPage() {
             >
               Liberi ({stats.free})
             </Button>
-            <Button
-              onClick={() => setFilterGame(filterGame === 'Pokemon' ? null : 'Pokemon')}
-              className={`px-4 py-2 glass-tile rounded-xl text-sm font-bold transition-all ${
-                filterGame === 'Pokemon' ? 'bg-primary/10 border-primary/20 border' : 'hover:bg-white/10'
-              }`}
-            >
-              Pokémon {filterGame === 'Pokemon' && '✕'}
-            </Button>
-            <Button
-              onClick={() => setFilterGame(filterGame === 'Magic' ? null : 'Magic')}
-              className={`px-4 py-2 glass-tile rounded-xl text-sm font-bold transition-all ${
-                filterGame === 'Magic' ? 'bg-primary/10 border-primary/20 border' : 'hover:bg-white/10'
-              }`}
-            >
-              Magic {filterGame === 'Magic' && '✕'}
-            </Button>
+            {(['POKEMON', 'MAGIC', 'YUGIOH', 'ONEPIECE'] as const).map((game) => (
+              <Button
+                key={game}
+                onClick={() => setFilterGame(filterGame === game ? null : game)}
+                className={`px-4 py-2 glass-tile rounded-xl text-sm font-bold transition-all ${
+                  filterGame === game ? 'bg-primary/10 border-primary/20 border' : 'hover:bg-white/10'
+                }`}
+              >
+                {game === 'POKEMON' && 'Pokémon'}
+                {game === 'MAGIC' && 'Magic'}
+                {game === 'YUGIOH' && 'Yu-Gi-Oh!'}
+                {game === 'ONEPIECE' && 'One Piece'}
+                {filterGame === game && ' ✕'}
+              </Button>
+            ))}
           </div>
 
           {/* 6x5 Matrix Grid */}
@@ -390,7 +391,7 @@ export default function VaultCaseDetailPage() {
                         </p>
                         <p className="text-xs font-bold line-clamp-1">{slot.item.name}</p>
                         <p className="text-[10px] text-primary font-medium">
-                          Prop: {slot.item.owner.name || 'N/A'}
+                          Prop: {slot.item.owner?.name ?? '—'}
                         </p>
                       </div>
                     ) : (
@@ -494,12 +495,30 @@ export default function VaultCaseDetailPage() {
 
               {/* Action Row (10%) */}
               <section className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-3">
+                {canSellPhysically(selectedSlot.item.status as VaultItemStatus) && (
+                  <Button 
+                    onClick={() => router.push('/merchant/vault/scan?tab=vendi')}
+                    className="w-full h-14 bg-primary text-white rounded-xl flex items-center justify-center gap-3 font-bold text-lg hover:brightness-110 transition-all shadow-xl shadow-primary/20"
+                  >
+                    <span>🛒</span>
+                    Vendi Fisico
+                  </Button>
+                )}
+                {canListOnline(selectedSlot.item.status as VaultItemStatus) && (
+                  <Button 
+                    onClick={() => router.push(`/merchant/vault/scan?tab=list-online`)}
+                    className="w-full h-12 glass-tile rounded-xl flex items-center justify-center gap-2 font-bold text-xs border-primary/30 hover:bg-primary/10"
+                  >
+                    <span>🌐</span>
+                    Lista Online
+                  </Button>
+                )}
                 <Button 
-                  onClick={() => router.push(`/merchant/vault/scan?tab=sell&itemId=${selectedSlot.item!.id}`)}
-                  className="w-full h-14 bg-primary text-white rounded-xl flex items-center justify-center gap-3 font-bold text-lg hover:brightness-110 transition-all shadow-xl shadow-primary/20"
+                  onClick={() => router.push(`/merchant/vault/scan?tab=sposta`)}
+                  className="w-full h-12 glass-tile rounded-xl flex items-center justify-center gap-2 font-bold text-xs hover:bg-white/5"
                 >
-                  <span>🛒</span>
-                  Vendi Fisico
+                  <span>↔️</span>
+                  Sposta Slot
                 </Button>
                 <div className="grid grid-cols-2 gap-3">
                   <Button 

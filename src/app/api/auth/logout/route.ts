@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       })
     })
 
-    console.log('[API /auth/logout] Cleared cookies:', supabaseCookies.map(c => c.name).join(', '))
+    if (process.env.NODE_ENV === 'development') console.log('[API /auth/logout] Cleared cookies:', supabaseCookies.map(c => c.name).join(', '))
 
     return response
   } catch (error) {
