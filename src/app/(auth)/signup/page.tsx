@@ -43,13 +43,14 @@ export default function SignupPage() {
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
 
+  // In browser: sempre origin corrente (mai localhost in produzione)
   const getRedirectUrl = () => {
-    const base =
-      process.env.NEXT_PUBLIC_SITE_URL && typeof window !== 'undefined'
-        ? process.env.NEXT_PUBLIC_SITE_URL
-        : typeof window !== 'undefined'
-          ? window.location.origin
-          : ''
+    if (typeof window !== 'undefined') {
+      const origin = window.location.origin.replace(/\/$/, '')
+      return `${origin}/auth/callback`
+    }
+    const base = process.env.NEXT_PUBLIC_SITE_URL || ''
+    if (!base || base.includes('localhost')) return ''
     return `${base.replace(/\/$/, '')}/auth/callback`
   }
 

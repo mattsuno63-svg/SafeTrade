@@ -74,19 +74,21 @@ function buildSecurityHeaders(isDev: boolean): Record<string, string> {
 // ────────────────────────────────────────────────────────────────
 
 function getAllowedOrigins(request: NextRequest): string[] {
-  const host = request.headers.get('host') || 'localhost:3000'
+  // Usa l'host della request (mai localhost se l'utente è sul web)
+  const requestUrl = new URL(request.url)
+  const host = requestUrl.host || request.headers.get('host') || 'localhost:3000'
   const origins = [
-    `https://${host}`,
-    `http://${host}`,
-  ]
-  // Aggiungi APP_URL da env se configurato (utile per Vercel preview deploys)
+    `${requestUrl.protocol}//${host}`,
+    requestUrl.origin,
+  ].filter(Boolean)
+  const unique = [...new Set(origins)]
   const appUrl = process.env.NEXT_PUBLIC_APP_URL
-  if (appUrl) {
+  if (appUrl && !appUrl.includes('localhost')) {
     try {
-      origins.push(new URL(appUrl).origin)
-    } catch { /* ignore malformed URL */ }
+      unique.push(new URL(appUrl).origin)
+    } catch { /* ignore */ }
   }
-  return origins
+  return unique
 }
 
 /**

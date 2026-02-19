@@ -49,7 +49,7 @@ export async function GET(
       }
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const baseUrl = new URL(request.url).origin
 
     // Ensure all 30 slots have qrToken; generate and persist if missing
     for (const slot of case_.slots) {

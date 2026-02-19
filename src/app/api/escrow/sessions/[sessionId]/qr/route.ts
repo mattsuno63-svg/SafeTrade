@@ -105,7 +105,7 @@ export async function GET(
 
     // Crea il payload del QR code
     // URL che punta alla pagina di verifica per il merchant
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const baseUrl = new URL(request.url).origin
     const qrPayload = {
       type: 'SAFETRADE_ESCROW',
       sessionId: session.id,

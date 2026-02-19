@@ -69,7 +69,7 @@ export async function GET(
     }
 
     // Create QR payload
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const baseUrl = new URL(request.url).origin
     const qrPayload = {
       type: 'VAULT_SLOT',
       slotId: slot.id,

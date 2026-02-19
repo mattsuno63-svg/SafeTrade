@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,9 +10,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Header } from '@/components/layout/Header'
 import { useToast } from '@/hooks/use-toast'
 import { createClient } from '@/lib/supabase/client'
+import { Loader2 } from 'lucide-react'
 
-export default function LoginPage() {
+function LoginFallback() {
+  return (
+    <div className="min-h-screen bg-background-light text-text-primary dark:bg-background-dark dark:text-white font-display">
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-[10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-400/5 blur-[120px]"></div>
+      </div>
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center py-12 px-4">
+          <Card className="glass-panel w-full max-w-md rounded-3xl p-8">
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          </Card>
+        </main>
+      </div>
+    </div>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -20,13 +43,20 @@ export default function LoginPage() {
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
 
+  const redirectTo = searchParams.get('redirectTo') || ''
+
+  // In browser: sempre origin corrente (mai localhost in produzione)
   const getRedirectUrl = () => {
-    const base =
-      process.env.NEXT_PUBLIC_SITE_URL && typeof window !== 'undefined'
-        ? process.env.NEXT_PUBLIC_SITE_URL
-        : typeof window !== 'undefined'
-          ? window.location.origin
-          : ''
+    if (typeof window !== 'undefined') {
+      const origin = window.location.origin.replace(/\/$/, '')
+      const callback = `${origin}/auth/callback`
+      if (redirectTo && redirectTo.startsWith('/')) {
+        return `${callback}?next=${encodeURIComponent(redirectTo)}`
+      }
+      return callback
+    }
+    const base = process.env.NEXT_PUBLIC_SITE_URL || ''
+    if (!base || base.includes('localhost')) return ''
     return `${base.replace(/\/$/, '')}/auth/callback`
   }
 
@@ -188,10 +218,12 @@ export default function LoginPage() {
       // Small delay to ensure everything is saved
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // CRITICAL: Use window.location.href for full page reload
-      // This ensures middleware reads cookies and useUser reads localStorage
-      if (process.env.NODE_ENV === 'development') console.log('[Login] 🔄 Redirecting to /dashboard')
-      window.location.href = '/dashboard'
+      // Redirect a redirectTo se presente (es. /vault), altrimenti dashboard
+      const target = (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//'))
+        ? redirectTo
+        : '/dashboard'
+      if (process.env.NODE_ENV === 'development') console.log('[Login] 🔄 Redirecting to', target)
+      window.location.href = target
     } catch (err: any) {
       console.error('[Login] Error caught', err)
       setError('An error occurred. Please try again.')
@@ -344,3 +376,10 @@ export default function LoginPage() {
   )
 }
 
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginForm />
+    </Suspense>
+  )
+}
