@@ -1,10 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Sharp per upload/ottimizzazione immagini (raccomandato per Vercel)
-  serverExternalPackages: ['sharp'],
-  // Disabilita output file tracing per evitare RangeError con micromatch
-  // Questo è un workaround noto per problemi di build su Vercel
-  outputFileTracing: false,
   images: {
     remotePatterns: [
       {
@@ -35,6 +30,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // Next 14: sharp come external (in Next 15 è serverExternalPackages in root)
+    serverComponentsExternalPackages: ['sharp'],
   },
   webpack: (config, { isServer }) => {
     // Assicurati che Sharp non venga incluso nel bundle client-side

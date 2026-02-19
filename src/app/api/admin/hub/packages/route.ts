@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
-import { SafeTradeStatus, HubPackageStatus } from '@prisma/client'
+export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/admin/hub/packages
@@ -87,6 +87,9 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error fetching packages:', error)
+    if (error?.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     return NextResponse.json(
       { error: 'Errore interno del server' },
       { status: 500 }
