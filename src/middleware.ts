@@ -38,7 +38,7 @@ function buildSecurityHeaders(isDev: boolean): Record<string, string> {
     // Tailwind/styled-jsx usano inline styles
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     // Immagini: Supabase storage, Unsplash, Google, PokemonTCG, Cloudinary
-    "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://lh3.googleusercontent.com https://images.pokemontcg.io https://res.cloudinary.com",
+    "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://img.freepik.com https://lh3.googleusercontent.com https://images.pokemontcg.io https://res.cloudinary.com",
     // Font
     "font-src 'self' data: https://fonts.gstatic.com",
     // Connect: Supabase REST + Realtime WS

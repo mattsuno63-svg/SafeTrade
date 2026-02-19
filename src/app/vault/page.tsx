@@ -6,7 +6,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useUser } from '@/hooks/use-user'
 import { Header } from '@/components/layout/Header'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 
@@ -64,10 +63,10 @@ export default function VaultDashboardPage() {
     return () => clearTimeout(t)
   }, [])
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (showSpinner = true) => {
     try {
-      setLoading(true)
-      
+      if (showSpinner) setLoading(true)
+
       // Fetch deposits
       const depositsRes = await fetch('/api/vault/deposits')
       if (depositsRes.ok) {
@@ -106,6 +105,8 @@ export default function VaultDashboardPage() {
     }
   }, [user?.id])
 
+  const hasData = deposits.length > 0 || items.length > 0
+
   useEffect(() => {
     if (!userLoading && !user && authCheckMinElapsed) {
       router.push('/login')
@@ -113,9 +114,10 @@ export default function VaultDashboardPage() {
     }
 
     if (user) {
-      fetchData()
+      // Evita di rimettere loading a true se abbiamo già dati (es. re-run effect / Realtime)
+      fetchData(!hasData)
     }
-  }, [user, userLoading, authCheckMinElapsed, router, fetchData])
+  }, [user, userLoading, authCheckMinElapsed, router, fetchData, hasData])
 
   const getStatusProgress = (deposit: Deposit) => {
     const statuses = ['CREATED', 'RECEIVED', 'IN_REVIEW', 'ACCEPTED', 'DISTRIBUTED']
@@ -185,7 +187,7 @@ export default function VaultDashboardPage() {
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
               <span className="material-symbols-outlined text-lg">error</span>
               {error}
-              <button onClick={() => { setError(null); fetchData() }} className="ml-auto text-red-500 hover:text-red-700 font-bold text-xs">
+              <button onClick={() => { setError(null); fetchData(true) }} className="ml-auto text-red-500 hover:text-red-700 font-bold text-xs">
                 Riprova
               </button>
             </div>
