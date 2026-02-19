@@ -57,6 +57,12 @@ export default function VaultDashboardPage() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [authCheckMinElapsed, setAuthCheckMinElapsed] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setAuthCheckMinElapsed(true), 1800)
+    return () => clearTimeout(t)
+  }, [])
 
   const fetchData = useCallback(async () => {
     try {
@@ -101,7 +107,7 @@ export default function VaultDashboardPage() {
   }, [user?.id])
 
   useEffect(() => {
-    if (!userLoading && !user) {
+    if (!userLoading && !user && authCheckMinElapsed) {
       router.push('/login')
       return
     }
@@ -109,7 +115,7 @@ export default function VaultDashboardPage() {
     if (user) {
       fetchData()
     }
-  }, [user, userLoading, router, fetchData])
+  }, [user, userLoading, authCheckMinElapsed, router, fetchData])
 
   const getStatusProgress = (deposit: Deposit) => {
     const statuses = ['CREATED', 'RECEIVED', 'IN_REVIEW', 'ACCEPTED', 'DISTRIBUTED']

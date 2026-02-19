@@ -1,12 +1,12 @@
 /**
  * Utility to sync session from cookies to localStorage
  * This is needed because createBrowserClient can't read httpOnly cookies
+ * @param supabaseClient - Optional; if provided, setSession is called on this instance (same client that has onAuthStateChange)
  */
+import type { SupabaseClient } from '@supabase/supabase-js'
 
-export async function syncSessionFromCookies() {
+export async function syncSessionFromCookies(supabaseClient?: SupabaseClient) {
   try {
-    // Call an API endpoint that returns the session
-    // This will use server-side cookies
     const res = await fetch('/api/auth/session', {
       method: 'GET',
       credentials: 'include',
@@ -17,13 +17,10 @@ export async function syncSessionFromCookies() {
     }
 
     const data = await res.json()
-    
+
     if (data.session) {
-      // Import client dynamically to avoid circular dependencies
-      const { createClient } = await import('@/lib/supabase/client')
-      const supabase = createClient()
-      
-      // Set session in browser client (saves to localStorage)
+      const supabase = supabaseClient ?? (await import('@/lib/supabase/client')).createClient()
+
       const { error } = await supabase.auth.setSession({
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token,
