@@ -20,6 +20,16 @@ export default function LoginPage() {
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
 
+  const getRedirectUrl = () => {
+    const base =
+      process.env.NEXT_PUBLIC_SITE_URL && typeof window !== 'undefined'
+        ? process.env.NEXT_PUBLIC_SITE_URL
+        : typeof window !== 'undefined'
+          ? window.location.origin
+          : ''
+    return `${base.replace(/\/$/, '')}/auth/callback`
+  }
+
   const handleOAuthLogin = async (provider: 'google' | 'apple') => {
     setOauthLoading(provider)
     setError('')
@@ -29,7 +39,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: getRedirectUrl(),
         },
       })
 

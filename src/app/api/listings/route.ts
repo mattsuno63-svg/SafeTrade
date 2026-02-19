@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
     const game = searchParams.get('game') as CardGame | null
     const condition = searchParams.get('condition') as CardCondition | null
     const listingType = searchParams.get('type') // SALE, TRADE, BOTH
-    const minPrice = searchParams.get('minPrice') ? parseFloat(searchParams.get('minPrice')!) : null
-    const maxPrice = searchParams.get('maxPrice') ? parseFloat(searchParams.get('maxPrice')!) : null
-    const query = searchParams.get('q') || ''
+    const minPriceRaw = searchParams.get('minPrice')
+    const maxPriceRaw = searchParams.get('maxPrice')
+    const queryRaw = searchParams.get('q') || ''
     const city = searchParams.get('city') || ''
     const sellerType = searchParams.get('sellerType') || ''
     const locationFilter = searchParams.get('locationFilter') as 'locale' | 'regionale' | 'nazionale' | null
@@ -99,6 +99,37 @@ export async function GET(request: NextRequest) {
         where.user.role = sellerType
       }
     }
+    const minPrice = minPriceRaw != null ? Number(minPriceRaw) : null
+    const maxPrice = maxPriceRaw != null ? Number(maxPriceRaw) : null
+
+    // Basic SQL-injection style pattern guard: if the raw query clearly looks like SQL, reject it early
+    if (queryRaw && /drop\s+table|;|--/i.test(queryRaw)) {
+      return NextResponse.json(
+        { error: 'Invalid search query' },
+        { status: 400 }
+      )
+    }
+
+    // Hard-limit query length and strip obvious meta chars to avoid expensive patterns
+    const query = queryRaw
+      .slice(0, 120)
+      .replace(/['";]/g, '')
+      .trim()
+
+    if ((minPriceRaw && Number.isNaN(minPrice)) || (maxPriceRaw && Number.isNaN(maxPrice))) {
+      return NextResponse.json(
+        { error: 'Invalid price filter' },
+        { status: 400 }
+      )
+    }
+
+    if (queryRaw.length > 0 && query.length === 0) {
+      return NextResponse.json(
+        { error: 'Invalid search query' },
+        { status: 400 }
+      )
+    }
+
     if (minPrice !== null || maxPrice !== null) {
       where.price = {}
       if (minPrice !== null) where.price.gte = minPrice

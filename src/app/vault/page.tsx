@@ -57,53 +57,70 @@ export default function VaultDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [authCheckMinElapsed, setAuthCheckMinElapsed] = useState(false)
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
 
   useEffect(() => {
     const t = setTimeout(() => setAuthCheckMinElapsed(true), 1800)
     return () => clearTimeout(t)
   }, [])
 
+  // Evita caricamento infinito: dopo 12s mostra messaggio di fallback
+  useEffect(() => {
+    if (!(userLoading || loading)) return
+    const t = setTimeout(() => setLoadingTimeout(true), 12000)
+    return () => clearTimeout(t)
+  }, [userLoading, loading])
+  useEffect(() => {
+    if (!(userLoading || loading)) setLoadingTimeout(false)
+  }, [userLoading, loading])
+
   const fetchData = useCallback(async (showSpinner = true) => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
     try {
       if (showSpinner) setLoading(true)
+      setError(null)
 
-      // Fetch deposits
-      const depositsRes = await fetch('/api/vault/deposits')
+      const depositsRes = await fetch('/api/vault/deposits', { signal: controller.signal })
+      if (depositsRes.status === 401) {
+        router.push('/login?redirectTo=/vault')
+        return
+      }
       if (depositsRes.ok) {
         const depositsData = await depositsRes.json()
         setDeposits(depositsData.data || [])
       }
 
-      // Fetch items (only if user ID is available)
       if (!user?.id) return
-      const itemsRes = await fetch(`/api/vault/items?ownerId=${user.id}`)
+      const itemsRes = await fetch(`/api/vault/items?ownerId=${user.id}`, { signal: controller.signal })
+      if (itemsRes.status === 401) {
+        router.push('/login?redirectTo=/vault')
+        return
+      }
       if (itemsRes.ok) {
         const itemsData = await itemsRes.json()
         const allItems: VaultItem[] = itemsData.data || []
         setItems(allItems)
-        
-        // Calculate stats
-        const totalValue = allItems.reduce((sum: number, item: VaultItem) => 
+        const totalValue = allItems.reduce((sum: number, item: VaultItem) =>
           sum + (item.priceFinal || 0), 0)
         const totalItems = allItems.length
-        // Calculate total sales from items with SOLD status
         const soldItems = allItems.filter((item: VaultItem) => item.status === 'SOLD')
-        const totalSales = soldItems.reduce((sum: number, item: VaultItem) => 
+        const totalSales = soldItems.reduce((sum: number, item: VaultItem) =>
           sum + (item.priceFinal || 0), 0)
-        
-        setStats({
-          totalValue,
-          totalItems,
-          totalSales,
-        })
+        setStats({ totalValue, totalItems, totalSales })
       }
-    } catch (err) {
-      console.error('Error fetching vault data:', err)
-      setError('Errore nel caricamento dei dati. Riprova.')
+    } catch (err: unknown) {
+      if ((err as { name?: string })?.name === 'AbortError') {
+        setError('Caricamento annullato (timeout). Riprova.')
+      } else {
+        console.error('Error fetching vault data:', err)
+        setError('Errore nel caricamento dei dati. Riprova.')
+      }
     } finally {
+      clearTimeout(timeoutId)
       setLoading(false)
     }
-  }, [user?.id])
+  }, [user?.id, router])
 
   const hasData = deposits.length > 0 || items.length > 0
 
@@ -143,8 +160,24 @@ export default function VaultDashboardPage() {
   if (userLoading || loading) {
     return (
       <div className="min-h-screen bg-background-light dark:bg-background-dark font-display">
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center min-h-screen gap-6 px-4">
+          {loadingTimeout ? (
+            <>
+              <p className="text-center text-muted-foreground max-w-sm">
+                Il caricamento sta impiegando più del previsto. Verifica la connessione o accedi di nuovo.
+              </p>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => router.push('/login?redirectTo=/vault')}>
+                  Accedi
+                </Button>
+                <Button onClick={() => { setLoadingTimeout(false); setLoading(true); if (user) fetchData(true); }}>
+                  Riprova
+                </Button>
+              </div>
+            </>
+          ) : (
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          )}
         </div>
       </div>
     )
